@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f5ef">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="트리거 드릴">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<title>학원 트리거 드릴</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
+
+/* 원래 트리거 드릴과 같은 신문 느낌: 종이색 바탕, 먹색 글자, 얇은 괘선, 명조 제목(Noto Serif KR), 고딕 UI. 640px 한 칼럼. */
+:root{
+  --paper:#f7f5ef; --sheet:#fdfcf8; --ink:#141413; --muted:#5e5d58; --faint:#8a8880; --rule:#dcd8ce; --rule-strong:#141413;
+  --omr:#b5532f; --omr-soft:#f3e4dc; --good:#2f6b45; --good-soft:#e5efe6; --bad:#a3352a; --bad-soft:#f5e1dd;
+  --track:#e7e3d9; --mid:#9a6a14; --hover:#efece4;
+  --f-serif:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",Georgia,serif;
+  --f-body:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#161513; --sheet:#1c1b18; --ink:#ecebe5; --muted:#a6a49c; --faint:#7d7b74; --rule:#34322d; --rule-strong:#ecebe5;
+  --omr:#e3906b; --omr-soft:#3a2a22; --good:#79c193; --good-soft:#1f2f24; --bad:#e8826f; --bad-soft:#3a2420;
+  --track:#2b2a26; --mid:#d9a957; --hover:#23221f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#161513; --sheet:#1c1b18; --ink:#ecebe5; --muted:#a6a49c; --faint:#7d7b74; --rule:#34322d; --rule-strong:#ecebe5;
+  --omr:#e3906b; --omr-soft:#3a2a22; --good:#79c193; --good-soft:#1f2f24; --bad:#e8826f; --bad-soft:#3a2420;
+  --track:#2b2a26; --mid:#d9a957; --hover:#23221f; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:18px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:14px 28px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+p{margin:0}
+.label{font-size:11.5px;letter-spacing:.12em;color:var(--muted);font-weight:600}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* 마스트헤드 */
+.brand{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:6px}
+.brand .dateline{width:100%;display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted);letter-spacing:.02em}
+.brand h1{margin:0;font-family:var(--f-serif);font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.15;text-align:center}
+.brand .rule2{width:100%;border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule-strong);height:4px;margin-top:10px}
+.lede{margin:0;color:var(--muted);font-size:14.5px;font-family:var(--f-serif)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--rule)}
+.stat{padding:4px 4px 14px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center}
+.stat+.stat{border-left:1px solid var(--rule)}
+.stat b{font-family:var(--f-serif);font-size:28px;font-weight:700;line-height:1.15}
+.stat b small{font-size:14px}
+.stat>small{font-size:12px;color:var(--muted)}
+.stat.alert b{color:var(--omr)}
+
+/* 입장 양식 */
+.form{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule-strong)}
+.field{display:grid;grid-template-columns:84px 1fr;align-items:center;gap:12px;border-bottom:1px solid var(--rule);padding:6px 0}
+.field span{font-size:13px;color:var(--muted);font-weight:600}
+.field input{border:0;background:transparent;padding:10px 0;font:inherit;font-size:16px;color:var(--ink);min-width:0;width:100%}
+.field input::placeholder{color:var(--faint);font-size:14.5px}
+.field input:focus{outline:none}
+.field:focus-within{border-bottom-color:var(--ink)}
+.grades{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--ink);border-radius:3px;overflow:hidden}
+.grades button{border:0;background:none;padding:8px 0;font-size:14px;cursor:pointer}
+.grades button+button{border-left:1px solid var(--ink)}
+.grades button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.err{color:var(--bad);font-size:13.5px;margin:0}
+.hint{font-size:12.5px;color:var(--faint);text-align:center}
+.hint b{font-family:var(--f-mono);color:var(--muted)}
+
+/* 홈 */
+.seg{display:flex;border:1px solid var(--ink);border-radius:3px;overflow:hidden;width:max-content;max-width:100%;overflow-x:auto;background:transparent}
+.seg button{border:0;background:none;padding:6px 13px;cursor:pointer;font-size:14px;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-bottom:1px solid var(--rule)}
+.tabs button{border:0;background:none;padding:8px 2px 10px;font-family:var(--f-serif);font-size:17px;font-weight:600;color:var(--faint);cursor:pointer;
+  text-align:center;line-height:1.3;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs button:disabled{cursor:default}
+.tabs button small{font-family:var(--f-body);font-size:11px;font-weight:500}
+.quick{display:flex;gap:18px;overflow-x:auto;scrollbar-width:none;margin-top:-6px}
+.q{flex:none;border:0;background:none;padding:2px 0;font-size:13.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:var(--muted);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--rule)}
+.q i{width:7px;height:7px;border-radius:50%}
+.tiles{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+@media (min-width:560px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.tile{border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:transparent;border-radius:0;padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer;min-height:104px;min-width:0}
+.tile:hover{background:var(--hover)}
+.tile[aria-pressed="true"]{background:var(--sheet);box-shadow:inset 0 0 0 2px var(--ink)}
+.tile .tn{font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;gap:6px;letter-spacing:.04em}
+.tile b{font-family:var(--f-serif);font-size:15px;font-weight:600;line-height:1.35;flex:1}
+.tile .tc{font-size:11.5px;color:var(--faint);display:flex;justify-content:space-between;gap:6px}
+.tile .tc em{font-style:normal;color:var(--muted);white-space:nowrap}
+.mbar{display:flex;height:3px;background:var(--track);overflow:hidden}
+.mbar>span{display:block;height:100%;background:var(--omr)}
+.mbar>.l2{opacity:.35}
+.selnote{margin:0;font-size:13px;color:var(--muted)}
+.actions{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:10px}
+.btn{border:1px solid var(--ink);border-radius:4px;padding:15px;font-size:16px;font-weight:600;letter-spacing:.01em;cursor:pointer;background:var(--ink);color:var(--paper);width:100%}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn.alt b{color:var(--omr);font-family:var(--f-mono);font-weight:600}
+.btn:disabled{opacity:.35;cursor:default}
+.linkrow{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:12px}
+.linkrow button{background:none;border:0;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);padding:2px}
+
+/* 드릴 */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.quit{background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 0}
+.combo{font-family:var(--f-mono);font-size:13.5px;color:var(--muted)}
+.combo b{color:var(--omr);font-size:15px}
+.track{height:2px;background:var(--track);overflow:hidden}
+.fill{height:100%;background:var(--ink)}
+.sheet{display:flex;flex-direction:column;gap:16px}
+.meta{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);letter-spacing:.06em}
+.meta .unit{color:var(--omr);font-weight:600}
+.trigger{font-family:var(--f-serif);font-size:20px;font-weight:500;line-height:1.7;margin:0;letter-spacing:-.005em}
+.passage{font-family:var(--f-serif);font-size:16px;line-height:1.95;white-space:pre-line;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 2px}
+.passage.poem{padding-left:22px;border-left:1px solid var(--rule);border-top:0;border-bottom:0;padding-block:4px}
+.ask{font-size:14px;color:var(--muted);text-align:center;font-family:var(--f-serif)}
+.opts{display:flex;flex-direction:column;margin:0;padding:0;list-style:none;border-top:1px solid var(--rule)}
+.opt{width:100%;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:14px 4px;cursor:pointer;font-size:15.5px;line-height:1.6}
+.opt:hover:not(:disabled){background:var(--hover)}
+.opt:disabled{cursor:default}
+.bub{width:22px;height:22px;border:1px solid var(--ink);border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;margin-top:2px}
+.opt.right{background:var(--good-soft)}
+.opt.right .bub{background:var(--good);border-color:var(--good);color:var(--paper)}
+.opt.wrong{background:var(--bad-soft)}
+.opt.wrong .bub{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.opt.dim{opacity:.6}
+.opt.sel{background:var(--hover)}
+.opt.sel .bub{background:var(--ink);color:var(--paper)}
+.opt.none{grid-template-columns:1fr;color:var(--muted);font-size:14px;font-style:italic;text-align:center}
+.multi-note{margin:0;padding:6px 0 8px;font-size:13.5px;color:var(--muted)}
+.multi-note b{color:var(--ink)}
+.verdict{display:flex;flex-direction:column;gap:6px;border-left:3px solid var(--good);padding:2px 0 2px 14px}
+.verdict.bad{border-color:var(--bad)}
+.verdict.mid{border-color:var(--mid)}
+.verdict h3{margin:0;font-family:var(--f-serif);font-size:18px;font-weight:700}
+.verdict p{font-size:15px;font-family:var(--f-serif)}
+.verdict .algo{font-size:12px;color:var(--muted);letter-spacing:.02em}
+.drill-actions{position:sticky;bottom:0;padding-block:12px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--paper) 75%,transparent)}
+.drill-actions .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* 결과 · 목록 */
+.score{display:flex;align-items:baseline;gap:10px;padding-top:6px;font-family:var(--f-serif)}
+.score b{font-size:64px;font-weight:700;line-height:1}
+.score span{color:var(--muted);font-size:18px}
+.rows{display:flex;flex-direction:column;border-top:1px solid var(--rule-strong)}
+.row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.row .mark{font-family:var(--f-mono);font-weight:600}
+.row .mark.o{color:var(--good)} .row .mark.x{color:var(--bad)} .row .mark.m{color:var(--mid)}
+.row .rq{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--f-serif)}
+.row .s{font-family:var(--f-mono);color:var(--muted);font-size:12.5px;white-space:nowrap}
+
+/* 선생님 화면 */
+.roster{display:flex;flex-direction:column;border-top:1px solid var(--rule-strong)}
+.stu{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 4px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer;width:100%}
+.stu:hover{background:var(--hover)}
+.stu .nm{font-family:var(--f-serif);font-size:16px;font-weight:600;min-width:0;display:flex;gap:8px;align-items:baseline}
+.stu .gr{font-family:var(--f-body);font-size:12px;color:var(--muted);font-weight:500}
+.stu .ex{font-family:var(--f-body);font-size:10.5px;color:var(--omr);border:1px solid currentColor;border-radius:2px;padding:0 4px;font-weight:500}
+.stu .pct{font-family:var(--f-mono);font-size:14px;text-align:right}
+.stu .pct.hi{color:var(--bad)} .stu .pct.md{color:var(--mid)}
+.stu .sub{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--faint)}
+.unitrow{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.unitrow .h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.unitrow .h b{font-family:var(--f-serif);font-size:15px;color:var(--ink)}
+.note{font-size:12.5px;color:var(--faint)}
+@media (min-width:700px){.trigger{font-size:21px}.opt{font-size:16px}.brand h1{font-size:44px}}
+@media (max-width:380px){.tabs button{font-size:15px}.grades button{font-size:12.5px}}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script>
+/* ===== 설정 =====
+   SUPA_URL·SUPA_KEY가 비어 있으면 데모 모드(이 브라우저에만 저장, 예시 문제·예시 학생)로 동작한다. */
+const SUPA_URL = 'https://clorhqiyjtutvzacumyk.supabase.co';
+const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
+const DEMO = !SUPA_URL;
+const DEMO_CODE = '0000', DEMO_PW = 'teacher';
+const GRADES = ['중1','중2','중3','고1','고2','고3'];
+const SUBJECTS = [{id:'kor', name:'국어', ready:true}, {id:'math', name:'수학', ready:false}];
+const UNITS = [
+  {id:'read', subj:'kor', name:'비문학 독해', tag:'독해'},
+  {id:'lit',  subj:'kor', name:'문학', tag:'문학'},
+  {id:'gram', subj:'kor', name:'문법', tag:'문법'}
+];
+
+/* ===== 예시 문제 (데모 모드 전용. 서버 모드에서는 DB의 cards 테이블에서 받아 온다)
+   grades: 보여 줄 학년, opts: 문제를 보고 '떠올려야 할 것' 후보, ans: 정답 번호(0부터, 여러 개 가능) */
+const SAMPLE_CARDS = [
+ {id:'g1',grades:['중1','중2'],unit:'gram',tag:'기본형·품사',
+  stem:'밑줄 친 말의 기본형과 품사를 쓰시오.',
+  passage:'동생이 사과를 [먹었다].',
+  opts:['어간과 어미를 나눠 기본형(어간+-다) 찾기','품사 분류 기준(형태·기능·의미) 적용하기','문장 성분(주어·목적어·서술어) 나누기','음운 변동 규칙 적용하기'],
+  ans:[0,1],
+  explain:'활용형에서 어간 \'먹-\'을 떼어 기본형 \'먹다\'를 찾고, 형태가 변하고 동작을 나타내므로 동사로 분류한다.'},
+ {id:'g2',grades:['중3','고1','고2','고3'],unit:'gram',tag:'음운 변동',
+  stem:'\'국물\'이 [궁물]로 발음되는 까닭을 설명하시오.',
+  passage:'',
+  opts:['음운 변동의 종류(교체·탈락·첨가·축약) 구분하기','비음화 조건(받침 ㄱ·ㄷ·ㅂ 뒤에 ㄴ·ㅁ) 확인하기','사잇소리 현상 떠올리기','품사 분류 기준 적용하기'],
+  ans:[0,1],
+  explain:'받침 ㄱ이 뒤의 비음 ㅁ 앞에서 비음 ㅇ으로 바뀌는 교체, 곧 비음화다.'},
+ {id:'g3',grades:['중2','중3','고1'],unit:'gram',tag:'홑문장·겹문장',
+  stem:'다음 문장이 홑문장인지 겹문장인지 판단하고, 그 근거를 쓰시오.',
+  passage:'나는 비가 오기를 기다렸다.',
+  opts:['주어-서술어 관계가 몇 번 나오는지 세기','안긴문장의 종류(명사절·관형절·부사절 등) 확인하기','높임법 실현 방식 찾기','시제 선어말 어미 찾기'],
+  ans:[0,1],
+  explain:'\'비가 오-\'와 \'나는 기다렸다\' 두 번의 주술 관계가 있고, \'비가 오기\'가 명사절로 안겨 있는 겹문장이다.'},
+ {id:'r1',grades:['중1','중2','중3'],unit:'read',tag:'중심 내용',
+  stem:'윗글의 중심 내용으로 가장 적절한 것은?',
+  passage:'꿀벌은 먹이를 찾으면 벌집으로 돌아와 춤을 춘다. 원을 그리는 춤은 먹이가 가까이 있다는 뜻이고, 8자를 그리며 꼬리를 흔드는 춤은 먹이가 멀리 있다는 뜻이다. 8자 춤에서 몸을 기울이는 각도는 해를 기준으로 한 먹이의 방향을, 꼬리를 흔드는 시간은 거리를 알려 준다. 이처럼 꿀벌의 춤은 동료에게 먹이의 위치를 전달하는 정교한 의사소통 수단이다.',
+  opts:['여러 번 반복되는 핵심어 찾기','문단의 첫 문장·끝 문장에서 글쓴이의 정리 찾기','선지의 낱말이 지문에 있는지만 확인하기','글쓴이의 감정이 드러난 표현 찾기'],
+  ans:[0,1],
+  explain:'반복되는 \'꿀벌의 춤\'과 끝 문장의 \'이처럼\' 정리가 중심 내용을 알려 준다. 낱말만 맞춰 보는 방식은 세부 내용 선지에 걸리기 쉽다.'},
+ {id:'r2',grades:['중1','중2','중3','고1'],unit:'read',tag:'전개 방식',
+  stem:'윗글의 서술 방식으로 가장 적절한 것은?',
+  passage:'종이책은 손으로 넘기는 감각과 여백에 메모하는 즐거움이 있지만, 무겁고 보관할 자리를 차지한다. 전자책은 수백 권을 기기 하나에 담을 수 있고 글자 크기도 바꿀 수 있지만, 화면을 오래 보면 눈이 쉽게 피로해진다.',
+  opts:['글의 전개 방식(비교·대조, 인과, 예시 등) 파악하기','두 대상의 공통점과 차이점 표시하기','낯선 어휘의 뜻 추론하기','화자의 정서 변화 따라가기'],
+  ans:[0,1],
+  explain:'종이책과 전자책의 장단점을 나란히 놓는 비교·대조 구조다. 두 대상의 차이를 표시하면 선지를 빠르게 거를 수 있다.'},
+ {id:'r3',grades:['고1','고2','고3'],unit:'read',tag:'추론(적절하지 않은)',
+  stem:'윗글을 읽고 추론한 내용으로 적절하지 않은 것은?',
+  passage:'도시의 가로수는 여름철 그늘을 만들어 보행자의 체감 온도를 낮춘다. 또한 잎이 미세먼지를 붙잡아 공기를 맑게 하는 데 도움을 준다. 그러나 가로수의 뿌리가 보도블록을 들어 올리거나, 가을철 낙엽이 배수구를 막는 문제도 생긴다.',
+  opts:['발문의 \'적절하지 않은\'에 표시하고 고를 기준 정하기','선지마다 지문의 근거 문장 찾아 대응하기','글쓴이의 주장이 옳은지 내 생각으로 판단하기','지문에서 가장 긴 문장부터 읽기'],
+  ans:[0,1],
+  explain:'추론 문제도 근거는 지문 안에 있다. 발문 조건을 먼저 표시하고, 선지마다 근거 문장을 찾아 맞는지 확인한다.'},
+ {id:'l1',grades:['중1','중2','중3','고1'],unit:'lit',tag:'화자의 정서',
+  stem:'윗글의 화자의 정서와 태도로 가장 적절한 것은?',
+  passage:'불 꺼진 교실 창가에\n누군가 두고 간 우산 하나\n비는 그쳤는데\n나는 아직 집에 가지 못한다',
+  poem:true,
+  opts:['시적 상황(누가, 어디서, 무슨 일) 정리하기','정서가 드러난 시어·행 찾기','운율을 이루는 요소 세기','글의 전개 방식(비교·대조 등) 파악하기'],
+  ans:[0,1],
+  explain:'비가 그친 뒤에도 남아 있는 화자의 상황을 먼저 잡고, \'아직 집에 가지 못한다\'에서 머뭇거림과 쓸쓸함을 읽어 낸다.'},
+ {id:'l2',grades:['중1','중2','중3','고1','고2','고3'],unit:'lit',tag:'표현상 특징',
+  stem:'윗글의 표현상 특징으로 적절한 것은?',
+  passage:'바람이 골목을 쓸고 가면\n담장은 등을 기대어 졸고\n바람이 골목을 쓸고 가면\n빨랫줄은 낮은 목소리로 운다',
+  poem:true,
+  opts:['반복·대구·의인법 등 표현법 찾기','표현법이 만드는 효과(운율, 분위기) 연결하기','서술자의 시점 파악하기','지문의 중심 화제 찾기'],
+  ans:[0,1],
+  explain:'같은 행의 반복으로 운율을 만들고, 담장과 빨랫줄을 사람처럼 표현했다. 표현법은 찾는 데서 그치지 말고 효과까지 연결해야 선지를 고를 수 있다.'},
+ {id:'l3',grades:['중2','중3','고1','고2','고3'],unit:'lit',tag:'서술상 특징',
+  stem:'윗글의 서술상 특징으로 가장 적절한 것은?',
+  passage:'그날 아침 나는 일부러 늦게 일어났다. 형이 떠나는 모습을 보고 싶지 않았기 때문이다. 부엌에서 어머니가 그릇을 내려놓는 소리가 유난히 크게 들렸다.',
+  opts:['서술자의 위치(작품 안/밖)와 시점 판단하기','\'나\'가 주인공인지 관찰자인지 확인하기','작품의 운율 요소 찾기','<보기>의 관점을 작품에 적용하기'],
+  ans:[0,1],
+  explain:'작품 안의 \'나\'가 자신의 속마음을 직접 말하므로 1인칭 주인공 시점이다.'},
+ {id:'l4',grades:['고1','고2','고3'],unit:'lit',tag:'<보기> 감상',
+  stem:'<보기>를 바탕으로 윗글을 감상한 내용으로 적절하지 않은 것은?',
+  passage:'<보기>\n이 작품은 산업화로 고향을 떠난 사람들이 도시에서 느끼는 소외감을 그리고 있다. 작품 속 공간은 인물의 내면을 비추는 장치로 쓰인다.',
+  opts:['<보기>를 먼저 읽고 감상 기준(주제·공간의 의미) 세우기','기준을 작품의 구체적 장면에 적용해 선지 확인하기','작가의 생애를 외워 둔 대로 떠올리기','선지의 낯선 낱말부터 지우기'],
+  ans:[0,1],
+  explain:'<보기>가 감상의 기준이다. 기준을 먼저 세운 뒤, 선지가 작품 장면과 기준 모두에 맞는지 확인한다.'}
+];
+let CARDS = DEMO ? SAMPLE_CARDS : [];
+
+/* ===== 공통 계산 ===== */
+const gradeCards = g => CARDS.filter(c => (Array.isArray(c.grades) ? c.grades : [c.grades]).includes(g));
+const gradeUnits = (g, subj) => UNITS.filter(u => u.subj===subj && gradeCards(g).some(c=>c.unit===u.id));
+function unitStats(st, unitId){
+  const list = gradeCards(st.grade).filter(c=>c.unit===unitId);
+  if(!list.length) return {total:0, seen:0, mature:0, seenPct:0, maturePct:0};
+  const seen = list.filter(c=>st.cards[c.id]?.seen).length;
+  const mature = list.filter(c=>{const r=st.cards[c.id]; return r && r.last==='ok' && r.ok>=2;}).length;
+  return {total:list.length, seen, mature, seenPct: Math.round(seen/list.length*100), maturePct: Math.round(mature/list.length*100)};
+}
+function studentSummary(st){
+  let seen=0, blocked=0;
+  Object.values(st.cards||{}).forEach(r=>{seen+=r.seen||0; blocked+=r.blocked||0;});
+  return {seen, blockedPct: seen ? Math.round(blocked/seen*100) : 0};
+}
+const fmtDate = t => { const d=new Date(t); return (d.getMonth()+1)+'월 '+d.getDate()+'일'; };
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+'일월화수목금토'[d.getDay()]+'요일'; };
+const esc = s => String(s).replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const unitName = id => (UNITS.find(u=>u.id===id)||{name:id}).name;
+const MARK = {ok:['O','o','맞힘'], wrong:['X','x','틀림'], unknown:['?','x','모름'], missing:['△','m','선지에 없음']};
+const THEMES = {auto:'자동', light:'밝게', dark:'어둡게'};
+
+/* ===== 기기 저장 (테마, 마지막 입장 정보, 데모 데이터) ===== */
+const LKEY = 'academy-drill-v3';
+let local = null;
+function loc(){
+  if(local) return local;
+  try{ local = JSON.parse(localStorage.getItem(LKEY)||'null'); }catch(e){ local = null; }
+  if(!local) local = {theme:'auto', session:null, demo:null};
+  return local;
+}
+function saveLoc(){ try{ localStorage.setItem(LKEY, JSON.stringify(local)); }catch(e){} }
+
+/* ===== 데이터 계층: 데모(기기 저장) / 서버(Supabase) ===== */
+const sb = (!DEMO && window.supabase) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+function demoDB(){
+  const L = loc();
+  if(!L.demo){ L.demo = {students:{}}; seedExamples(L.demo); saveLoc(); }
+  return L.demo;
+}
+function seedExamples(db){
+  const ex = [['파란고래','중2',[1,1,0,1,1,0,1,1,1,0]],['종이비행기','고1',[1,0,0,1,0,1,1,0,0,1]],['오렌지','중3',[1,1,1,1,1,1,0,1,1,1]],['새벽별','고2',[0,1,0,0,1,0,1,0,1,0]]];
+  const day = 864e5, now = Date.now();
+  ex.forEach(([nick,grade,pat],i)=>{
+    const cards = {};
+    SAMPLE_CARDS.forEach((c,j)=>{
+      if(!c.grades.includes(grade)) return;
+      const okv = pat[j];
+      cards[c.id] = {seen: 1 + (j % 3), ok: okv ? 1 + (j % 2) : 0, blocked: okv ? 0 : 1 + (j % 2), last: okv ? 'ok' : (j % 2 ? 'missing' : 'unknown')};
+    });
+    const id = 'ex-'+i;
+    db.students[id] = {id, nick, grade, example:true, lastSeen: now - (i+1)*day*0.7, cards, queue:[]};
+  });
+}
+const fromRow = r => ({id:r.id, nick:r.nick, grade:r.grade, cards:r.cards||{}, queue:r.queue||[], lastSeen: Date.parse(r.last_seen)});
+
+const API = {
+  async enter(code, nick, grade){
+    if(DEMO){
+      if(code!==DEMO_CODE) throw new Error('bad_code');
+      const db = demoDB();
+      let st = Object.values(db.students).find(s=>s.grade===grade && s.nick===nick);
+      if(!st){ st = {id:'d-'+Date.now(), nick, grade, cards:{}, queue:[], lastSeen:Date.now()}; db.students[st.id]=st; }
+      st.lastSeen = Date.now(); saveLoc();
+      return {student: st, cards: SAMPLE_CARDS};
+    }
+    const {data, error} = await sb.rpc('student_enter', {p_code: code, p_nick: nick, p_grade: grade});
+    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : 'network');
+    return {student: fromRow(data.student), cards: data.cards};
+  },
+  async save(st){
+    if(DEMO){ saveLoc(); return; }
+    const {error} = await sb.rpc('student_save', {p_code: S.code, p_id: st.id, p_cards: st.cards, p_queue: st.queue});
+    if(error) throw new Error('network');
+  },
+  async adminLogin(email, pw){
+    if(DEMO){ if(pw!==DEMO_PW) throw new Error('bad_login'); return; }
+    const {error} = await sb.auth.signInWithPassword({email, password: pw});
+    if(error) throw new Error('bad_login');
+  },
+  async adminSession(){
+    if(DEMO) return false;
+    const {data} = await sb.auth.getSession();
+    return !!data.session;
+  },
+  async adminLogout(){ if(!DEMO) await sb.auth.signOut(); },
+  async adminData(){
+    if(DEMO) return {students: Object.values(demoDB().students), cards: SAMPLE_CARDS, entryCode: DEMO_CODE};
+    const [st, cd, se] = await Promise.all([
+      sb.from('students').select('*'),
+      sb.from('cards').select('*').order('sort'),
+      sb.from('settings').select('entry_code').maybeSingle()
+    ]);
+    if(st.error || cd.error) throw new Error('network');
+    if(!se.data) throw new Error('not_teacher');
+    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.entry_code};
+  }
+};
+
+/* ===== 화면 상태 ===== */
+const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
+  set:[], idx:0, phase:'think', sel:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
+  admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:''}};
+const app = document.getElementById('app');
+function applyTheme(){ const t = loc().theme; if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
+function render(){
+  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent}[S.screen]();
+  bind();
+}
+const masthead = (right, title) => `<header class="brand"><div class="dateline"><span>${todayStr()}</span><span>${right}</span></div><h1>${title||'트리거 드릴'}</h1><div class="rule2"></div></header>`;
+const themeLink = () => `<button data-act="theme">화면 ${THEMES[loc().theme||'auto']}</button>`;
+const demoBanner = () => DEMO ? '<p class="hint">미리보기 모드 · 기록은 이 기기에만 저장돼요</p>' : '';
+
+function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:center;padding:40px 0">불러오는 중…</p>`; }
+
+/* --- 입장 --- */
+function vEntry(){
+  return `${masthead('중1~고3 · 국어')}
+  <p class="lede" style="text-align:center">문제를 보면 무엇부터 떠올려야 하는지, 한 세트씩 연습해요.</p>
+  <form id="entryForm" class="form" novalidate autocomplete="off">
+    <label class="field"><span>입장 코드</span><input id="code" autocomplete="off" placeholder="선생님이 알려 준 코드" value="${esc(S.form.code)}"></label>
+    <label class="field"><span>닉네임</span><input id="nick" maxlength="12" placeholder="실명 말고 별명을 써 주세요 (예: 파란고래)" value="${esc(S.form.nick)}"></label>
+    <div class="field" style="padding:12px 0"><span>학년</span>
+      <div class="grades" role="group" aria-label="학년">${GRADES.map(g=>`<button type="button" data-g="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join('')}</div></div>
+  </form>
+  ${DEMO?`<p class="selnote" style="text-align:center">${S.grade} 국어 문제 ${SAMPLE_CARDS.filter(c=>c.grades.includes(S.grade)).length}개가 나와요</p>`:''}
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
+  <div class="actions">
+    <button class="btn" type="submit" form="entryForm" ${S.busy?'disabled':''}>${S.busy?'들어가는 중…':'시작하기'}</button>
+    ${DEMO?`<p class="hint">미리보기용 입장 코드 <b>${DEMO_CODE}</b> · 이름과 연락처는 받지 않아요</p>`:'<p class="hint">이름과 연락처는 받지 않아요</p>'}
+    <div class="linkrow"><button data-act="toAdmin">선생님 화면</button>${themeLink()}</div>
+  </div>`;
+}
+
+/* --- 홈: 단원 고르기 --- */
+function vHome(){
+  const st = S.me, mine = gradeCards(st.grade);
+  const seen = mine.filter(c=>st.cards[c.id]?.seen).length;
+  const mature = UNITS.reduce((a,u)=>a+unitStats(st,u.id).mature,0);
+  const q = st.queue.filter(id=>mine.some(c=>c.id===id)).length;
+  const tabUnits = gradeUnits(st.grade,'kor');
+  const pool = mine.filter(c=>S.picked.has(c.unit));
+  const n = S.size ? Math.min(S.size, pool.length) : pool.length;
+  return `${masthead(esc(st.nick)+' · '+st.grade+' 국어 '+mine.length+'문제')}
+  <section class="stats" aria-label="학습 현황">
+    <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>풀어 본 문제</small></div>
+    <div class="stat"><b>${mature}</b><small>익힘 (2번 이상 맞힘)</small></div>
+    <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제 대기</small></div>
+  </section>
+  <div class="tabs" role="tablist">${SUBJECTS.map(s=>`<button role="tab" aria-selected="${s.id==='kor'}" ${s.ready?'':'disabled'}>${s.name}${s.ready?'':' <small>준비 중</small>'}</button>`).join('')}</div>
+  ${tabUnits.length?`<div class="quick">
+    <button class="q" data-q="weak"><i style="background:var(--bad)"></i>약한 단원</button>
+    <button class="q" data-q="new"><i style="background:var(--track);outline:1px solid var(--rule)"></i>안 푼 단원</button>
+    <button class="q" data-q="all">전체</button>
+    <button class="q" data-q="none">선택 해제</button>
+  </div>
+  <div class="tiles">${tabUnits.map(u=>{const s=unitStats(st,u.id), pc=x=>(x/s.total*100).toFixed(2)+'%';return `
+    <button class="tile" data-unit="${u.id}" aria-pressed="${S.picked.has(u.id)}">
+      <span class="tn"><span>${u.tag}</span><span>${s.seen?'진도 '+s.seenPct+'%':'–'}</span></span>
+      <b>${u.name}</b>
+      <span class="mbar"><span style="width:${pc(s.mature)}"></span><span class="l2" style="width:${pc(s.seen-s.mature)}"></span></span>
+      <span class="tc"><span>${s.seen?s.seen+' / '+s.total+'문제 풀어봄':'전체 '+s.total+'문제'}</span>${s.seen?`<em>익힘 ${s.maturePct}%</em>`:''}</span>
+    </button>`;}).join('')}</div>
+  <p class="selnote">${S.picked.size?`${S.picked.size}개 단원 선택 · ${pool.length}문제`:'단원을 하나 이상 골라 주세요'}</p>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">한 세트</span>
+    <div class="seg">${[5,10,0].map(k=>`<button data-size="${k}" aria-pressed="${S.size===k}">${k?k+'문제':'전체'}</button>`).join('')}</div></section>`
+  :`<p class="lede" style="padding:18px 0;border-bottom:1px solid var(--rule)">${st.grade} 국어 문제는 아직 준비 중이에요. 선생님이 곧 올려 줄 거예요.</p>`}
+  <div class="actions">
+    <button class="btn" data-act="start" ${pool.length?'':'disabled'}>시작 · ${n}문제</button>
+    ${q?`<p class="selnote" style="text-align:center">지난 세트에서 막힌 <b style="color:var(--omr)">${q}</b>문제가 먼저 나와요</p>`:''}
+    ${S.saveFail?'<p class="err" style="text-align:center">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 문제에서 다시 저장해요.</p>':''}
+    <div class="linkrow"><button data-act="logout">나가기</button>${themeLink()}</div>
+    ${demoBanner()}
+  </div>`;
+}
+
+/* --- 드릴 --- */
+function vDrill(){
+  const c = CARDS.find(x=>x.id===S.set[S.idx]);
+  const n = S.set.length, retry = S.retryIds.has(c.id);
+  const done = S.phase==='feedback';
+  const r = S.results[S.results.length-1];
+  let opts = '', acts = '', fb = '';
+  if(S.phase!=='think'){
+    opts = `<ol class="opts">${c.opts.map((o,i)=>{
+      let cls = S.sel.has(i)?'sel':'';
+      if(done){ cls = c.ans.includes(i)?'right':(S.sel.has(i)?'wrong':'dim'); }
+      return `<li><button class="opt ${cls}" data-opt="${i}" ${done?'disabled':''}><span class="bub">${i+1}</span><span>${esc(o)}</span></button></li>`;}).join('')}
+      ${done?'':`<li><button class="opt none" data-act="missing">떠올린 게 선지에 없어요</button></li>`}</ol>`;
+  }
+  if(S.phase==='think') acts = `<div class="two"><button class="btn alt" data-act="unknown">모르겠어요</button><button class="btn" data-act="open">떠올렸어요</button></div>`;
+  else if(S.phase==='choose') acts = `<p class="multi-note">정답 <b>${c.ans.length}개</b> · 모두 고른 뒤 확인을 눌러 주세요</p><button class="btn" data-act="check" ${S.sel.size?'':'disabled'}>확인 · ${S.sel.size}/${c.ans.length}</button>`;
+  else {
+    const cls = r.out==='ok'?'':r.out==='missing'?'mid':'bad';
+    fb = `<div class="verdict ${cls}"><h3>${r.out==='ok'?'정확히 떠올렸어요':r.out==='wrong'?'다르게 떠올렸어요':r.out==='unknown'?'모르겠어요':'떠올린 게 선지에 없었어요'}</h3>
+      <p>${esc(c.explain)}</p>${r.out!=='ok'?'<span class="algo">다음 세트에 다시 나와요.</span>':''}</div>`;
+    acts = `<button class="btn" data-act="next">${S.idx+1<n?'다음 문제':'결과 보기'}</button>`;
+  }
+  return `<div class="top"><button class="quit" data-act="quit">← 그만하기</button>
+    <span class="combo mono">${S.idx+1} / ${n}${S.combo>=2?` · 콤보 <b>${S.combo}</b>`:''}</span></div>
+  <div class="track" aria-hidden="true"><div class="fill" style="width:${(S.idx+(done?1:0))/n*100}%"></div></div>
+  <article class="sheet">
+    <div class="meta"><span class="unit">${unitName(c.unit)}${retry?' · 다시':''}</span><span>${esc(c.tag)}</span></div>
+    <p class="trigger">${esc(c.stem)}</p>
+    ${c.passage?`<div class="passage ${c.poem?'poem':''}">${esc(c.passage)}</div>`:''}
+    ${S.phase==='think'?'<p class="ask">이 문제를 보면 무엇부터 떠올려야 할까요? 머릿속으로 정한 다음 눌러요.</p>':''}
+    ${opts}${fb}
+  </article>
+  <div class="drill-actions">${acts}</div>`;
+}
+
+/* --- 세트 결과 --- */
+function vResult(){
+  const ok = S.results.filter(r=>r.out==='ok').length;
+  const miss = S.results.filter(r=>r.out==='missing').length;
+  const stuck = S.results.length - ok - miss;
+  return `<div class="top"><span class="label">세트 결과</span><span class="combo mono">최고 콤보 <b>${S.best}</b></span></div>
+  <div class="score"><b>${ok}</b><span>/ ${S.results.length} 정확히 떠올림</span></div>
+  <p class="lede">선지에 없음 ${miss} · 막힘 ${stuck}${S.me.queue.length?` · 막힌 ${S.me.queue.length}개는 다음 세트에 다시 나와요.`:''}</p>
+  <div class="rows">${S.results.map(r=>{const c=CARDS.find(x=>x.id===r.id),m=MARK[r.out];return `<div class="row"><span class="mark ${m[1]}">${m[0]}</span><span class="rq">${S.retryIds.has(c.id)?'↻ ':''}${esc(c.tag)} · ${unitName(c.unit)}</span><span class="s">${m[2]}</span></div>`;}).join('')}</div>
+  ${S.saveFail?'<p class="err">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 세트에서 다시 저장해요.</p>':''}
+  <div class="actions">
+    <button class="btn" data-act="start">다음 세트</button>
+    <button class="btn alt" data-act="home">처음으로</button>
+  </div>`;
+}
+
+/* --- 관리자 로그인 --- */
+function vAdminLogin(){
+  return `${masthead('선생님 전용','진도 확인')}
+  <form id="adminForm" class="form" novalidate>
+    ${DEMO?'':`<label class="field"><span>이메일</span><input id="email" type="email" autocomplete="username" value="${esc(S.form.email)}"></label>`}
+    <label class="field"><span>비밀번호</span><input id="pw" type="password" autocomplete="current-password"></label>
+  </form>
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
+  <div class="actions">
+    <button class="btn" type="submit" form="adminForm" ${S.busy?'disabled':''}>${S.busy?'확인 중…':'들어가기'}</button>
+    ${DEMO?`<p class="hint">미리보기용 비밀번호 <b>${DEMO_PW}</b> · 실제 앱에서는 선생님 계정 이메일로 로그인해요</p>`:''}
+    <div class="linkrow"><button data-act="toEntry">학생 화면</button>${themeLink()}</div>
+  </div>`;
+}
+
+/* --- 관리자: 학생 목록 --- */
+function vAdmin(){
+  const A = S.admin, everyone = A.students;
+  const all = everyone.filter(s=>S.gradeFilter==='전체'||s.grade===S.gradeFilter).sort((a,b)=>b.lastSeen-a.lastSeen);
+  const weekAgo = Date.now()-7*864e5;
+  const active = everyone.filter(s=>s.lastSeen>=weekAgo).length;
+  const avg = everyone.length ? Math.round(everyone.reduce((a,s)=>a+studentSummary(s).blockedPct,0)/everyone.length) : 0;
+  const agg = CARDS.map(c=>{let seen=0,bl=0;everyone.forEach(s=>{const r=s.cards[c.id];if(r){seen+=r.seen;bl+=r.blocked;}});return {c,seen,bl,pct:seen?Math.round(bl/seen*100):0};}).filter(x=>x.bl).sort((a,b)=>b.pct-a.pct).slice(0,5);
+  return `${masthead(everyone.length+'명 · 국어 '+CARDS.length+'문제','선생님 화면')}
+  <section class="stats" aria-label="학원 현황">
+    <div class="stat"><b>${everyone.length}</b><small>등록 학생</small></div>
+    <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
+    <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
+    <div class="seg">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
+  <div class="roster">${all.length?all.map(s=>{const m=studentSummary(s);const cls=m.blockedPct>=40?'hi':m.blockedPct>=20?'md':'';return `
+    <button class="stu" data-stu="${esc(s.id)}">
+      <span class="nm">${esc(s.nick)}<span class="gr">${s.grade}</span>${s.example?'<span class="ex">예시</span>':''}</span>
+      <span class="pct ${cls}">막힘 ${m.blockedPct}%</span>
+      <span class="sub"><span>최근 접속 ${fmtDate(s.lastSeen)}</span><span class="mono">${m.seen}회 풀이</span></span>
+    </button>`;}).join(''):'<p class="lede" style="padding:14px 0">아직 학생이 없어요. 학생이 입장하면 여기에 나와요.</p>'}</div>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">전체 학생이 자주 막히는 문제</span>
+    <div class="rows">${agg.map((x,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(x.c.tag)} · ${unitName(x.c.unit)}</span><span class="s">${x.pct}% 막힘</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>
+  <p class="note">현재 입장 코드: <span class="mono">${esc(A.entryCode)}</span>${DEMO?" · '예시' 표시가 붙은 학생은 화면 확인용 가짜 기록이에요.":''}</p>
+  <div class="actions"><div class="linkrow"><button data-act="adminRefresh">새로고침</button><button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
+}
+
+/* --- 관리자: 학생 상세 --- */
+function vAdminStudent(){
+  const s = S.admin.students.find(x=>x.id===S.view);
+  const m = studentSummary(s), mine = gradeCards(s.grade);
+  const seen = mine.filter(c=>s.cards[c.id]?.seen).length;
+  const mature = UNITS.reduce((a,u)=>a+unitStats(s,u.id).mature,0);
+  const blocked = CARDS.map(c=>({c,r:s.cards[c.id]})).filter(x=>x.r&&x.r.blocked).sort((a,b)=>b.r.blocked-a.r.blocked);
+  return `<div class="top"><button class="quit" data-act="adminBack">← 학생 목록</button><span class="combo mono">최근 접속 ${fmtDate(s.lastSeen)}</span></div>
+  <div><span class="label">${s.grade}${s.example?' · 예시':''}</span><h2 style="margin:4px 0 0;font-family:var(--f-serif);font-size:30px">${esc(s.nick)}</h2></div>
+  <section class="stats">
+    <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>풀어 본 문제</small></div>
+    <div class="stat"><b>${mature}</b><small>익힘</small></div>
+    <div class="stat ${m.blockedPct>=30?'alert':''}"><b>${m.blockedPct}<small>%</small></b><small>막힘</small></div>
+  </section>
+  <section><span class="label">단원별 진도</span>
+    ${gradeUnits(s.grade,'kor').map(u=>{const t=unitStats(s,u.id),pc=x=>(x/t.total*100).toFixed(2)+'%';return `<div class="unitrow">
+      <div class="h"><b>${u.name}</b><span>진도 ${t.seenPct}% · 익힘 ${t.maturePct}%</span></div>
+      <div class="mbar"><span style="width:${pc(t.mature)}"></span><span class="l2" style="width:${pc(t.seen-t.mature)}"></span></div></div>`;}).join('')}</section>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">막힌 문제</span>
+    <div class="rows">${blocked.map(x=>{const mk=MARK[x.r.last]||MARK.wrong;return `<div class="row"><span class="mark ${mk[1]}">${mk[0]}</span><span class="rq">${esc(x.c.tag)} · ${unitName(x.c.unit)}</span><span class="s">${x.r.blocked}회 · 최근 ${mk[2]}</span></div>`;}).join('')||'<p class="lede" style="padding:12px 0">막힌 문제가 없어요.</p>'}</div></section>`;
+}
+
+/* ===== 동작 ===== */
+async function enter(code, nick, grade){
+  S.busy = true; S.err=''; render();
+  try{
+    const {student, cards} = await API.enter(code, nick, grade);
+    CARDS = cards; S.me = student; S.code = code;
+    S.picked = new Set(gradeUnits(grade,'kor').map(u=>u.id));
+    loc().session = {code, nick, grade}; saveLoc();
+    S.busy = false; go('home');
+  }catch(e){
+    S.busy = false;
+    go('entry');
+    if(e.message==='bad_code'){ loc().session = null; saveLoc(); S.err='입장 코드가 맞지 않아요. 선생님께 코드를 다시 확인하세요.'; }
+    else S.err='서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.';
+    render();
+  }
+}
+let saving = null;
+function persist(){
+  const st = S.me;
+  saving = API.save(st).then(()=>{ S.saveFail=false; }).catch(()=>{ S.saveFail=true; });
+}
+function startSet(){
+  const st = S.me;
+  const pool = gradeCards(st.grade).filter(c=>S.picked.has(c.unit));
+  const size = S.size || pool.length;
+  const set = st.queue.filter(id=>pool.some(c=>c.id===id)).slice(0,size);
+  S.retryIds = new Set(set);
+  st.queue = st.queue.filter(id=>!set.includes(id));
+  const score = c => {const r=st.cards[c.id]; return r ? (r.last==='ok'?r.ok*2:0) + r.seen*0.1 : -1;};
+  pool.filter(c=>!set.includes(c.id)).sort((a,b)=>score(a)-score(b)).forEach(c=>{ if(set.length<size) set.push(c.id); });
+  S.set = set; S.idx = 0; S.phase='think'; S.sel=new Set(); S.results=[]; S.combo=0; S.best=0;
+  persist(); go('drill');
+}
+function record(out){
+  const st = S.me, id = S.set[S.idx];
+  const r = st.cards[id] || (st.cards[id]={seen:0,ok:0,blocked:0,last:null});
+  r.seen++; r.last = out;
+  if(out==='ok'){ r.ok++; S.combo++; S.best=Math.max(S.best,S.combo); }
+  else { r.blocked++; S.combo=0; if(!st.queue.includes(id)) st.queue.push(id); }
+  st.lastSeen = Date.now();
+  S.results.push({id,out}); S.phase='feedback'; persist(); render();
+}
+function quick(kind){
+  const st = S.me, us = gradeUnits(st.grade,'kor');
+  if(kind==='all') S.picked = new Set(us.map(u=>u.id));
+  else if(kind==='none') S.picked = new Set();
+  else if(kind==='new') S.picked = new Set(us.filter(u=>unitStats(st,u.id).seen===0).map(u=>u.id));
+  else if(kind==='weak') S.picked = new Set(us.filter(u=>{const t=unitStats(st,u.id);return t.seen>0&&t.maturePct<50;}).map(u=>u.id));
+  render();
+}
+async function openAdmin(){
+  S.screen='loading'; render();
+  try{
+    S.admin = await API.adminData(); CARDS = S.admin.cards; go('admin');
+  }catch(e){
+    S.admin = null; await API.adminLogout();
+    go('adminLogin');
+    S.err = e.message==='not_teacher' ? '선생님으로 지정된 계정이 아니에요. 설정 SQL에서 이 계정을 선생님으로 등록해 주세요.' : '기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';
+    render();
+  }
+}
+
+function bind(){
+  const ef = document.getElementById('entryForm');
+  if(ef){
+    ['code','nick'].forEach(k=>{const el=document.getElementById(k); el.oninput=()=>{S.form[k]=el.value;};});
+    ef.onsubmit = e => {
+      e.preventDefault();
+      if(S.busy) return;
+      const code = S.form.code.trim(), nick = S.form.nick.trim();
+      if(!code){ S.err='입장 코드를 써 주세요.'; return render(); }
+      if(nick.length<2){ S.err='닉네임을 두 글자 이상 써 주세요.'; return render(); }
+      enter(code, nick, S.grade);
+    };
+  }
+  const af = document.getElementById('adminForm');
+  if(af){
+    const em = document.getElementById('email'); if(em) em.oninput=()=>{S.form.email=em.value;};
+    af.onsubmit = async e => {
+      e.preventDefault(); if(S.busy) return;
+      const pw = document.getElementById('pw')?.value || '';
+      S.busy = true; S.err=''; render();
+      try{ await API.adminLogin(S.form.email.trim(), pw); S.busy=false; openAdmin(); }
+      catch(err){ S.busy=false; S.err = DEMO ? '비밀번호가 맞지 않아요.' : '이메일이나 비밀번호가 맞지 않아요.'; render(); }
+    };
+  }
+  app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{S.grade=b.dataset.g; render();});
+  app.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{const u=b.dataset.unit; S.picked.has(u)?S.picked.delete(u):S.picked.add(u); render();});
+  app.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>quick(b.dataset.q));
+  app.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size; render();});
+  app.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{const i=+b.dataset.opt; S.sel.has(i)?S.sel.delete(i):S.sel.add(i); render();});
+  app.querySelectorAll('[data-grade]').forEach(b=>b.onclick=()=>{S.gradeFilter=b.dataset.grade; render();});
+  app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{S.view=b.dataset.stu; go('adminStudent');});
+  app.querySelectorAll('[data-act]').forEach(b=>b.onclick=async ()=>{
+    const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
+    if(a==='toAdmin'){ if(S.admin) go('admin'); else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
+    else if(a==='toEntry'){ go('entry'); }
+    else if(a==='logout'){ S.me=null; loc().session=null; saveLoc(); go('entry'); }
+    else if(a==='theme'){ const L=loc(), order=['auto','light','dark']; L.theme=order[(order.indexOf(L.theme||'auto')+1)%3]; saveLoc(); applyTheme(); render(); }
+    else if(a==='start') startSet();
+    else if(a==='home') go('home');
+    else if(a==='quit') S.results.length ? go('result') : go('home');
+    else if(a==='open'){ S.phase='choose'; render(); }
+    else if(a==='unknown'){ S.phase='choose'; record('unknown'); }
+    else if(a==='missing') record('missing');
+    else if(a==='check'){ const ok = S.sel.size===c.ans.length && c.ans.every(i=>S.sel.has(i)); record(ok?'ok':'wrong'); }
+    else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.sel=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
+    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; go('entry'); }
+    else if(a==='adminRefresh') openAdmin();
+    else if(a==='adminBack') go('admin');
+  });
+}
+
+/* ===== 시작 ===== */
+applyTheme();
+const last = loc().session;
+if(last){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; enter(last.code, last.nick, last.grade); }
+else render();
+
+</script>
+
+</body>
+</html>
