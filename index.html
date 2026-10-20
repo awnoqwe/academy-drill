@@ -173,6 +173,30 @@ p{margin:0}
 .unitrow .h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
 .unitrow .h b{font-family:var(--f-serif);font-size:15px;color:var(--ink)}
 .note{font-size:12.5px;color:var(--faint)}
+/* Q&A */
+.ask-box{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--rule-strong);padding-top:12px}
+.ask-box textarea,.ans-box textarea{width:100%;min-height:88px;border:1px solid var(--rule);border-radius:3px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.6;background:var(--sheet);color:var(--ink);resize:vertical}
+.ask-box textarea:focus,.ans-box textarea:focus{outline:none;border-color:var(--ink)}
+.ask-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.attach{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--omr);border:1px solid currentColor;border-radius:2px;padding:1px 6px}
+.attach button{background:none;border:0;color:inherit;cursor:pointer;padding:0 2px;font-size:13px}
+.btn.sm{width:auto;padding:9px 18px;font-size:14px}
+.posts{display:flex;flex-direction:column;border-top:1px solid var(--rule-strong)}
+.post{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.post .who{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.post .who b{font-family:var(--f-serif);font-size:14px;color:var(--ink);font-weight:600;margin-right:6px}
+.post .who .me{color:var(--omr);font-weight:600;margin-left:6px}
+.post .qt{font-family:var(--f-serif);font-size:15.5px;line-height:1.7;white-space:pre-line;margin:0}
+.post .ref{font-size:12px;color:var(--omr)}
+.post .a{border-left:3px solid var(--good);padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:2px}
+.post .a small{font-size:11.5px;color:var(--good);font-weight:600;letter-spacing:.04em}
+.post .a p{font-family:var(--f-serif);font-size:15px;white-space:pre-line;margin:0}
+.post .wait{font-size:12.5px;color:var(--faint)}
+.ans-box{display:flex;flex-direction:column;gap:8px}
+.ans-box .row3{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.linkbtn{background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);padding:2px}
+.linkbtn.danger{color:var(--bad)}
+.badge{font-family:var(--f-mono);font-size:11px;background:var(--omr);color:var(--paper);border-radius:8px;padding:0 6px;margin-left:4px;vertical-align:2px}
 @media (min-width:700px){.trigger{font-size:21px}.opt{font-size:16px}.brand h1{font-size:44px}}
 @media (max-width:380px){.tabs button{font-size:15px}.grades button{font-size:12.5px}}
 </style>
@@ -190,7 +214,7 @@ const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
 const DEMO = !SUPA_URL;
 const DEMO_CODE = '0000', DEMO_PW = 'teacher';
 const GRADES = ['중1','중2','중3','고1','고2','고3'];
-const SUBJECTS = [{id:'kor', name:'국어', ready:true}, {id:'math', name:'수학', ready:false}];
+const TABS = [{id:'kor', name:'국어'}, {id:'qna', name:'Q&A'}];
 const UNITS = [
   {id:'read', subj:'kor', name:'비문학 독해', tag:'독해'},
   {id:'lit',  subj:'kor', name:'문학', tag:'문학'},
@@ -303,7 +327,16 @@ const sb = (!DEMO && window.supabase) ? window.supabase.createClient(SUPA_URL, S
 function demoDB(){
   const L = loc();
   if(!L.demo){ L.demo = {students:{}}; seedExamples(L.demo); saveLoc(); }
+  if(!L.demo.qna){ seedQna(L.demo); saveLoc(); }
   return L.demo;
+}
+function seedQna(db){
+  const now = Date.now(), h = 36e5;
+  db.qna = [
+    {id:3, sid:'ex-1', card_id:'r3', body:'적절하지 않은 것을 고르는 문제에서는 선지를 어떤 순서로 보는 게 좋아요?', answer:null, created_at:now-3*h},
+    {id:2, sid:'ex-0', card_id:'g2', body:'비음화랑 유음화가 자꾸 헷갈려요. 구별하는 방법이 있나요?', answer:'받침 소리가 ㄴ·ㅁ·ㅇ으로 바뀌면 비음화, ㄹ로 바뀌면 유음화예요. 바뀐 결과 소리를 먼저 보세요.', created_at:now-20*h, answered_at:now-18*h},
+    {id:1, sid:'ex-2', card_id:null, body:'시험 전날에는 몇 세트 정도 푸는 게 좋아요?', answer:'새 문제보다 막힌 문제(재출제 대기)를 먼저 비우는 걸 추천해요.', created_at:now-50*h, answered_at:now-47*h}
+  ];
 }
 function seedExamples(db){
   const ex = [['파란고래','중2',[1,1,0,1,1,0,1,1,1,0]],['종이비행기','고1',[1,0,0,1,0,1,1,0,0,1]],['오렌지','중3',[1,1,1,1,1,1,0,1,1,1]],['새벽별','고2',[0,1,0,0,1,0,1,0,1,0]]];
@@ -351,23 +384,59 @@ const API = {
     return !!data.session;
   },
   async adminLogout(){ if(!DEMO) await sb.auth.signOut(); },
+  async qnaList(){
+    if(DEMO){
+      const db = demoDB();
+      return db.qna.slice().sort((a,b)=>b.created_at-a.created_at).map(q=>{const st=db.students[q.sid]||{nick:'?',grade:''};const c=SAMPLE_CARDS.find(x=>x.id===q.card_id);
+        return {id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, nick:st.nick, grade:st.grade, card_tag:c?.tag||null, card_unit:c?.unit||null, mine:q.sid===S.me?.id};});
+    }
+    const {data, error} = await sb.rpc('qna_list', {p_code: S.code, p_student: S.me.id});
+    if(error) throw new Error('network');
+    return data.map(q=>({...q, created_at: Date.parse(q.created_at)}));
+  },
+  async qnaPost(body, cardId){
+    if(DEMO){
+      const db = demoDB(), mine = db.qna.filter(q=>q.sid===S.me.id && q.created_at>Date.now()-864e5).length;
+      if(mine>=10) throw new Error('too_many');
+      db.qna.push({id: Date.now(), sid:S.me.id, card_id:cardId, body, answer:null, created_at:Date.now()}); saveLoc(); return;
+    }
+    const {error} = await sb.rpc('qna_post', {p_code: S.code, p_student: S.me.id, p_body: body, p_card: cardId});
+    if(error) throw new Error(/too_many/.test(error.message) ? 'too_many' : 'network');
+  },
+  async qnaAnswer(id, text){
+    const answer = text.trim() || null, at = answer ? new Date().toISOString() : null;
+    if(DEMO){ const q = demoDB().qna.find(x=>x.id===id); q.answer = answer; q.answered_at = answer?Date.now():null; saveLoc(); return; }
+    const {error} = await sb.from('questions').update({answer, answered_at: at}).eq('id', id);
+    if(error) throw new Error('network');
+  },
+  async qnaDelete(id){
+    if(DEMO){ const db = demoDB(); db.qna = db.qna.filter(x=>x.id!==id); saveLoc(); return; }
+    const {error} = await sb.from('questions').delete().eq('id', id);
+    if(error) throw new Error('network');
+  },
   async adminData(){
-    if(DEMO) return {students: Object.values(demoDB().students), cards: SAMPLE_CARDS, entryCode: DEMO_CODE};
-    const [st, cd, se] = await Promise.all([
+    if(DEMO){
+      const db = demoDB();
+      const qna = db.qna.map(q=>({id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, card_id:q.card_id, student_id:q.sid}));
+      return {students: Object.values(db.students), cards: SAMPLE_CARDS, entryCode: DEMO_CODE, qna};
+    }
+    const [st, cd, se, qs] = await Promise.all([
       sb.from('students').select('*'),
       sb.from('cards').select('*').order('sort'),
-      sb.from('settings').select('entry_code').maybeSingle()
+      sb.from('settings').select('entry_code').maybeSingle(),
+      sb.from('questions').select('id,body,answer,created_at,card_id,student_id').order('created_at', {ascending:false}).limit(300)
     ]);
     if(st.error || cd.error) throw new Error('network');
     if(!se.data) throw new Error('not_teacher');
-    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.entry_code};
+    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.entry_code, qna: (qs.data||[]).map(q=>({...q, created_at: Date.parse(q.created_at)}))};
   }
 };
 
 /* ===== 화면 상태 ===== */
 const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
   set:[], idx:0, phase:'think', sel:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
-  admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:''}};
+  admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:'',q:''},
+  tab:'kor', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
 function applyTheme(){ const t = loc().theme; if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
@@ -415,8 +484,8 @@ function vHome(){
     <div class="stat"><b>${mature}</b><small>익힘 (2번 이상 맞힘)</small></div>
     <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제 대기</small></div>
   </section>
-  <div class="tabs" role="tablist">${SUBJECTS.map(s=>`<button role="tab" aria-selected="${s.id==='kor'}" ${s.ready?'':'disabled'}>${s.name}${s.ready?'':' <small>준비 중</small>'}</button>`).join('')}</div>
-  ${tabUnits.length?`<div class="quick">
+  <div class="tabs" role="tablist">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}</button>`).join('')}</div>
+  ${S.tab==='qna' ? vQna() : `${tabUnits.length?`<div class="quick">
     <button class="q" data-q="weak"><i style="background:var(--bad)"></i>약한 단원</button>
     <button class="q" data-q="new"><i style="background:var(--track);outline:1px solid var(--rule)"></i>안 푼 단원</button>
     <button class="q" data-q="all">전체</button>
@@ -432,14 +501,59 @@ function vHome(){
   <p class="selnote">${S.picked.size?`${S.picked.size}개 단원 선택 · ${pool.length}문제`:'단원을 하나 이상 골라 주세요'}</p>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">한 세트</span>
     <div class="seg">${[5,10,0].map(k=>`<button data-size="${k}" aria-pressed="${S.size===k}">${k?k+'문제':'전체'}</button>`).join('')}</div></section>`
-  :`<p class="lede" style="padding:18px 0;border-bottom:1px solid var(--rule)">${st.grade} 국어 문제는 아직 준비 중이에요. 선생님이 곧 올려 줄 거예요.</p>`}
+  :`<p class="lede" style="padding:18px 0;border-bottom:1px solid var(--rule)">${st.grade} 국어 문제는 아직 준비 중이에요. 선생님이 곧 올려 줄 거예요.</p>`}`}
   <div class="actions">
-    <button class="btn" data-act="start" ${pool.length?'':'disabled'}>시작 · ${n}문제</button>
-    ${q?`<p class="selnote" style="text-align:center">지난 세트에서 막힌 <b style="color:var(--omr)">${q}</b>문제가 먼저 나와요</p>`:''}
+    ${S.tab==='kor'?`<button class="btn" data-act="start" ${pool.length?'':'disabled'}>시작 · ${n}문제</button>`:''}
+    ${q&&S.tab==='kor'?`<p class="selnote" style="text-align:center">지난 세트에서 막힌 <b style="color:var(--omr)">${q}</b>문제가 먼저 나와요</p>`:''}
     ${S.saveFail?'<p class="err" style="text-align:center">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 문제에서 다시 저장해요.</p>':''}
     <div class="linkrow"><button data-act="logout">나가기</button>${themeLink()}</div>
     ${demoBanner()}
   </div>`;
+}
+
+/* --- Q&A (학생, 학년 통합) --- */
+const ago = t => { const m = Math.round((Date.now()-t)/6e4); return m<1?'방금':m<60?m+'분 전':m<1440?Math.round(m/60)+'시간 전':fmtDate(t); };
+function vQna(){
+  const list = S.qna;
+  const card = S.qnaCard ? CARDS.find(c=>c.id===S.qnaCard) : null;
+  const shown = list ? list.filter(q=>!S.qnaMine||q.mine) : null;
+  return `<section class="ask-box">
+    <span class="label">질문하기 · 모든 학년이 함께 봐요</span>
+    <textarea id="qbody" maxlength="500" placeholder="모르는 문제나 개념을 물어보세요. 선생님이 답해 줄게요.">${esc(S.form.q)}</textarea>
+    <div class="ask-meta"><span>${card?`<span class="attach">${esc(card.tag)} · ${unitName(card.unit)}<button data-act="qnaDetach" aria-label="문제 첨부 빼기">×</button></span>`:`<span class="mono" id="qcount">${S.form.q.length}/500</span>`}</span>
+      <button class="btn sm" data-act="qnaPost" ${S.busy?'disabled':''}>${S.busy?'올리는 중…':'올리기'}</button></div>
+    ${S.qnaErr?`<p class="err">${esc(S.qnaErr)}</p>`:''}
+    ${S.toast?`<p class="selnote" style="color:var(--good)">${esc(S.toast)}</p>`:''}
+  </section>
+  <div class="quick" style="margin-top:0"><button class="q" data-act="qnaAll" style="${S.qnaMine?'':'color:var(--ink)'}">전체 질문</button><button class="q" data-act="qnaMineOnly" style="${S.qnaMine?'color:var(--ink)':''}">내 질문</button><button class="q" data-act="qnaReload">새로고침</button></div>
+  ${list===null?'<p class="lede" style="padding:14px 0">불러오는 중…</p>':
+   shown.length?`<div class="posts">${shown.map(q=>`<article class="post">
+      <div class="who"><span><b>${esc(q.nick)}</b>${esc(q.grade)}${q.mine?'<span class="me">내 질문</span>':''}</span><span>${ago(q.created_at)}</span></div>
+      ${q.card_tag?`<span class="ref">${esc(q.card_tag)} · ${unitName(q.card_unit)}</span>`:''}
+      <p class="qt">${esc(q.body)}</p>
+      ${q.answer?`<div class="a"><small>선생님 답변</small><p>${esc(q.answer)}</p></div>`:'<span class="wait">답변을 기다리는 중이에요</span>'}
+    </article>`).join('')}</div>`:`<p class="lede" style="padding:14px 0">${S.qnaMine?'아직 올린 질문이 없어요.':'아직 질문이 없어요. 첫 질문을 올려 보세요.'}</p>`}`;
+}
+async function loadQna(){
+  S.qna = null; render();
+  try{ S.qna = await API.qnaList(); S.qnaErr=''; }catch(e){ S.qna = []; S.qnaErr='질문을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; }
+  render();
+}
+function vAdminQna(){
+  const A = S.admin, byId = Object.fromEntries(A.students.map(s=>[s.id,s]));
+  const list = A.qna.slice().sort((a,b)=>(!!a.answer - !!b.answer) || b.created_at-a.created_at);
+  return list.length?`<div class="posts">${list.map(q=>{const st=byId[q.student_id]||{nick:'(삭제된 학생)',grade:''};const c=CARDS.find(x=>x.id===q.card_id);
+    const editing = S.ans[q.id]!==undefined;
+    return `<article class="post">
+      <div class="who"><span><b>${esc(st.nick)}</b>${esc(st.grade)}</span><span>${ago(q.created_at)}</span></div>
+      ${c?`<span class="ref">${esc(c.tag)} · ${unitName(c.unit)}</span>`:''}
+      <p class="qt">${esc(q.body)}</p>
+      ${editing||!q.answer?`<div class="ans-box"><textarea data-ans="${q.id}" maxlength="2000" placeholder="답변 쓰기">${esc(editing?S.ans[q.id]:(q.answer||''))}</textarea>
+        <div class="row3">${S.confirmDel===q.id?`<span class="selnote">이 질문을 지울까요?</span><button class="linkbtn danger" data-del="${q.id}">지우기</button><button class="linkbtn" data-act="cancelDel">취소</button>`:`<button class="linkbtn danger" data-askdel="${q.id}">질문 지우기</button>`}
+        ${editing&&q.answer?`<button class="linkbtn" data-cancelans="${q.id}">취소</button>`:''}<button class="btn sm" data-saveans="${q.id}">답변 저장</button></div></div>`
+      :`<div class="a"><small>내 답변</small><p>${esc(q.answer)}</p></div>
+        <div class="row3" style="display:flex;gap:12px;justify-content:flex-end">${S.confirmDel===q.id?`<span class="selnote">이 질문을 지울까요?</span><button class="linkbtn danger" data-del="${q.id}">지우기</button><button class="linkbtn" data-act="cancelDel">취소</button>`:`<button class="linkbtn danger" data-askdel="${q.id}">질문 지우기</button><button class="linkbtn" data-editans="${q.id}">답변 고치기</button>`}</div>`}
+    </article>`;}).join('')}</div>`:'<p class="lede" style="padding:14px 0">아직 질문이 없어요.</p>';
 }
 
 /* --- 드릴 --- */
@@ -461,7 +575,8 @@ function vDrill(){
   else {
     const cls = r.out==='ok'?'':r.out==='missing'?'mid':'bad';
     fb = `<div class="verdict ${cls}"><h3>${r.out==='ok'?'정확히 떠올렸어요':r.out==='wrong'?'다르게 떠올렸어요':r.out==='unknown'?'모르겠어요':'떠올린 게 선지에 없었어요'}</h3>
-      <p>${esc(c.explain)}</p>${r.out!=='ok'?'<span class="algo">다음 세트에 다시 나와요.</span>':''}</div>`;
+      <p>${esc(c.explain)}</p>${r.out!=='ok'?'<span class="algo">다음 세트에 다시 나와요.</span>':''}
+      <button class="linkbtn" style="align-self:flex-start" data-act="askThis">이 문제 질문하기</button></div>`;
     acts = `<button class="btn" data-act="next">${S.idx+1<n?'다음 문제':'결과 보기'}</button>`;
   }
   return `<div class="top"><button class="quit" data-act="quit">← 그만하기</button>
@@ -522,6 +637,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
+  <div class="tabs" role="tablist"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button></div>
+  ${S.adminTab==='qna' ? vAdminQna() : `
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
     <div class="seg">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
   <div class="roster">${all.length?all.map(s=>{const m=studentSummary(s);const cls=m.blockedPct>=40?'hi':m.blockedPct>=20?'md':'';return `
@@ -531,7 +648,7 @@ function vAdmin(){
       <span class="sub"><span>최근 접속 ${fmtDate(s.lastSeen)}</span><span class="mono">${m.seen}회 풀이</span></span>
     </button>`;}).join(''):'<p class="lede" style="padding:14px 0">아직 학생이 없어요. 학생이 입장하면 여기에 나와요.</p>'}</div>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">전체 학생이 자주 막히는 문제</span>
-    <div class="rows">${agg.map((x,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(x.c.tag)} · ${unitName(x.c.unit)}</span><span class="s">${x.pct}% 막힘</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>
+    <div class="rows">${agg.map((x,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(x.c.tag)} · ${unitName(x.c.unit)}</span><span class="s">${x.pct}% 막힘</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>`}
   <p class="note">현재 입장 코드: <span class="mono">${esc(A.entryCode)}</span>${DEMO?" · '예시' 표시가 붙은 학생은 화면 확인용 가짜 기록이에요.":''}</p>
   <div class="actions"><div class="linkrow"><button data-act="adminRefresh">새로고침</button><button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
 }
@@ -646,6 +763,25 @@ function bind(){
     };
   }
   app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{S.grade=b.dataset.g; render();});
+  const qb = document.getElementById('qbody');
+  if(qb) qb.oninput = () => { S.form.q = qb.value; const qc = document.getElementById('qcount'); if(qc) qc.textContent = qb.value.length+'/500'; };
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; S.toast=''; if(S.tab==='qna') loadQna(); else render(); });
+  app.querySelectorAll('[data-atab]').forEach(b=>b.onclick=()=>{ S.adminTab=b.dataset.atab; S.confirmDel=null; render(); });
+  app.querySelectorAll('[data-ans]').forEach(t=>t.oninput=()=>{ S.ans[t.dataset.ans]=t.value; });
+  app.querySelectorAll('[data-editans]').forEach(b=>b.onclick=()=>{ const q=S.admin.qna.find(x=>x.id==b.dataset.editans); S.ans[q.id]=q.answer||''; render(); });
+  app.querySelectorAll('[data-cancelans]').forEach(b=>b.onclick=()=>{ delete S.ans[b.dataset.cancelans]; render(); });
+  app.querySelectorAll('[data-askdel]').forEach(b=>b.onclick=()=>{ S.confirmDel=+b.dataset.askdel; render(); });
+  app.querySelectorAll('[data-saveans]').forEach(b=>b.onclick=async()=>{
+    const id=+b.dataset.saveans, q=S.admin.qna.find(x=>x.id===id), text=(S.ans[id]!==undefined?S.ans[id]:(document.querySelector(`[data-ans="${id}"]`)?.value||''));
+    b.disabled=true;
+    try{ await API.qnaAnswer(id, text); q.answer=text.trim()||null; delete S.ans[id]; }catch(e){ b.disabled=false; b.textContent='저장 실패 · 다시'; return; }
+    render();
+  });
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    const id=+b.dataset.del; b.disabled=true;
+    try{ await API.qnaDelete(id); S.admin.qna=S.admin.qna.filter(x=>x.id!==id); S.confirmDel=null; }catch(e){ b.disabled=false; b.textContent='실패 · 다시'; return; }
+    render();
+  });
   app.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{const u=b.dataset.unit; S.picked.has(u)?S.picked.delete(u):S.picked.add(u); render();});
   app.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>quick(b.dataset.q));
   app.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size; render();});
@@ -659,7 +795,7 @@ function bind(){
     else if(a==='logout'){ S.me=null; loc().session=null; saveLoc(); go('entry'); }
     else if(a==='theme'){ const L=loc(), order=['auto','light','dark']; L.theme=order[(order.indexOf(L.theme||'auto')+1)%3]; saveLoc(); applyTheme(); render(); }
     else if(a==='start') startSet();
-    else if(a==='home') go('home');
+    else if(a==='home'){ S.tab='kor'; go('home'); }
     else if(a==='quit') S.results.length ? go('result') : go('home');
     else if(a==='open'){ S.phase='choose'; render(); }
     else if(a==='unknown'){ S.phase='choose'; record('unknown'); }
@@ -669,6 +805,19 @@ function bind(){
     else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; go('entry'); }
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
+    else if(a==='cancelDel'){ S.confirmDel=null; render(); }
+    else if(a==='askThis'){ S.qnaCard = c.id; S.tab='qna'; S.toast=''; go('home'); loadQna(); }
+    else if(a==='qnaDetach'){ S.qnaCard=null; render(); }
+    else if(a==='qnaAll'){ S.qnaMine=false; render(); }
+    else if(a==='qnaMineOnly'){ S.qnaMine=true; render(); }
+    else if(a==='qnaReload') loadQna();
+    else if(a==='qnaPost'){
+      const body = S.form.q.trim();
+      if(body.length<2){ S.qnaErr='질문을 두 글자 이상 써 주세요.'; S.toast=''; return render(); }
+      S.busy=true; S.qnaErr=''; render();
+      try{ await API.qnaPost(body, S.qnaCard); S.form.q=''; S.qnaCard=null; S.busy=false; S.toast='질문을 올렸어요.'; await loadQna(); }
+      catch(e){ S.busy=false; S.qnaErr = e.message==='too_many' ? '질문은 하루에 10개까지 올릴 수 있어요.' : '질문을 올리지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); }
+    }
   });
 }
 
