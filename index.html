@@ -364,8 +364,12 @@ const API = {
       st.lastSeen = Date.now(); saveLoc();
       return {student: st, cards: SAMPLE_CARDS};
     }
-    const {data, error} = await sb.rpc('student_enter', {p_code: code, p_nick: nick, p_grade: grade});
-    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : 'network');
+    if(!sb) throw new Error('lib');
+    let res;
+    try{ res = await sb.rpc('student_enter', {p_code: code, p_nick: nick, p_grade: grade}); }
+    catch(e){ throw new Error('fetch: '+(e.message||e)); }
+    const {data, error} = res;
+    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : 'db: '+(error.code||'')+' '+error.message);
     return {student: fromRow(data.student), cards: data.cards};
   },
   async save(st){
@@ -688,7 +692,8 @@ async function enter(code, nick, grade){
     S.busy = false;
     go('entry');
     if(e.message==='bad_code'){ loc().session = null; saveLoc(); S.err='입장 코드가 맞지 않아요. 선생님께 코드를 다시 확인하세요.'; }
-    else S.err='서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.';
+    else if(e.message==='lib') S.err='서버 연결 프로그램을 불러오지 못했어요. 와이파이를 바꾸거나 광고 차단을 끄고 새로고침해 주세요. (코드: lib)';
+    else S.err='서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (오류: '+e.message+')';
     render();
   }
 }
