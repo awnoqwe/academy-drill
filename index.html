@@ -199,6 +199,9 @@ p{margin:0}
 .badge{font-family:var(--f-mono);font-size:11px;background:var(--omr);color:var(--paper);border-radius:8px;padding:0 6px;margin-left:4px;vertical-align:2px}
 @media (min-width:700px){.trigger{font-size:21px}.opt{font-size:16px}.brand h1{font-size:44px}}
 @media (max-width:380px){.tabs button{font-size:15px}.grades button{font-size:12.5px}}
+/* 추가 기능에만 적용: 원본 스타일은 그대로 유지 */
+.option-row{display:flex;border-bottom:1px solid var(--rule)}.option-row .opt{flex:1;border-bottom:0;min-width:0}.exclude-btn{flex:none;align-self:stretch;border:0;border-left:1px solid var(--rule);background:none;color:var(--faint);font-size:12px;width:64px;cursor:pointer}.exclude-btn:hover{background:var(--hover)}.excluded .opt{color:var(--faint)}.excluded .opt>span:last-child{text-decoration:line-through}.excluded .exclude-btn{color:var(--omr)}.schedule-list{border-top:1px solid var(--rule-strong)}.schedule-item{border-bottom:1px solid var(--rule);padding:16px 0;display:flex;flex-direction:column;gap:7px}.schedule-item h2{font:600 18px var(--f-serif);margin:0}.schedule-meta{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}.schedule-item p{font:15px/1.8 var(--f-serif);white-space:pre-wrap}.schedule-form{display:flex;flex-direction:column;gap:14px}.schedule-form input:not([type=checkbox]),.schedule-form select,.schedule-form textarea{background:var(--sheet);border:1px solid var(--rule);border-radius:3px;color:var(--ink);padding:10px;width:100%;font:inherit;min-width:0}.schedule-form label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--muted)}.schedule-form .check{flex-direction:row;align-items:center;color:var(--ink);font-size:14px}.schedule-targets{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 0;border-block:1px solid var(--rule)}.schedule-head{font:600 20px var(--f-serif);margin:0}.schedule-file{color:var(--omr);font-size:13px}.schedule-success{border-left:3px solid var(--good);padding-left:12px;color:var(--good);font-size:14px}.schedule-error{color:var(--bad);font-size:13px}.schedule-date{font-family:var(--f-mono);color:var(--omr)}.schedule-btns{display:flex;gap:12px;flex-wrap:wrap}.schedule-new{color:var(--omr);font-size:12px}.schedule-grouplist{display:flex;flex-direction:column;gap:15px}.schedule-grouplist fieldset{border:1px solid var(--rule);padding:12px;min-width:0}.schedule-grouplist legend{font-family:var(--f-serif)}
+
 </style>
 
 </head>
@@ -214,7 +217,7 @@ const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
 const DEMO = !SUPA_URL;
 const DEMO_CODE = '0000', DEMO_PW = 'teacher';
 const GRADES = ['중1','중2','중3','고1','고2','고3'];
-const TABS = [{id:'kor', name:'국어'}, {id:'qna', name:'Q&A'}];
+const TABS = [{id:'kor', name:'국어'}, {id:'qna', name:'Q&A'}, {id:'schedule',name:'일정'}, {id:'notice',name:'알림'}];
 const UNITS = [
   {id:'read', subj:'kor', name:'비문학 독해', tag:'독해'},
   {id:'lit',  subj:'kor', name:'문학', tag:'문학'},
@@ -370,7 +373,7 @@ const API = {
     catch(e){ throw new Error('fetch: '+(e.message||e)); }
     const {data, error} = res;
     if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : 'db: '+(error.code||'')+' '+error.message);
-    return {student: fromRow(data.student), cards: data.cards};
+    return {student: fromRow(data.student), cards: data.cards, sessionToken:data.schedule_token||null};
   },
   async save(st){
     if(DEMO){ saveLoc(); return; }
@@ -438,7 +441,7 @@ const API = {
 
 /* ===== 화면 상태 ===== */
 const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
-  set:[], idx:0, phase:'think', sel:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
+  set:[], idx:0, phase:'think', sel:new Set(), excluded:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
   admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:'',q:''},
   tab:'kor', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
@@ -446,11 +449,11 @@ function applyTheme(){ const t = loc().theme; if(t==='auto') document.documentEl
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 function render(){
   app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent}[S.screen]();
-  bind();
+  bind(); bindSchedule();
 }
 const masthead = (right, title) => `<header class="brand"><div class="dateline"><span>${todayStr()}</span><span>${right}</span></div><h1>${title||'트리거 드릴'}</h1><div class="rule2"></div></header>`;
 const themeLink = () => `<button data-act="theme">화면 ${THEMES[loc().theme||'auto']}</button>`;
-const demoBanner = () => DEMO ? '<p class="hint">미리보기 모드 · 기록은 이 기기에만 저장돼요</p>' : '';
+const demoBanner = () => DEMO ? '<p class="hint">기능 미리보기 · 실제 학생 계정과 연결되지 않으며 이 브라우저에만 저장돼요</p>' : '';
 
 function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:center;padding:40px 0">불러오는 중…</p>`; }
 
@@ -488,8 +491,8 @@ function vHome(){
     <div class="stat"><b>${mature}</b><small>익힘 (2번 이상 맞힘)</small></div>
     <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제 대기</small></div>
   </section>
-  <div class="tabs" role="tablist">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}</button>`).join('')}</div>
-  ${S.tab==='qna' ? vQna() : `${tabUnits.length?`<div class="quick">
+  <div class="tabs" role="tablist">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}</button>`).join('')}</div>
+  ${S.tab==='schedule' ? vSchedule() : S.tab==='notice' ? vNotice() : S.tab==='qna' ? vQna() : `${tabUnits.length?`<div class="quick">
     <button class="q" data-q="weak"><i style="background:var(--bad)"></i>약한 단원</button>
     <button class="q" data-q="new"><i style="background:var(--track);outline:1px solid var(--rule)"></i>안 푼 단원</button>
     <button class="q" data-q="all">전체</button>
@@ -568,10 +571,10 @@ function vDrill(){
   const r = S.results[S.results.length-1];
   let opts = '', acts = '', fb = '';
   if(S.phase!=='think'){
-    opts = `<ol class="opts">${c.opts.map((o,i)=>{
+    opts = `${done?'':'<p class="note">아닌 것 같은 선지는 ⚐ 제외로 표시해요. 다시 누르면 복원돼요.</p>'}<ol class="opts">${c.opts.map((o,i)=>{
       let cls = S.sel.has(i)?'sel':'';
       if(done){ cls = c.ans.includes(i)?'right':(S.sel.has(i)?'wrong':'dim'); }
-      return `<li><button class="opt ${cls}" data-opt="${i}" ${done?'disabled':''}><span class="bub">${i+1}</span><span>${esc(o)}</span></button></li>`;}).join('')}
+      return `<li class="option-row ${!done&&S.excluded.has(i)?'excluded':''}"><button class="opt ${cls}" data-opt="${i}" ${done||S.excluded.has(i)?'disabled':''}><span class="bub">${i+1}</span><span>${esc(o)}</span></button>${done?'':`<button class="exclude-btn" data-exclude="${i}" aria-pressed="${S.excluded.has(i)}" aria-label="${i+1}번 선지 ${S.excluded.has(i)?'제외 해제':'제외'}">${S.excluded.has(i)?'⚑ 복원':'⚐ 제외'}</button>`}</li>`;}).join('')}
       ${done?'':`<li><button class="opt none" data-act="missing">떠올린 게 선지에 없어요</button></li>`}</ol>`;
   }
   if(S.phase==='think') acts = `<div class="two"><button class="btn alt" data-act="unknown">모르겠어요</button><button class="btn" data-act="open">떠올렸어요</button></div>`;
@@ -641,8 +644,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button></div>
-  ${S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button></div>
+  ${S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
     <div class="seg">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
   <div class="roster">${all.length?all.map(s=>{const m=studentSummary(s);const cls=m.blockedPct>=40?'hi':m.blockedPct>=20?'md':'';return `
@@ -683,8 +686,8 @@ function vAdminStudent(){
 async function enter(code, nick, grade){
   S.busy = true; S.err=''; render();
   try{
-    const {student, cards} = await API.enter(code, nick, grade);
-    CARDS = cards; S.me = student; S.code = code;
+    const {student, cards, sessionToken} = await API.enter(code, nick, grade);
+    CARDS = cards; S.me = student; S.code = code; S.scheduleToken=sessionToken||null; scheduleOwner='';
     S.picked = new Set(gradeUnits(grade,'kor').map(u=>u.id));
     loc().session = {code, nick, grade}; saveLoc();
     S.busy = false; go('home');
@@ -711,7 +714,7 @@ function startSet(){
   st.queue = st.queue.filter(id=>!set.includes(id));
   const score = c => {const r=st.cards[c.id]; return r ? (r.last==='ok'?r.ok*2:0) + r.seen*0.1 : -1;};
   pool.filter(c=>!set.includes(c.id)).sort((a,b)=>score(a)-score(b)).forEach(c=>{ if(set.length<size) set.push(c.id); });
-  S.set = set; S.idx = 0; S.phase='think'; S.sel=new Set(); S.results=[]; S.combo=0; S.best=0;
+  S.set = set; S.idx = 0; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); S.results=[]; S.combo=0; S.best=0;
   persist(); go('drill');
 }
 function record(out){
@@ -797,7 +800,7 @@ function bind(){
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
     if(a==='toAdmin'){ if(S.admin) go('admin'); else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
     else if(a==='toEntry'){ go('entry'); }
-    else if(a==='logout'){ S.me=null; loc().session=null; saveLoc(); go('entry'); }
+    else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
     else if(a==='theme'){ const L=loc(), order=['auto','light','dark']; L.theme=order[(order.indexOf(L.theme||'auto')+1)%3]; saveLoc(); applyTheme(); render(); }
     else if(a==='start') startSet();
     else if(a==='home'){ S.tab='kor'; go('home'); }
@@ -806,8 +809,8 @@ function bind(){
     else if(a==='unknown'){ S.phase='choose'; record('unknown'); }
     else if(a==='missing') record('missing');
     else if(a==='check'){ const ok = S.sel.size===c.ans.length && c.ans.every(i=>S.sel.has(i)); record(ok?'ok':'wrong'); }
-    else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.sel=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
-    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; go('entry'); }
+    else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
+    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; scheduleOwner=''; sched={groups:[],events:[],reads:{}}; go('entry'); }
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
     else if(a==='cancelDel'){ S.confirmDel=null; render(); }
@@ -825,6 +828,60 @@ function bind(){
     }
   });
 }
+
+/* 追加 기능: 원본 화면의 뷰·바인딩을 확장하며 실제 서버에는 쓰지 않는다. */
+const SCHED_KEY='academy-schedule-prototype-v2';
+let sched;try{if(DEMO)sched=JSON.parse(localStorage.getItem(SCHED_KEY))}catch{}
+if(!DEMO)sched={groups:[],events:[],reads:{}};
+if(!sched)sched={groups:[{id:'mon',name:'월수반',members:['ex-0','ex-1']},{id:'tue',name:'화목반',members:['ex-2','ex-3']}],events:[{id:'example-exam',type:'exam',title:'2학기 중간고사 · 국어',date:'2026-10-30',memo:'시험 범위: 문학 2단원 · 문법 품사와 문장 성분',targets:['group:mon'],recipients:['ex-0','ex-1'],created:Date.now(),attachment:null},{id:'example-academy',type:'academy',title:'11월 학원 모의고사',date:'2026-11-04',memo:'오후 5시 · 필기도구를 준비해주세요.',targets:['all'],recipients:['ex-0','ex-1','ex-2','ex-3'],created:Date.now(),attachment:null}],reads:{}};
+let scheduleFilter='all',scheduleMessage='',scheduleDraft={},scheduleFiles=null,scheduleCsv=[],scheduleGroupMessage='';
+function schedSave(){if(!DEMO)throw Error("server_save_required");try{localStorage.setItem(SCHED_KEY,JSON.stringify(sched));return true}catch{scheduleMessage='저장 공간이 부족해요. 더 작은 첨부파일로 다시 시도해주세요.';return false}}
+function scheduleVisible(){if(!S.me)return [];return sched.events.filter(e=>e.recipients.includes(S.me.id)||e.targets.includes('all')).sort((a,b)=>a.date.localeCompare(b.date))}
+function scheduleUnread(){return scheduleVisible().filter(e=>!(sched.reads[S.me.id]||[]).includes(e.id))}
+function scheduleFile(e){return e.attachment?`<button class="linkbtn schedule-file" data-download="${esc(e.id)}">첨부 열기 · ${esc(e.attachment.name)}</button>`:''}
+function scheduleEvent(e,teacher=false){return `<article class="schedule-item"><div class="schedule-meta"><span>${e.type==='exam'?'시험 일정':'학원 일정'}${!teacher&&!(sched.reads[S.me.id]||[]).includes(e.id)?' <b class="schedule-new">· NEW</b>':''}</span><span class="schedule-date">${esc(e.date)}</span></div><h2>${esc(e.title)}</h2><p>${esc(e.memo)}</p>${scheduleFile(e)}${teacher?`<div class="schedule-meta"><span>${e.targets.map(t=>!DEMO?t:t==='all'?'전체':t.startsWith('group:')?(sched.groups.find(g=>g.id===t.slice(6))?.name||'그룹'):(scheduleStudents().find(s=>s.id===t.slice(8))?.nick||'학생')).map(esc).join(' · ')}</span><span>${e.recipients.length}명에게 배포 · ${e.recipients.filter(id=>(sched.reads[id]||[]).includes(e.id)).length}명 읽음</span></div>`:`<button class="linkbtn" data-read="${esc(e.id)}" style="align-self:flex-start">${(sched.reads[S.me.id]||[]).includes(e.id)?'확인했어요':'일정 확인했어요'}</button>`}</article>`}
+function vSchedule(){let events=scheduleVisible().filter(e=>scheduleFilter==='all'||e.type===scheduleFilter);return `<p class="lede">선생님이 보내 준 시험 일정과 학원 소식을 확인해요.</p>${DEMO?'':'<button class="linkbtn" data-sreload>일정 새로고침</button>'}<div class="seg">${[['all','전체'],['exam','시험'],['academy','학원']].map(([id,n])=>`<button data-sfilter="${id}" aria-pressed="${scheduleFilter===id}">${n}</button>`).join('')}</div><div class="schedule-list">${events.map(e=>scheduleEvent(e)).join('')||'<p class="note" style="padding:20px 0">아직 배정된 일정이 없어요.</p>'}</div>`}
+function vNotice(){return `<div class="ask-meta"><span>읽지 않은 알림 ${scheduleUnread().length}개</span>${DEMO?'':'<button class="linkbtn" data-sreload>새로고침</button>'}<button class="linkbtn" id="scheduleReadAll">모두 읽음</button></div><p class="note">시험·학원 일정이 등록되면 이곳에 알림이 표시돼요.</p><div class="schedule-list">${scheduleVisible().sort((a,b)=>b.created-a.created).map(e=>scheduleEvent(e)).join('')||'<p class="note" style="padding:20px 0">도착한 알림이 없어요.</p>'}</div>`}
+function scheduleRecipients(targets){return scheduleStudents().filter(s=>targets.includes('all')||targets.includes('student:'+s.id)||sched.groups.some(g=>targets.includes('group:'+g.id)&&g.members.includes(s.id))).map(s=>s.id)}
+function vScheduleAdmin(){let d=scheduleDraft;return `<h2 class="schedule-head">일정 등록·일괄 배포</h2><p class="lede">한 번 올리고, 필요한 학생과 그룹에 함께 보내세요.</p>${scheduleMessage?`<p role="status" class="schedule-success">${esc(scheduleMessage)}</p>`:''}<form id="scheduleForm" class="schedule-form"><label>일정 종류<select name="type"><option value="exam" ${d.type==='exam'?'selected':''}>학생 시험 일정</option><option value="academy" ${d.type==='academy'?'selected':''}>학원 일정·공지</option></select></label><label>제목<input name="title" required maxlength="100" placeholder="예: 2학기 기말고사 · 국어" value="${esc(d.title||'')}"></label><label>날짜<input name="date" type="date" required value="${esc(d.date||new Date().toLocaleDateString('sv-SE'))}"></label><label>시험 범위·시간·안내<textarea name="memo" rows="3">${esc(d.memo||'')}</textarea></label><label>시간표 첨부 또는 CSV 일괄 등록<input name="attachment" type="file" accept=".pdf,.png,.jpg,.jpeg,.csv"><span class="note">PDF·이미지는 최대 1MB · CSV 열: 날짜,제목,메모</span></label><p class="note" id="scheduleFileState"></p><a class="linkbtn" download="일정-예시.csv" href="data:text/csv;charset=utf-8,%EF%BB%BF날짜,제목,메모%0A2026-11-06,기말고사 국어,문학 3단원%0A2026-11-09,기말고사 영어,교과서 5과">CSV 예시 내려받기</a><span class="label">받을 대상 · 중복 학생은 한 번만 수신</span><div class="schedule-targets">${[['all','전체 학생'],...sched.groups.map(g=>['group:'+g.id,g.name]),...scheduleStudents().map(s=>['student:'+s.id,s.nick+' · '+s.grade])].map(([v,n])=>`<label class="check"><input type="checkbox" name="target" value="${esc(v)}" ${(d.targets||[]).includes(v)?'checked':''}>${esc(n)}</label>`).join('')}</div><p id="scheduleRecipients" class="note" aria-live="polite">받을 대상을 선택해주세요.</p><p class="schedule-error" id="scheduleFormError" role="alert"></p><button class="btn" type="submit">일정 배포·알림 보내기</button><p class="note">${DEMO?'프로토타입에서는 이 브라우저의 학생 화면에 표시됩니다.':'학생이 입장하면 앱 안 알림함에 표시됩니다.'} 휴대폰 푸시는 지원하지 않아요.</p></form><h2 class="schedule-head">배포한 일정</h2><div class="schedule-list">${sched.events.slice().reverse().map(e=>scheduleEvent(e,true)).join('')}</div>`}
+function vGroups(){return `<h2 class="schedule-head">학생 그룹</h2><p class="lede">반·학교·학년별로 묶어 같은 일정을 한 번에 보내세요.</p>${scheduleGroupMessage?`<p class="schedule-success" role="status">${esc(scheduleGroupMessage)}</p>`:''}<form id="groupCreate" class="schedule-form"><label>새 그룹 이름<input name="groupName" required maxlength="30" placeholder="예: 새빛중 2학년"></label><button class="btn alt" type="submit">그룹 만들기</button></form><div class="schedule-grouplist">${sched.groups.map(g=>`<form data-group-form="${esc(g.id)}" class="schedule-form"><fieldset><legend>${esc(g.name)} · ${g.members.length}명</legend><div class="schedule-targets">${scheduleStudents().map(s=>`<label class="check"><input type="checkbox" name="member" value="${esc(s.id)}" ${g.members.includes(s.id)?'checked':''}>${esc(s.nick)} · ${s.grade}</label>`).join('')}</div><button class="btn sm alt" style="margin-top:12px" type="submit">구성원 저장</button></fieldset></form>`).join('')}</div><p class="note">그룹 변경은 다음 배포부터 적용됩니다. 이미 보낸 일정의 수신 학생은 유지돼요.</p>`}
+function parseScheduleCSV(text){let rows=[],row=[],v='',q=false;for(let i=0;i<text.length;i++){let c=text[i];if(c==='"'){if(q&&text[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if(c==='\n'&&!q){row.push(v.replace(/\r$/,''));rows.push(row);row=[];v=''}else v+=c}if(q)throw Error('CSV의 따옴표를 확인해주세요.');if(v||row.length){row.push(v.replace(/\r$/,''));rows.push(row)}if(rows.shift()?.join(',')!=='날짜,제목,메모')throw Error('첫 행은 날짜,제목,메모여야 해요.');rows=rows.filter(r=>r.some(x=>x.trim()));if(!rows.length||rows.length>100)throw Error('CSV에 1~100개 일정을 넣어주세요.');for(let r of rows){let d=new Date(r[0]+'T00:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(r[0])||isNaN(d)||d.toISOString().slice(0,10)!==r[0]||!r[1]?.trim())throw Error('날짜(YYYY-MM-DD)와 제목을 확인해주세요.')}return rows}
+function bindSchedule(){
+ app.querySelectorAll('[data-exclude]').forEach(b=>b.onclick=()=>{let i=+b.dataset.exclude;if(S.excluded.has(i))S.excluded.delete(i);else{S.excluded.add(i);S.sel.delete(i)}render()});
+ app.querySelectorAll('[data-sfilter]').forEach(b=>b.onclick=()=>{scheduleFilter=b.dataset.sfilter;render()});
+ app.querySelectorAll('[data-read]').forEach(b=>b.onclick=()=>{let id=S.me.id;sched.reads[id]=[...new Set([...(sched.reads[id]||[]),b.dataset.read])];schedSave();render()});
+ let all=app.querySelector('#scheduleReadAll');if(all)all.onclick=()=>{sched.reads[S.me.id]=scheduleVisible().map(e=>e.id);schedSave();render()};
+ app.querySelectorAll('[data-download]').forEach(b=>b.onclick=()=>{let e=sched.events.find(e=>e.id===b.dataset.download),a=document.createElement('a');a.href=e.attachment.data;a.download=e.attachment.name;a.click()});
+ let f=app.querySelector('#scheduleForm');if(f){scheduleFiles=null;scheduleCsv=[];const err=t=>{f.querySelector('#scheduleFormError').textContent=t};const refresh=()=>{let targets=Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);f.querySelector('#scheduleRecipients').textContent='수신 학생 '+scheduleRecipients(targets).length+'명'};f.querySelectorAll('[name=target]').forEach(x=>x.onchange=refresh);refresh();let uploading=false;
+ f.elements.namedItem('attachment').onchange=async()=>{uploading=true;scheduleFiles=null;scheduleCsv=[];err('');f.elements.namedItem('title').required=true;try{let file=f.elements.namedItem('attachment').files[0];if(!file){f.querySelector('#scheduleFileState').textContent='';return}if(file.size>1024*1024)throw Error('첨부는 1MB 이하로 선택해주세요.');if(file.name.toLowerCase().endsWith('.csv')){scheduleCsv=parseScheduleCSV((await file.text()).replace(/^\uFEFF/,''));f.elements.namedItem('title').required=false;f.querySelector('#scheduleFileState').textContent=scheduleCsv.length+'개 일정 불러옴 · 배포 버튼을 누르면 등록돼요.'}else{if(!['application/pdf','image/png','image/jpeg'].includes(file.type))throw Error('PDF·PNG·JPG 파일만 첨부할 수 있어요.');let data=await new Promise((resolve,reject)=>{let reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});scheduleFiles={name:file.name,data};f.querySelector('#scheduleFileState').textContent=file.name+' · 학생이 내려받을 수 있어요.'}}catch(e){f.elements.namedItem('attachment').value='';f.querySelector('#scheduleFileState').textContent='';err(e.message||'파일을 읽지 못했어요.')}finally{uploading=false}};
+ f.onsubmit=e=>{e.preventDefault();if(uploading){err('첨부파일을 읽고 있어요. 잠시 후 배포해주세요.');return}let targets=Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value),recipients=scheduleRecipients(targets);if(!recipients.length){err('받을 학생이 있는 그룹이나 개인을 선택해주세요.');return}let rows=scheduleCsv.length?scheduleCsv:[[f.elements.namedItem('date').value,f.elements.namedItem('title').value.trim(),f.elements.namedItem('memo').value]],created=Date.now(),events=rows.map((r,i)=>({id:'event-'+created+'-'+i,type:f.elements.namedItem('type').value,title:r[1],date:r[0],memo:r[2]||'',targets,recipients,created,attachment:scheduleFiles}));sched.events.push(...events);if(!schedSave()){sched.events.splice(-events.length);err(scheduleMessage);return}scheduleDraft={};scheduleMessage=events.length+'개 일정을 '+recipients.length+'명에게 배포했어요. 학생 화면의 알림함에서 확인할 수 있어요.';render()};}
+ let gc=app.querySelector('#groupCreate');if(gc)gc.onsubmit=e=>{e.preventDefault();let name=gc.groupName.value.trim();if(!name)return;if(sched.groups.some(g=>g.name===name)){scheduleGroupMessage='이미 같은 이름의 그룹이 있어요.';render();return}sched.groups.push({id:'group-'+Date.now(),name,members:[]});schedSave();scheduleGroupMessage='그룹을 만들었어요. 아래에서 구성원을 선택해주세요.';render()};
+ app.querySelectorAll('[data-group-form]').forEach(f=>f.onsubmit=e=>{e.preventDefault();let g=sched.groups.find(g=>g.id===f.dataset.groupForm);g.members=Array.from(f.querySelectorAll('[name=member]:checked')).map(x=>x.value);schedSave();scheduleGroupMessage=g.name+' 구성원을 저장했어요.';render()});
+}
+
+// 실서비스: 일정은 Supabase RPC에만 저장하며 로컬 데모로 대체하지 않는다.
+let scheduleOwner='',scheduleLoading=false,scheduleStatus=DEMO?'ready':'loading',scheduleProblem='';
+function scheduleStudents(){return DEMO?Object.values(demoDB().students):(S.admin?.students||[])}
+function scheduleError(error){let text=error?.message||'';if(error?.code==='PGRST202'||error?.code==='42P01'||/Could not find the function|does not exist/.test(text))return 'missing';if(/session_expired/.test(text))return 'expired';return 'error'}
+function scheduleGuard(){if(DEMO||scheduleStatus==='ready')return '';return `<div class="ask-box"><p class="lede">${scheduleStatus==='loading'?'일정을 불러오는 중…':scheduleStatus==='missing'?'일정 기능의 서버 설정이 아직 완료되지 않았어요. 설정 후 나갔다 다시 입장해주세요.':scheduleStatus==='expired'?'일정 확인을 위해 다시 입장해주세요.':'일정을 불러오지 못했어요. 연결을 확인하고 다시 시도해주세요.'}</p>${S.screen==='admin'&&scheduleStatus==='missing'?'<p class="note">Supabase SQL Editor에서 일정 설정 SQL을 한 번 실행하면 활성화됩니다. 기존 학생·문제·풀이 기록은 유지됩니다.</p><a class="linkbtn" target="_blank" rel="noopener" href="https://github.com/awnoqwe/academy-drill/blob/main/sql/schedule.sql">일정 설정 SQL 열기</a>':''}${scheduleStatus!=='loading'?'<button class="btn alt" data-sreload>다시 확인</button>':''}</div>`}
+const scheduleStudentView=vSchedule,scheduleAdminView=vScheduleAdmin,scheduleNoticeView=vNotice,scheduleGroupsView=vGroups;
+vSchedule=()=>scheduleGuard()||scheduleStudentView();vScheduleAdmin=()=>scheduleGuard()||scheduleAdminView();vNotice=()=>scheduleGuard()||scheduleNoticeView();vGroups=()=>scheduleGuard()||scheduleGroupsView();
+function scheduleCurrentOwner(){if(S.screen==='admin'&&S.admin)return 'teacher';if(S.screen==='home'&&S.me)return S.me.id+':'+(S.scheduleToken||'no-token');return ''}
+async function loadSchedules(force=false,quiet=false){if(DEMO||scheduleLoading)return;const owner=scheduleCurrentOwner();if(!owner||(!force&&owner===scheduleOwner))return;scheduleOwner=owner;scheduleLoading=true;if(!quiet){scheduleStatus='loading';render()}let changed=false;try{if(owner!=='teacher'&&!S.scheduleToken){scheduleStatus='missing';return}const {data,error}=await sb.rpc(owner==='teacher'?'drill_schedule_admin':'drill_schedule_student',owner==='teacher'?{}:{p_token:S.scheduleToken});if(scheduleCurrentOwner()!==owner)return;if(error){scheduleStatus=scheduleError(error);return}const next={groups:data.groups||[],events:(data.events||[]).map(e=>({...e,created:Date.parse(e.created)})),reads:data.reads||{}};changed=JSON.stringify(next)!==JSON.stringify(sched);sched=next;scheduleStatus='ready'}catch(e){if(scheduleCurrentOwner()===owner)scheduleStatus=scheduleError(e)}finally{scheduleLoading=false;if(scheduleCurrentOwner()===owner&&(!quiet||changed)){if(quiet&&S.screen==='home'&&!['schedule','notice'].includes(S.tab)){let badge=app.querySelector('[data-tab=notice]');if(badge)badge.innerHTML='알림'+(scheduleUnread().length?'<span class="badge">'+scheduleUnread().length+'</span>':'')}else render()}}}
+async function scheduleRPC(name,args){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
+function scheduleActionError(e){return e?.code==='23505'?'같은 이름의 그룹이 이미 있어요.':/no_recipients/.test(e?.message||'')?'받을 학생이 있는 그룹이나 개인을 선택해주세요.':/session_expired/.test(e?.message||'')?'다시 입장한 뒤 시도해주세요.':'서버에 저장하지 못했어요. 입력을 유지했으니 연결을 확인하고 다시 시도해주세요.'}
+let scheduleWorking=false;
+const bindScheduleLocal=bindSchedule;
+bindSchedule=function(){bindScheduleLocal();if(DEMO)return;let owner=scheduleCurrentOwner();if(owner&&owner!==scheduleOwner&&!scheduleLoading)queueMicrotask(()=>loadSchedules());app.querySelectorAll('[data-sreload]').forEach(b=>b.onclick=()=>loadSchedules(true));
+ app.querySelectorAll('[data-read]').forEach(b=>b.onclick=async()=>{if(scheduleWorking)return;scheduleWorking=true;b.disabled=true;try{await scheduleRPC('drill_schedule_read',{p_token:S.scheduleToken,p_events:[b.dataset.read]});await loadSchedules(true)}catch(e){b.insertAdjacentHTML('afterend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;b.disabled=false}});
+ let all=app.querySelector('#scheduleReadAll');if(all)all.onclick=async()=>{if(scheduleWorking)return;scheduleWorking=true;all.disabled=true;try{await scheduleRPC('drill_schedule_read',{p_token:S.scheduleToken,p_events:scheduleVisible().map(e=>e.id)});await loadSchedules(true)}catch(e){all.insertAdjacentHTML('afterend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;all.disabled=false}};
+ let f=app.querySelector('#scheduleForm');if(f){let reading=false;const oldChange=f.elements.namedItem('attachment').onchange;f.elements.namedItem('attachment').onchange=async()=>{reading=true;try{await oldChange()}finally{reading=false}};f.onsubmit=async e=>{e.preventDefault();let err=f.querySelector('#scheduleFormError');err.textContent='';if(scheduleWorking)return;if(reading){err.textContent='첨부파일을 읽는 중이에요. 잠시 후 배포해주세요.';return}let targets=Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);if(!scheduleRecipients(targets).length){err.textContent='받을 학생이 있는 그룹이나 개인을 선택해주세요.';return}let field=n=>f.elements.namedItem(n),rows=scheduleCsv.length?scheduleCsv.map(r=>({date:r[0],title:r[1].trim(),memo:r[2]||''})):[{date:field('date').value,title:field('title').value.trim(),memo:field('memo').value}];if(rows.some(r=>!r.title||r.title.length>100||r.memo.length>5000)){err.textContent='제목은 1~100자, 안내는 5,000자 이하로 입력해주세요.';return}scheduleWorking=true;let button=f.querySelector('[type=submit]');button.disabled=true;button.textContent='배포하는 중…';try{const data=await scheduleRPC('drill_schedule_publish',{p_rows:rows,p_type:field('type').value,p_groups:targets.filter(t=>t.startsWith('group:')).map(t=>t.slice(6)),p_students:targets.filter(t=>t.startsWith('student:')).map(t=>t.slice(8)),p_all:targets.includes('all'),p_attachment:scheduleFiles});scheduleMessage=data.count+'개 일정을 '+data.recipients+'명에게 배포했어요. 학생 알림함에 표시됩니다.';scheduleDraft={};await loadSchedules(true)}catch(e){err.textContent=scheduleActionError(e)}finally{scheduleWorking=false;button.disabled=false;button.textContent='일정 배포·알림 보내기'}};}
+ let create=app.querySelector('#groupCreate');if(create)create.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let name=create.elements.namedItem('groupName').value.trim();if(!name)return;scheduleWorking=true;let button=create.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_id:null,p_name:name,p_members:[]});scheduleGroupMessage='그룹을 만들었어요. 구성원을 선택해주세요.';await loadSchedules(true)}catch(e){create.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}};
+ app.querySelectorAll('[data-group-form]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let g=sched.groups.find(g=>g.id===f.dataset.groupForm),members=Array.from(f.querySelectorAll('[name=member]:checked')).map(x=>x.value);scheduleWorking=true;let button=f.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_id:g.id,p_name:g.name,p_members:members});scheduleGroupMessage=g.name+' 구성원을 저장했어요.';await loadSchedules(true)}catch(e){f.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}});
+};
+// 화면을 보고 있는 학생에게만 주기적으로 새 알림을 가져옵니다.
+setInterval(()=>{if(!DEMO&&S.screen==='home'&&document.visibilityState==='visible'&&!scheduleWorking)loadSchedules(true,true)},60000);
+document.addEventListener('visibilitychange',()=>{if(!DEMO&&S.screen==='home'&&document.visibilityState==='visible')loadSchedules(true,true)});
 
 /* ===== 시작 ===== */
 applyTheme();
