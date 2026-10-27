@@ -1,0 +1,3 @@
+# JWT validation and teacher authorization are performed inside drill-push.
+[functions.drill-push]
+verify_jwt = false
