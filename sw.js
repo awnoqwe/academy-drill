@@ -1,0 +1,9 @@
+'use strict';
+// 푸시만 처리하며 기존 페이지·로그인·문제 요청은 캐시하거나 가로채지 않습니다.
+const DB='trigger-push-device-v1';
+function deviceStore(mode,action){return new Promise((resolve,reject)=>{const open=indexedDB.open(DB,1);open.onupgradeneeded=()=>open.result.createObjectStore('settings');open.onerror=()=>reject(open.error);open.onsuccess=()=>{const db=open.result,tx=db.transaction('settings',mode),req=action(tx.objectStore('settings'));let value;req.onsuccess=()=>value=req.result;tx.oncomplete=()=>{db.close();resolve(value)};tx.onerror=()=>{db.close();reject(tx.error)}}})}
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
+self.addEventListener('message',event=>{if(event.data?.type==='PUSH_OWNER'){event.waitUntil(deviceStore('readwrite',s=>s.put(event.data.studentId||null,'studentId')).then(()=>event.ports[0]?.postMessage({ok:true})).catch(()=>event.ports[0]?.postMessage({ok:false})))}});
+self.addEventListener('push',event=>event.waitUntil((async()=>{let data;try{data=event.data?.json()}catch{return}if(!data?.studentId)return;const owner=await deviceStore('readonly',s=>s.get('studentId'));if(owner!==data.studentId)return;await self.registration.showNotification('트리거 드릴 · 새 일정',{body:'새 일정이 도착했어요. 앱에서 확인해주세요.',icon:new URL('icon-192.png',self.registration.scope).href,badge:new URL('favicon-32.png',self.registration.scope).href,tag:'schedule-'+data.eventId,data:{url:new URL('?view=notifications',self.registration.scope).href},renotify:false});})()));
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const url=new URL('?view=notifications',self.registration.scope).href;const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows){if(client.url.startsWith(self.registration.scope)){await client.navigate(url);return client.focus()}}return self.clients.openWindow(url)})())});
