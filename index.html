@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <title>아페라</title>
-<script>try{var L=JSON.parse(localStorage.getItem('academy-drill-v3'))||{},t={paper:'light',ink:'dark'}[L.theme]||L.theme;if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);if(L.accent)document.documentElement.setAttribute('data-accent',L.accent)}catch(e){}</script>
+<script>try{var L=JSON.parse(localStorage.getItem('academy-drill-v3'))||{},t={paper:'light',ink:'dark'}[L.theme]||L.theme;if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);if(L.accent)document.documentElement.setAttribute('data-accent',L.accent);if(L.fs==='l'||L.fs==='xl')document.documentElement.setAttribute('data-fs',L.fs)}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;600;700;900&family=Source+Serif+4:opsz,wght@8..60,900&display=swap">
@@ -332,6 +332,24 @@ body{background:var(--paper)}
 @media (max-width:400px){.tabs button{font-size:14.5px}.stat{padding:9px 10px;gap:6px}.stat>small{font-size:12.5px}}
 .stat{flex:1 1 0;min-width:0}
 
+/* 숙제 · 오프라인 · 글자 크기 */
+.hw-list{display:flex;flex-direction:column;gap:0;border-top:2px solid var(--rule-strong);padding-top:10px}
+.hw-item{border-bottom:1px solid var(--rule);padding:14px 0;display:flex;flex-direction:column;gap:7px}
+.hw-item h2{font:900 18px var(--f-serif);margin:0}
+.hw-item p{font:15px/1.75 var(--f-serif);white-space:pre-wrap;margin:0}
+.hw-item.done h2{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.hw-when{color:var(--omr);font-weight:700}
+.hw-when.late{color:var(--bad)}
+.hw-done summary{cursor:pointer;font-size:13px;color:var(--muted);padding:12px 0}
+.hw-list+.lede{margin-top:6px}
+.hw-prog{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.hw-prog .mbar{flex:1;height:4px}
+.hw-prog .mbar span{background:var(--cta)}
+.offline{font-size:13px;color:var(--muted);border-left:3px solid var(--cta);padding:2px 0 2px 12px;margin:0}
+.offline b{color:var(--omr);margin-right:6px}
+:root[data-fs="l"] .wrap{zoom:1.1}
+:root[data-fs="xl"] .wrap{zoom:1.22}
+
 </style>
 
 </head>
@@ -641,7 +659,8 @@ function vHome(){
   const pool = mine.filter(c=>S.picked.has(c.unit));
   const n = S.size ? Math.min(S.size, pool.length) : pool.length;
   return `${masthead(esc(st.nick)+' · '+st.grade)}
-  <div class="tabs" role="tablist" style="--n:${TABS.length}">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}</button>`).join('')}</div>
+  ${S.offline?'<p class="offline" role="status"><b>오프라인</b> 기기에 저장된 문제로 열었어요. 푼 기록은 인터넷이 연결되면 저장돼요.</p>':''}
+  <div class="tabs" role="tablist" style="--n:${TABS.length}">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}${t.id==='schedule'&&hwTodo()?`<span class="badge">${hwTodo()}</span>`:''}</button>`).join('')}</div>
   ${S.tab==='flash' ? vFlashHome() : S.tab==='settings' ? vSettings() : S.tab==='schedule' ? vSchedule() : S.tab==='notice' ? vNotice() : S.tab==='qna' ? vQna() : `<section class="stats" aria-label="학습 현황">
     <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>푼 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
@@ -667,7 +686,7 @@ function vHome(){
   <div class="actions">
     ${S.tab==='kor'?`<button class="btn" data-act="start" ${pool.length?'':'disabled'}>시작 · ${n}문제</button>`:''}
     ${q&&S.tab==='kor'?`<p class="selnote" style="text-align:center">지난 세트에서 막힌 <b style="color:var(--omr)">${q}</b>문제가 먼저 나와요</p>`:''}
-    ${S.saveFail?'<p class="err" style="text-align:center">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 문제에서 다시 저장해요.</p>':''}
+    ${S.saveFail&&!S.offline?'<p class="err" style="text-align:center">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 문제에서 다시 저장해요.</p>':''}
     ${S.tab==='settings'?'':'<div class="linkrow"><button data-act="logout">나가기</button></div>'}
     ${demoBanner()}
   </div>`;
@@ -799,8 +818,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist" style="--n:5"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button></div>
-  ${S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist" style="--n:6"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
+  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
     <div class="seg">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
   <div class="roster">${all.length?all.map(s=>{const m=studentSummary(s);const cls=m.blockedPct>=40?'hi':m.blockedPct>=20?'md':'';return `
@@ -1484,6 +1503,237 @@ bindFlash = function(){
   app.querySelectorAll('[data-act=adminRefresh]').forEach(b=>b.addEventListener('click',()=>{ S.fa=null; }));
   app.querySelectorAll('[data-act=logout]').forEach(b=>b.addEventListener('click',()=>{ FC.owner=''; FC.status='idle'; }));
 };
+
+/* ===== 숙제 · 학생 메모 (sql/teacher_tools.sql) ===== */
+let HW = {owner:'', status:'idle', list:[]};
+function hwDemoDB(){
+  const db = demoDB();
+  if(!db.hw){
+    const now=Date.now(), ymd=d=>new Date(now+d*DAY).toLocaleDateString('sv-SE'), ids=Object.keys(db.students).filter(id=>db.students[id].example);
+    db.hw = [
+      {id:'hw-1', title:'문법 단원 한 세트', due:ymd(2), memo:'음운 변동 문제 위주로 풀고, 막힌 문제는 Q&A에 올리기', link:{type:'drill',unit:'gram'}, targets:['전체 학생'], created:now-DAY, rec:Object.fromEntries(ids.map((id,i)=>[id, i%2?now-3600e3:null]))},
+      {id:'hw-2', title:'문학 개념어 카드 오늘 분량', due:ymd(0), memo:'', link:{type:'flash',deck:'dk-lit'}, targets:['월수반'], created:now-2*DAY, rec:Object.fromEntries(ids.slice(0,2).map(id=>[id,null]))}
+    ];
+    db.notes = {[ids[0]]:'비문학 중심 문장 찾기는 빠른데 선지 대조가 약함. 다음 주 추론 문제 집중.'};
+    saveLoc();
+  }
+  return db;
+}
+const hwAll = list => list.map(h=>({...h, link:h.link||null}));
+Object.assign(API, {
+  async hwList(){
+    if(DEMO){ const db=hwDemoDB(), sid=S.me.id; return db.hw.filter(h=>sid in h.rec).map(h=>({id:h.id,title:h.title,due:h.due,memo:h.memo,link:h.link,created:h.created,done_at:h.rec[sid]})); }
+    if(!S.scheduleToken) throw {message:'session_expired'};
+    const {data,error} = await sb.rpc('hw_student_list', {p_token:S.scheduleToken}); if(error) throw error;
+    return hwAll(data||[]).map(h=>({...h, done_at:h.done_at?Date.parse(h.done_at):null}));
+  },
+  async hwDone(id, done){
+    if(DEMO){ const h=hwDemoDB().hw.find(x=>x.id===id); h.rec[S.me.id]=done?Date.now():null; saveLoc(); return; }
+    const {error} = await sb.rpc('hw_student_done', {p_token:S.scheduleToken, p_homework:id, p_done:done}); if(error) throw error;
+  },
+  async hwAdmin(){
+    if(DEMO){ const db=hwDemoDB(); return {hw:db.hw.map(h=>({id:h.id,title:h.title,due:h.due,memo:h.memo,link:h.link,targets:h.targets,created:h.created})),
+      rec:db.hw.flatMap(h=>Object.entries(h.rec).map(([sid,d])=>({homework_id:h.id,student_id:sid,done_at:d}))), notes:{...db.notes}}; }
+    const [h,r,n] = await Promise.all([sb.from('drill_homework').select('*').order('due',{ascending:false}).order('created',{ascending:false}), sb.from('drill_homework_recipients').select('*'), sb.from('drill_student_notes').select('*')]);
+    const e=h.error||r.error||n.error; if(e) throw e;
+    return {hw:hwAll(h.data), rec:r.data.map(x=>({...x, done_at:x.done_at?Date.parse(x.done_at):null})), notes:Object.fromEntries(n.data.map(x=>[x.student_id,x.body]))};
+  },
+  async hwPublish(v){
+    if(DEMO){ const db=hwDemoDB(); db.hw.unshift({id:'hw-'+Date.now(), title:v.title, due:v.due, memo:v.memo, link:v.link, targets:v.targets, created:Date.now(), rec:Object.fromEntries(v.students.map(id=>[id,null]))}); saveLoc(); return; }
+    const {error} = await sb.rpc('hw_publish', {p_title:v.title, p_due:v.due, p_memo:v.memo, p_link:v.link, p_targets:v.targets, p_students:v.students}); if(error) throw error;
+  },
+  async hwDelete(id){
+    if(DEMO){ const db=hwDemoDB(); db.hw=db.hw.filter(h=>h.id!==id); saveLoc(); return; }
+    const {error} = await sb.from('drill_homework').delete().eq('id',id); if(error) throw error;
+  },
+  async noteSave(sid, body){
+    if(DEMO){ hwDemoDB().notes[sid]=body; saveLoc(); return; }
+    const {error} = await sb.from('drill_student_notes').upsert({student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
+  }
+});
+const hwDday = due => Math.round((Date.parse(due+'T00:00:00') - new Date(new Date().toDateString()).getTime())/DAY);
+const hwWhen = due => { const d=hwDday(due); return d<0 ? '기한 지남' : d===0 ? '오늘까지' : 'D-'+d; };
+const hwTodo = () => HW.owner===S.me?.id && HW.status==='ready' ? HW.list.filter(h=>!h.done_at).length : 0;
+async function hwLoad(){
+  const owner=S.me.id; HW={owner, status:'loading', list:[]};
+  try{ const list=await API.hwList(); if(HW.owner!==owner) return; HW={owner, status:'ready', list}; try{ loc().hwSnap={sid:owner, list}; saveLoc(); }catch(e){} }
+  catch(e){ if(HW.owner!==owner) return; const k=flErr(e), snap=loc().hwSnap; HW = k!=='missing'&&snap?.sid===owner ? {owner, status:'ready', list:snap.list, stale:true} : {owner, status:k, list:[]}; }
+  if(S.screen==='home') render();
+}
+const hwLinkLabel = l => !l ? '' : l.type==='drill' ? '드릴 · '+unitName(l.unit) : '카드 · '+((FC.decks.find(d=>d.id===l.deck)||S.fa?.decks?.find(d=>d.id===l.deck)||{}).name||'덱');
+function hwStudentSection(){
+  if(HW.owner!==S.me?.id || HW.status==='idle' || HW.status==='loading') return '<p class="note">숙제를 불러오는 중…</p>';
+  if(HW.status!=='ready' || !HW.list.length) return '';
+  const todo=HW.list.filter(h=>!h.done_at), done=HW.list.filter(h=>h.done_at).sort((a,b)=>b.done_at-a.done_at);
+  const item=(h,isDone)=>`<article class="hw-item ${isDone?'done':''}">
+    <div class="schedule-meta"><span class="hw-when ${!isDone&&hwDday(h.due)<0?'late':''}">숙제 · ${isDone?'완료 '+fmtDate(h.done_at):hwWhen(h.due)}</span><span class="schedule-date">${esc(h.due)}까지</span></div>
+    <h2>${esc(h.title)}</h2>${h.memo?`<p>${esc(h.memo)}</p>`:''}
+    <div class="schedule-btns">${!isDone&&h.link?`<button class="btn sm" data-hwgo="${esc(h.id)}">바로 하기 · ${esc(hwLinkLabel(h.link))}</button>`:''}<button class="btn sm ${isDone?'alt':'alt'}" data-hwdone="${esc(h.id)}" data-v="${isDone?0:1}">${isDone?'완료 취소':'다 했어요'}</button></div></article>`;
+  return `<section class="hw-list"><div class="ask-meta"><span class="label">숙제 ${todo.length?todo.length+'개 남음':'· 다 했어요'}</span>${HW.stale?'<span class="note">오프라인 · 저장된 목록</span>':''}</div>
+    ${todo.map(h=>item(h,false)).join('')||'<p class="note" style="padding:6px 0 10px">남은 숙제가 없어요.</p>'}
+    ${done.length?`<details class="hw-done"><summary>끝낸 숙제 ${done.length}개</summary>${done.map(h=>item(h,true)).join('')}</details>`:''}</section>`;
+}
+
+/* --- 선생님 --- */
+async function taLoad(){
+  S.ta={status:'loading'}; render();
+  try{ const d=await API.hwAdmin(); S.ta={status:'ready', ...d, msg:'', err:'', open:null, del:null, noteMsg:''}; }
+  catch(e){ S.ta={status:flErr(e)==='missing'?'missing':'error'}; }
+  render();
+}
+const taMissing = () => `<div class="ask-box"><p class="lede">숙제·메모 기능의 서버 설정이 아직 안 됐어요.</p><p class="note">Supabase SQL Editor에서 숙제·메모 설정 SQL을 한 번 실행하면 열려요. 기존 기록은 그대로예요.</p><a class="linkbtn" target="_blank" rel="noopener" href="https://github.com/awnoqwe/academy-drill/blob/main/sql/teacher_tools.sql">숙제·메모 설정 SQL 열기</a><button class="btn alt" data-ta="reload">다시 확인</button></div>`;
+function vAdminHw(){
+  const A=S.ta;
+  if(!A||A.status==='loading') return '<p class="lede" style="padding:14px 0">불러오는 중…</p>';
+  if(A.status==='missing') return taMissing();
+  if(A.status!=='ready') return `<div class="ask-box"><p class="lede">숙제를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p><button class="btn alt" data-ta="reload">다시 불러오기</button></div>`;
+  const studs=S.admin.students, byId=Object.fromEntries(studs.map(s=>[s.id,s])), decks=S.fa?.status==='ready'?S.fa.decks:[];
+  const due=new Date(Date.now()+7*DAY).toLocaleDateString('sv-SE');
+  const targets=[['all','전체 학생'],...sched.groups.map(g=>['group:'+g.id,g.name]),...studs.map(s=>['student:'+s.id,s.nick+' · '+s.grade])];
+  return `${A.msg?`<p class="schedule-success" role="status">${esc(A.msg)}</p>`:''}${A.err?`<p class="err" role="alert">${esc(A.err)}</p>`:''}
+  <form id="hwForm" class="schedule-form"><h2 class="schedule-head">숙제 내기</h2>
+    <label>제목<input id="hwTitle" name="title" required maxlength="100" placeholder="예: 문학 개념어 카드 + 문법 2세트"></label>
+    <label>기한<input id="hwDue" name="due" type="date" required value="${due}"></label>
+    <label>할 일 · 학생에게 보이는 안내<textarea id="hwMemo" name="memo" rows="3" maxlength="2000" placeholder="예: 막힌 문제는 Q&A에 올리기"></textarea></label>
+    <label>바로 하기 버튼<select id="hwLink" name="link"><option value="">없음</option>${UNITS.map(u=>`<option value="drill:${u.id}">드릴 · ${u.name}</option>`).join('')}${decks.map(d=>`<option value="flash:${esc(d.id)}">카드 · ${esc(d.name)}</option>`).join('')}</select></label>
+    <span class="label">받을 대상 · 중복 학생은 한 번만</span>
+    <div class="schedule-targets">${targets.map(([v,n])=>`<label class="check"><input type="checkbox" name="target" value="${esc(v)}">${esc(n)}</label>`).join('')}</div>
+    <p class="note" id="hwCount" aria-live="polite">받을 대상을 골라 주세요.</p>
+    <button class="btn" type="submit">숙제 내기</button></form>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">낸 숙제</span>
+  <div class="posts">${A.hw.map(h=>{ const r=A.rec.filter(x=>x.homework_id===h.id), d=r.filter(x=>x.done_at), left=r.filter(x=>!x.done_at);
+    return `<article class="post hw-admin"><div class="who"><span><b>${esc(h.title)}</b></span><span class="${hwDday(h.due)<0?'err':''}">${esc(h.due)}까지 · ${hwWhen(h.due)}</span></div>
+      ${h.memo?`<p class="qt" style="font-weight:400">${esc(h.memo)}</p>`:''}
+      <span class="ref">${esc((h.targets||[]).join(' · '))}${h.link?' · 바로 하기: '+esc(hwLinkLabel(h.link)):''}</span>
+      <div class="hw-prog"><span class="mbar"><span style="width:${r.length?d.length/r.length*100:0}%"></span></span><span class="mono">완료 ${d.length}/${r.length}</span></div>
+      ${A.open===h.id?`<p class="note">안 한 학생: ${left.map(x=>esc((byId[x.student_id]||{nick:'(삭제된 학생)'}).nick)).join(', ')||'없음'}${d.length?'<br>한 학생: '+d.map(x=>esc((byId[x.student_id]||{nick:'?'}).nick)+' ('+fmtDate(x.done_at)+')').join(', '):''}</p>`:''}
+      <div class="schedule-btns" style="justify-content:flex-end">${A.del===h.id?`<span class="selnote">이 숙제를 지울까요?</span><button class="linkbtn danger" data-tadel="${esc(h.id)}">지우기</button><button class="linkbtn" data-ta="cancel">취소</button>`:`<button class="linkbtn danger" data-taask="${esc(h.id)}">지우기</button><button class="linkbtn" data-taopen="${esc(h.id)}">${A.open===h.id?'접기':'누가 했나 보기'}</button>`}</div></article>`;}).join('')||'<p class="lede" style="padding:12px 0">아직 낸 숙제가 없어요.</p>'}</div></section>`;
+}
+function taStudentSection(s){
+  const A=S.ta;
+  if(!A||A.status==='loading') return '<section><span class="label">숙제 · 메모</span><p class="lede" style="padding:12px 0">불러오는 중…</p></section>';
+  if(A.status==='missing') return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제 · 메모</span>${taMissing()}</section>`;
+  if(A.status!=='ready') return '';
+  const mine=A.rec.filter(r=>r.student_id===s.id).map(r=>({r,h:A.hw.find(h=>h.id===r.homework_id)})).filter(x=>x.h).sort((a,b)=>b.h.due.localeCompare(a.h.due));
+  return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제</span>
+    <div class="rows">${mine.map(({r,h})=>`<div class="row"><span class="mark ${r.done_at?'o':hwDday(h.due)<0?'x':'m'}">${r.done_at?'O':hwDday(h.due)<0?'X':'·'}</span><span class="rq">${esc(h.title)}</span><span class="s">${r.done_at?'완료 '+fmtDate(r.done_at):hwWhen(h.due)}</span></div>`).join('')||'<p class="lede" style="padding:12px 0">받은 숙제가 없어요.</p>'}</div></section>
+  <form id="noteForm" class="schedule-form" data-sid="${esc(s.id)}"><span class="label">선생님 메모 · 학생에게는 안 보여요</span>
+    <textarea id="noteBody" name="body" rows="4" maxlength="5000" placeholder="상담 내용, 약한 부분, 다음에 챙길 것">${esc(A.notes[s.id]||'')}</textarea>
+    <div class="schedule-btns"><button class="btn sm alt" type="submit">메모 저장</button>${A.noteMsg?`<span class="selnote" role="status">${esc(A.noteMsg)}</span>`:''}</div></form>`;
+}
+const vAdminStudentBeforeTa = vAdminStudent;
+vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); return vAdminStudentBeforeTa() + taStudentSection(s); };
+const vScheduleBeforeHw = vSchedule;
+vSchedule = () => hwStudentSection() + vScheduleBeforeHw();
+
+function bindTa(){
+  if(S.screen==='home' && S.me && HW.owner!==S.me.id) queueMicrotask(hwLoad);
+  if((S.screen==='admin'||S.screen==='adminStudent') && S.admin && !S.ta) queueMicrotask(taLoad);
+  if(S.screen==='admin' && S.adminTab==='hw' && S.admin && !S.fa) queueMicrotask(flAdminLoad);
+  if(S.screen==='entry' && !S.admin) S.ta=null;
+  const q=sel=>app.querySelectorAll(sel);
+  q('[data-act=adminRefresh]').forEach(b=>b.addEventListener('click',()=>{ S.ta=null; }));
+  q('[data-act=logout]').forEach(b=>b.addEventListener('click',()=>{ HW={owner:'',status:'idle',list:[]}; }));
+  q('[data-hwdone]').forEach(b=>b.onclick=async()=>{
+    const h=HW.list.find(x=>x.id===b.dataset.hwdone), v=b.dataset.v==='1'; b.disabled=true;
+    try{ await API.hwDone(h.id, v); h.done_at=v?Date.now():null; }catch(e){ b.disabled=false; b.textContent='저장 실패 · 다시'; return; }
+    render();
+  });
+  q('[data-hwgo]').forEach(b=>b.onclick=()=>{
+    const l=HW.list.find(x=>x.id===b.dataset.hwgo)?.link; if(!l) return;
+    if(l.type==='drill'){ S.picked=new Set([l.unit]); S.tab='kor'; render(); window.scrollTo(0,0); }
+    else if(FC.status==='ready' && FC.decks.some(d=>d.id===l.deck)) flStart('study',[l.deck]);
+    else { S.tab='flash'; render(); }
+  });
+  const A=S.ta;
+  q('[data-ta]').forEach(b=>b.onclick=()=>{ if(b.dataset.ta==='reload') taLoad(); else { A.del=null; render(); } });
+  q('[data-taopen]').forEach(b=>b.onclick=()=>{ A.open=A.open===b.dataset.taopen?null:b.dataset.taopen; render(); });
+  q('[data-taask]').forEach(b=>b.onclick=()=>{ A.del=b.dataset.taask; render(); });
+  q('[data-tadel]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await API.hwDelete(b.dataset.tadel); const d=await API.hwAdmin(); Object.assign(A,d,{del:null,msg:'숙제를 지웠어요.',err:''}); }catch(e){ A.err='지우지 못했어요. 인터넷 연결을 확인해 주세요.'; } render(); });
+  const f=document.getElementById('hwForm');
+  if(f){
+    const picked=()=>Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);
+    const count=()=>{ const n=scheduleRecipients(picked()).length; f.querySelector('#hwCount').textContent = n ? '받을 학생 '+n+'명' : '받을 대상을 골라 주세요.'; };
+    f.querySelectorAll('[name=target]').forEach(x=>x.onchange=count);
+    f.onsubmit=async e=>{ e.preventDefault();
+      const t=picked(), students=scheduleRecipients(t), title=f.elements.namedItem('title').value.trim(), due=f.elements.namedItem('due').value, lk=f.elements.namedItem('link').value;
+      if(!title||!due){ A.err='제목과 기한을 써 주세요.'; A.msg=''; return render(); }
+      if(!students.length){ A.err='받을 학생이 있는 그룹이나 개인을 골라 주세요.'; A.msg=''; return render(); }
+      const labels=t.map(v=>v==='all'?'전체 학생':v.startsWith('group:')?(sched.groups.find(g=>g.id===v.slice(6))?.name||'그룹'):((S.admin.students.find(s=>s.id===v.slice(8))||{}).nick||'학생'));
+      const link=lk?(lk.startsWith('drill:')?{type:'drill',unit:lk.slice(6)}:{type:'flash',deck:lk.slice(6)}):null;
+      const btn=f.querySelector('[type=submit]'); btn.disabled=true; btn.textContent='보내는 중…';
+      try{ await API.hwPublish({title,due,memo:f.elements.namedItem('memo').value.trim(),link,targets:labels,students}); const d=await API.hwAdmin(); Object.assign(A,d,{msg:`'${title}' 숙제를 ${students.length}명에게 냈어요.`,err:''}); }
+      catch(err){ A.err='숙제를 내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'; A.msg=''; }
+      render();
+    };
+  }
+  const nf=document.getElementById('noteForm');
+  if(nf) nf.onsubmit=async e=>{ e.preventDefault(); const sid=nf.dataset.sid, body=nf.elements.namedItem('body').value; const btn=nf.querySelector('[type=submit]'); btn.disabled=true;
+    try{ await API.noteSave(sid, body); A.notes[sid]=body; A.noteMsg='저장했어요.'; }catch(err){ A.noteMsg='저장하지 못했어요. 다시 눌러 주세요.'; }
+    render(); };
+}
+
+/* ===== 오프라인 · 글자 크기 ===== */
+// 마지막으로 받은 문제·기록을 기기에 남겨 두었다가, 인터넷이 없을 때 그걸로 바로 연다.
+function snapSave(){ try{ if(!S.me||DEMO) return; const L=loc(); L.snap={code:S.code, nick:S.me.nick, grade:S.me.grade, student:S.me, cards:CARDS, at:Date.now()}; saveLoc(); }catch(e){} }
+const enterOnline = enter;
+enter = async function(code, nick, grade){
+  const snap=loc().snap;
+  if(!DEMO && snap && snap.code===code && snap.nick===nick && snap.grade===grade && (navigator.onLine===false)){
+    return enterOffline(snap);
+  }
+  await enterOnline(code, nick, grade);
+  if(S.screen==='home' && S.me){ S.offline=false; snapSave(); return; }
+  // 서버에 못 닿았을 때(입장 코드 오류 제외) 저장된 기록으로 연다
+  if(!DEMO && S.screen==='entry' && snap && snap.code===code && snap.nick===nick && snap.grade===grade && !/입장 코드가 맞지 않아요/.test(S.err)) enterOffline(snap);
+};
+function enterOffline(snap){
+  CARDS=snap.cards; S.me=snap.student; S.code=snap.code; S.scheduleToken=null; S.offline=true; S.err='';
+  S.picked=new Set(gradeUnits(snap.grade,'kor').map(u=>u.id)); go('home');
+}
+async function reconnect(){
+  if(!S.offline || !S.me || DEMO) return;
+  try{
+    const r=await API.enter(S.code, S.me.nick, S.me.grade), mine=S.me;
+    // 오프라인에서 푼 기록이 서버보다 최신이므로 기기 기록을 유지하고 서버에 다시 저장한다
+    CARDS=r.cards; S.scheduleToken=r.sessionToken||null; S.offline=false; mine.id=r.student.id; persist(); snapSave();
+    FC.owner=''; HW.owner=''; scheduleOwner='';
+    if(S.screen==='home') render();
+  }catch(e){}
+}
+window.addEventListener('online', reconnect);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && navigator.onLine) reconnect(); });
+const persistOnline = persist;
+persist = function(){ persistOnline(); snapSave(); };
+// 카드도 마지막 상태를 기기에 남긴다
+const flLoadOnline = flLoad;
+flLoad = async function(){
+  await flLoadOnline();
+  const L=loc(), sid=S.me?.id; if(!sid||FC.owner!==sid) return;
+  if(FC.status==='ready'){ try{ L.flashSnap={sid, decks:FC.decks, cards:FC.cards, states:FC.states, newToday:[...FC.newToday], day:flDayStart()}; saveLoc(); }catch(e){} }
+  else if(FC.status!=='missing' && L.flashSnap?.sid===sid){
+    const f=L.flashSnap; Object.assign(FC,{status:'ready', decks:f.decks, cards:f.cards, states:f.states, newToday:new Set(f.day===flDayStart()?f.newToday:[]), offline:true});
+    if(S.screen==='home') render();
+  }
+};
+const flAnswerOnline = flAnswer;
+flAnswer = function(r){ flAnswerOnline(r); try{ const L=loc(); if(L.flashSnap?.sid===S.me?.id){ L.flashSnap.states=FC.states; L.flashSnap.newToday=[...FC.newToday]; L.flashSnap.day=flDayStart(); saveLoc(); } }catch(e){} };
+
+const FS = [['m','보통'],['l','크게'],['xl','아주 크게']];
+const fsId = () => FS.some(x=>x[0]===loc().fs) ? loc().fs : 'm';
+function applyFs(){ const f=fsId(); if(f==='m') document.documentElement.removeAttribute('data-fs'); else document.documentElement.setAttribute('data-fs', f); }
+const vSettingsBase = vSettings;
+vSettings = () => vSettingsBase().replace('<section class="set-sec"><h2 class="schedule-head">테마</h2>',
+  `<section class="set-sec"><span class="label">글자 크기</span><div class="seg">${FS.map(([id,n])=>`<button data-fs="${id}" aria-pressed="${fsId()===id}">${n}</button>`).join('')}</div><p class="note">문제와 버튼이 함께 커져요. 이 기기에만 저장돼요.</p></section>
+  <section class="set-sec"><h2 class="schedule-head">테마</h2>`);
+const bindBeforeTools = bindFlash;
+bindFlash = function(){
+  bindBeforeTools(); bindTa();
+  app.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ loc().fs=b.dataset.fs; saveLoc(); applyFs(); render(); });
+};
+applyFs();
+// 앱 화면을 기기에 저장해 두는 서비스 워커 (푸시와 같은 파일)
+if(!DEMO && 'serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
 
 /* ===== 시작 ===== */
 applyTheme();
