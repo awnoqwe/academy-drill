@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아페라">
@@ -11,33 +11,56 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <title>아페라</title>
+<script>try{var t=(JSON.parse(localStorage.getItem('academy-drill-v3'))||{}).theme;t={light:'paper',dark:'ink'}[t]||t;if(t&&t!=='auto')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;600;700;900&family=Source+Serif+4:opsz,wght@8..60,900&display=swap">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
 
-/* 아페라: 신문 1면. 흰 지면, 굵은 세리프 제호(The Times), 검은 상단 띠와 시세 알약(Bloomberg), 빨간 꼭지·파란 부제, 굵은 명조 헤드라인. 640px 한 칼럼. */
+/* 아페라: 신문 1면. 굵은 세리프 제호(The Times), 시세 알약(Bloomberg), 굵은 명조 헤드라인. 640px 한 칼럼.
+   색은 테마마다 배경·글자·강조 한 가지로 통일한다. 테마는 학생이 고르고, 고르지 않으면 기기 설정(밝게=흰 지면, 어둡게=먹)을 따른다. */
 :root{
   --paper:#ffffff; --sheet:#f5f5f3; --ink:#121212; --muted:#545452; --faint:#8b8b88; --rule:#dedede; --rule-strong:#121212;
-  --omr:#c4161c; --omr-soft:#fdecec; --good:#147a3d; --good-soft:#e7f4ec; --bad:#c4161c; --bad-soft:#fdecec;
-  --track:#ececea; --mid:#9a5b00; --hover:#f4f4f2; --new:#245c8c;
-  --cta:#245c8c; --cta-ink:#ffffff; --bar:#000000; --bar-ink:#ffffff; --pill:#121212; --pill-ink:#ffffff; --pill-up:#3ddc84; --pill-down:#ff6b6b; --pill-blue:#8ec5ff;
+  --omr:#c4161c; --omr-soft:#fdecec; --new:#c4161c; --cta:#c4161c; --cta-ink:#ffffff; --good:#147a3d; --good-soft:#e7f4ec; --bad:#b42318; --bad-soft:#fdecec;
+  --track:#ececea; --mid:#9a5b00; --hover:#f4f4f2; --bar:#ffffff; --bar-ink:#121212; --pill:#121212; --pill-ink:#ffffff; color-scheme:light;
   --f-mast:"Source Serif 4","Noto Serif KR",Georgia,serif;
   --f-serif:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",Georgia,serif;
   --f-body:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#121212; --sheet:#1b1b1b; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
-  --omr:#ff6b5e; --omr-soft:#3a1d1b; --good:#5fd08b; --good-soft:#16301f; --bad:#ff6b5e; --bad-soft:#3a1d1b;
-  --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --new:#7fb2e5;
-  --cta:#2f6fae; --cta-ink:#ffffff; --bar:#000000; --bar-ink:#ffffff; --pill:#262626; --pill-ink:#f1f1ee; --pill-up:#3ddc84; --pill-down:#ff6b6b; --pill-blue:#8ec5ff; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --paper:#121212; --sheet:#1b1b1b; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
-  --omr:#ff6b5e; --omr-soft:#3a1d1b; --good:#5fd08b; --good-soft:#16301f; --bad:#ff6b5e; --bad-soft:#3a1d1b;
-  --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --new:#7fb2e5;
-  --cta:#2f6fae; --cta-ink:#ffffff; --bar:#000000; --bar-ink:#ffffff; --pill:#262626; --pill-ink:#f1f1ee; --pill-up:#3ddc84; --pill-down:#ff6b6b; --pill-blue:#8ec5ff; color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme]){
+  --paper:#121212; --sheet:#1c1c1c; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
+  --omr:#ff6b5e; --omr-soft:#3a1d1b; --new:#ff6b5e; --cta:#d62828; --cta-ink:#ffffff; --good:#5fd08b; --good-soft:#16301f; --bad:#ff8a80; --bad-soft:#3a1d1b;
+  --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --bar:#121212; --bar-ink:#f1f1ee; --pill:#f1f1ee; --pill-ink:#121212; color-scheme:dark}}
+:root[data-theme="paper"]{
+  --paper:#ffffff; --sheet:#f5f5f3; --ink:#121212; --muted:#545452; --faint:#8b8b88; --rule:#dedede; --rule-strong:#121212;
+  --omr:#c4161c; --omr-soft:#fdecec; --new:#c4161c; --cta:#c4161c; --cta-ink:#ffffff; --good:#147a3d; --good-soft:#e7f4ec; --bad:#b42318; --bad-soft:#fdecec;
+  --track:#ececea; --mid:#9a5b00; --hover:#f4f4f2; --bar:#ffffff; --bar-ink:#121212; --pill:#121212; --pill-ink:#ffffff; color-scheme:light}
+:root[data-theme="ink"]{
+  --paper:#121212; --sheet:#1c1c1c; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
+  --omr:#ff6b5e; --omr-soft:#3a1d1b; --new:#ff6b5e; --cta:#d62828; --cta-ink:#ffffff; --good:#5fd08b; --good-soft:#16301f; --bad:#ff8a80; --bad-soft:#3a1d1b;
+  --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --bar:#121212; --bar-ink:#f1f1ee; --pill:#f1f1ee; --pill-ink:#121212; color-scheme:dark}
+:root[data-theme="navy"]{
+  --paper:#0f2147; --sheet:#15295a; --ink:#ffffff; --muted:#c3cbe0; --faint:#8d99b8; --rule:#2b3e6e; --rule-strong:#ffffff;
+  --omr:#ffd23f; --omr-soft:#2c3355; --new:#ffd23f; --cta:#ffd23f; --cta-ink:#0f2147; --good:#7ee2a8; --good-soft:#173b3a; --bad:#ff8a80; --bad-soft:#43263f;
+  --track:#24386a; --mid:#ffc46b; --hover:#172c5e; --bar:#0f2147; --bar-ink:#ffffff; --pill:#ffffff; --pill-ink:#0f2147; color-scheme:dark}
+:root[data-theme="wine"]{
+  --paper:#4a0f1b; --sheet:#561525; --ink:#fff4ef; --muted:#e6c3c0; --faint:#b98f8f; --rule:#6b2735; --rule-strong:#fff4ef;
+  --omr:#ffb38a; --omr-soft:#5e2228; --new:#ffb38a; --cta:#ffb38a; --cta-ink:#4a0f1b; --good:#8fe0a8; --good-soft:#2c3a24; --bad:#ff9e9e; --bad-soft:#5e1f2a;
+  --track:#66202f; --mid:#ffd27a; --hover:#571627; --bar:#4a0f1b; --bar-ink:#fff4ef; --pill:#fff4ef; --pill-ink:#4a0f1b; color-scheme:dark}
+:root[data-theme="forest"]{
+  --paper:#10332a; --sheet:#153d33; --ink:#eef6ef; --muted:#b9d3c3; --faint:#84a594; --rule:#24503f; --rule-strong:#eef6ef;
+  --omr:#c6f36b; --omr-soft:#23472c; --new:#c6f36b; --cta:#c6f36b; --cta-ink:#10332a; --good:#8ee6b0; --good-soft:#1b4636; --bad:#ff9b8a; --bad-soft:#4a2a26;
+  --track:#1f4a3c; --mid:#f3c969; --hover:#163b31; --bar:#10332a; --bar-ink:#eef6ef; --pill:#eef6ef; --pill-ink:#10332a; color-scheme:dark}
+:root[data-theme="sky"]{
+  --paper:#e9f1fb; --sheet:#f4f8fd; --ink:#0f2147; --muted:#44587e; --faint:#7d8db0; --rule:#c8d6ea; --rule-strong:#0f2147;
+  --omr:#1f5fa8; --omr-soft:#d6e5f7; --new:#1f5fa8; --cta:#1f5fa8; --cta-ink:#ffffff; --good:#17703d; --good-soft:#dff1e6; --bad:#b3261e; --bad-soft:#f7dedd;
+  --track:#d3e0f1; --mid:#8a5a00; --hover:#dde9f7; --bar:#e9f1fb; --bar-ink:#0f2147; --pill:#0f2147; --pill-ink:#e9f1fb; color-scheme:light}
+:root[data-theme="rose"]{
+  --paper:#fcebf0; --sheet:#fdf4f7; --ink:#3a0f1d; --muted:#7a4757; --faint:#a87e8b; --rule:#efcbd6; --rule-strong:#3a0f1d;
+  --omr:#c2185b; --omr-soft:#f8d4e0; --new:#c2185b; --cta:#c2185b; --cta-ink:#ffffff; --good:#1d7a45; --good-soft:#e1f2e7; --bad:#b3261e; --bad-soft:#f6dcda;
+  --track:#f2d3dd; --mid:#8a5a00; --hover:#f8dfe7; --bar:#fcebf0; --bar-ink:#3a0f1d; --pill:#3a0f1d; --pill-ink:#fcebf0; color-scheme:light}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
@@ -237,7 +260,7 @@ button.row:hover{background:var(--hover)}
 
 /* ===== 아페라 신문 디자인 ===== */
 body{overflow-x:clip}
-.topbar{width:100vw;margin-left:calc(50% - 50vw);margin-top:-14px;margin-bottom:-4px;background:var(--bar);color:var(--bar-ink);font-size:12px}
+.topbar{width:100vw;margin-left:calc(50% - 50vw);margin-top:-14px;margin-bottom:-4px;background:var(--bar);color:var(--bar-ink);font-size:12.5px;border-bottom:1px solid var(--rule)}
 .topbar-in{max-width:640px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:8px;display:flex;justify-content:space-between;gap:12px;letter-spacing:.02em;white-space:nowrap;overflow:hidden}
 .topbar-in span:first-child{overflow:hidden;text-overflow:ellipsis}
 .topbar b{font-weight:700}
@@ -246,7 +269,7 @@ body{overflow-x:clip}
 .brand .kick{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:12.5px;font-weight:700;letter-spacing:.04em;margin-top:10px}
 .brand .kick b{color:var(--omr)}
 .brand .kick i{width:1px;height:12px;background:var(--faint)}
-.brand .kick span{color:var(--new)}
+.brand .kick span{color:var(--ink)}
 .lede{font-size:15px}
 .label{color:var(--omr);font-weight:700;letter-spacing:.08em}
 /* 탭: The Times 메뉴처럼 굵은 밑줄 */
@@ -261,8 +284,9 @@ body{overflow-x:clip}
 .stat>small{order:-1;color:var(--pill-ink);opacity:.82;font-size:13px;font-weight:600;white-space:nowrap}
 .stat b{font-family:var(--f-body);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.3}
 .stat b small{font-size:12px;opacity:.7}
-.stat.alert b{color:var(--pill-down)}
-.stat .c-new{color:var(--pill-blue)} .stat .c-lrn{color:var(--pill-down)} .stat .c-rev{color:var(--pill-up)}
+.stat.alert{background:var(--cta);color:var(--cta-ink)}
+.stat.alert>small{color:var(--cta-ink)}
+.stat .c-new,.stat .c-lrn,.stat .c-rev{color:inherit}
 /* 버튼: 각진 신문 광고 상자 */
 .btn{border-radius:0;background:var(--cta);border-color:var(--cta);color:var(--cta-ink)}
 .btn.alt{background:transparent;color:var(--ink);border-color:var(--ink)}
@@ -272,7 +296,7 @@ body{overflow-x:clip}
 .trigger{font-weight:700;font-size:23px;line-height:1.45;letter-spacing:-.01em}
 .meta{letter-spacing:.04em;font-weight:700}
 .meta .unit{color:var(--omr)}
-.meta>span:last-child{color:var(--new)}
+.meta>span:last-child{color:var(--muted)}
 .tile b{font-weight:700;font-size:16px}
 .tile .tn span:first-child{color:var(--omr);font-weight:700}
 .tile[aria-pressed="true"]{background:var(--sheet);box-shadow:inset 0 4px 0 var(--ink)}
@@ -284,6 +308,22 @@ body{overflow-x:clip}
 .rows,.posts,.roster,.decks,.schedule-list,.form{border-top:2px solid var(--rule-strong)}
 @media (min-width:700px){.brand h1{font-size:84px}.trigger{font-size:24px}}
 @media (max-width:380px){.brand h1{font-size:56px}.tabs{gap:16px}.tabs button{font-size:15px}}
+
+/* 테마 고르기 */
+body{background:var(--paper)}
+.sheet-back{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20}
+.theme-sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--paper);color:var(--ink);border-top:2px solid var(--ink);display:flex;flex-direction:column;gap:12px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:16px calc(18px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 10px}
+.sw{background:none;border:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.sw-tile{width:100%;aspect-ratio:1;max-width:84px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--rule);position:relative}
+.sw-tile b{font-family:var(--f-mast);font-weight:900;font-size:34px;line-height:1}
+.sw-tile i{width:9px;height:9px;align-self:flex-end;margin-bottom:24%}
+.sw-auto{background:linear-gradient(135deg,#ffffff 50%,#121212 50%);color:#c4161c}
+.sw-auto i{background:#c4161c}
+.sw[aria-pressed="true"] .sw-tile{outline:3px solid var(--omr);outline-offset:2px}
+.sw-name{font-size:12.5px;color:var(--muted)}
+.sw[aria-pressed="true"] .sw-name{color:var(--ink);font-weight:700}
 
 </style>
 
@@ -395,7 +435,8 @@ const todayStr = () => { const d=new Date(); return d.getFullYear()+'년 '+(d.ge
 const esc = s => String(s).replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const unitName = id => (UNITS.find(u=>u.id===id)||{name:id}).name;
 const MARK = {ok:['O','o','맞힘'], wrong:['X','x','틀림'], unknown:['?','x','모름'], missing:['△','m','선지에 없음']};
-const THEMES = {auto:'자동', light:'밝게', dark:'어둡게'};
+const THEMES = [{id:'paper',name:'흰 지면',bg:'#ffffff',ink:'#121212',acc:'#c4161c'},{id:'ink',name:'먹',bg:'#121212',ink:'#f1f1ee',acc:'#ff6b5e'},{id:'navy',name:'네이비',bg:'#0f2147',ink:'#ffffff',acc:'#ffd23f'},{id:'wine',name:'버건디',bg:'#4a0f1b',ink:'#fff4ef',acc:'#ffb38a'},{id:'forest',name:'숲',bg:'#10332a',ink:'#eef6ef',acc:'#c6f36b'},{id:'sky',name:'하늘',bg:'#e9f1fb',ink:'#0f2147',acc:'#1f5fa8'},{id:'rose',name:'연분홍',bg:'#fcebf0',ink:'#3a0f1d',acc:'#c2185b'}];
+const themeId = () => { const t=loc().theme; return ({light:'paper',dark:'ink'})[t] || t || 'auto'; };
 
 /* ===== 기기 저장 (테마, 마지막 입장 정보, 데모 데이터) ===== */
 const LKEY = 'academy-drill-v3';
@@ -528,14 +569,19 @@ const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), siz
   admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:'',q:''},
   tab:'kor', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
-function applyTheme(){ const t = loc().theme; if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+function applyTheme(){ const t = themeId(); if(t==='auto' || !THEMES.some(x=>x.id===t)) document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#ffffff'; }
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 function render(){
-  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash}[S.screen]();
+  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash}[S.screen]() + themeSheet();
+  app.querySelectorAll('[data-themepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.themepick; saveLoc(); applyTheme(); render(); });
   bind(); bindSchedule(); bindFlash();
 }
-const masthead = (right, title) => `<div class="topbar"><div class="topbar-in"><span><b>아페라</b> · 문제를 보면 떠오르게</span><span>${todayStr()}</span></div></div><header class="brand"><h1>APERA</h1><div class="kick"><b>${title||'국어'}</b>${right?`<i aria-hidden="true"></i><span>${right}</span>`:''}</div></header>`;
-const themeLink = () => `<button data-act="theme">화면 ${THEMES[loc().theme||'auto']}</button>`;
+const masthead = (right, title) => `<div class="topbar"><div class="topbar-in"><span><b>아페라</b></span><span>${todayStr()}</span></div></div><header class="brand"><h1>APERA</h1><div class="kick"><b>${title||'국어'}</b>${right?`<i aria-hidden="true"></i><span>${right}</span>`:''}</div></header>`;
+const themeLink = () => `<button data-act="theme">테마 · ${themeId()==='auto'?'자동':(THEMES.find(x=>x.id===themeId())||{name:'자동'}).name}</button>`;
+const swatch = (id,name,bg,ink,acc) => `<button class="sw" data-themepick="${id}" aria-pressed="${themeId()===id}"><span class="sw-tile" style="background:${bg};color:${ink}"><b>A</b><i style="background:${acc}"></i></span><span class="sw-name">${name}</span></button>`;
+const themeSheet = () => S.themeOpen ? `<div class="sheet-back" data-act="themeClose"></div><section class="theme-sheet" role="dialog" aria-label="테마 고르기"><div class="ask-meta"><span class="label">테마 · 고르면 배경이 그 색으로 바뀌어요</span><button class="linkbtn" data-act="themeClose">닫기</button></div><div class="sw-grid">${THEMES.map(t=>swatch(t.id,t.name,t.bg,t.ink,t.acc)).join('')}<button class="sw" data-themepick="auto" aria-pressed="${themeId()==='auto'}"><span class="sw-tile sw-auto"><b>A</b><i></i></span><span class="sw-name">자동</span></button></div><p class="note">자동은 기기가 밝은 화면이면 흰 지면, 어두운 화면이면 먹으로 보여요. 이 기기에만 저장돼요.</p></section>` : '';
 const demoBanner = () => DEMO ? '<p class="hint">기능 미리보기 · 실제 학생 계정과 연결되지 않으며 이 브라우저에만 저장돼요</p>' : '';
 
 function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:center;padding:40px 0">불러오는 중…</p>`; }
@@ -568,7 +614,7 @@ function vHome(){
   const tabUnits = gradeUnits(st.grade,'kor');
   const pool = mine.filter(c=>S.picked.has(c.unit));
   const n = S.size ? Math.min(S.size, pool.length) : pool.length;
-  return `${masthead(esc(st.nick)+' · '+st.grade+' · '+mine.length+'문제')}
+  return `${masthead(esc(st.nick)+' · '+st.grade)}
   <section class="stats" aria-label="학습 현황">
     <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>풀어 본 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
@@ -884,7 +930,8 @@ function bind(){
     if(a==='toAdmin'){ if(S.admin) go('admin'); else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
     else if(a==='toEntry'){ go('entry'); }
     else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
-    else if(a==='theme'){ const L=loc(), order=['auto','light','dark']; L.theme=order[(order.indexOf(L.theme||'auto')+1)%3]; saveLoc(); applyTheme(); render(); }
+    else if(a==='theme'){ S.themeOpen=!S.themeOpen; render(); }
+    else if(a==='themeClose'){ S.themeOpen=false; render(); }
     else if(a==='start') startSet();
     else if(a==='home'){ S.tab='kor'; go('home'); }
     else if(a==='quit') S.results.length ? go('result') : go('home');
