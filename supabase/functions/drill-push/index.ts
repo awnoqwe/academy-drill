@@ -42,7 +42,7 @@ Deno.serve(async(req)=>{
    let status='failed';
    try{
     if(!allowedEndpoint(s.endpoint))throw Error('invalid_endpoint');
-    const details=webpush.generateRequestDetails({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},JSON.stringify({title:'트리거 드릴 · 새 일정',body:'새 일정이 도착했어요. 앱에서 확인해주세요.',eventId:job.eventId,studentId:s.student_id,url:'https://awnoqwe.github.io/academy-drill/?view=notifications'}),{TTL:86400,urgency:'normal',vapidDetails:{subject:'https://awnoqwe.github.io/academy-drill/',publicKey:keys.public_key,privateKey:keys.private_key}});
+    const details=webpush.generateRequestDetails({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},JSON.stringify({title:'아페라 · 새 일정',body:'새 일정이 도착했어요. 앱에서 확인해주세요.',eventId:job.eventId,studentId:s.student_id,url:'https://awnoqwe.github.io/academy-drill/?view=notifications'}),{TTL:86400,urgency:'normal',vapidDetails:{subject:'https://awnoqwe.github.io/academy-drill/',publicKey:keys.public_key,privateKey:keys.private_key}});
     const result=await fetch(details.endpoint,{method:details.method,headers:details.headers,body:details.body,redirect:'error',signal:AbortSignal.timeout(10000)});
     await result.body?.cancel();
     if(result.ok){sent++;status='sent'}else if(result.status===404||result.status===410){expired++;status='expired';await admin.from('drill_push_subscriptions').update({active:false}).eq('id',s.id)}else{failed++}
