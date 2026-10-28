@@ -319,6 +319,19 @@ body{background:var(--paper)}
 .sw-name{font-size:12.5px;color:var(--muted)}
 .sw[aria-pressed="true"] .sw-name{color:var(--ink);font-weight:700}
 
+/* 탭 균등 · 설정 */
+.tabs{display:grid;grid-template-columns:repeat(var(--n,5),minmax(0,1fr));gap:0;overflow:visible}
+.tabs button{text-align:center;padding-inline:0;white-space:nowrap}
+.tabs .badge{font-size:10.5px;padding:0 4px;margin-left:3px;vertical-align:1px}
+.set-sec{display:flex;flex-direction:column;gap:12px;padding-bottom:18px;border-bottom:1px solid var(--rule)}
+.set-sec:last-of-type{border-bottom:0}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:16px}
+.set-row b{font-family:var(--f-serif);font-size:18px}
+.set-push .ask-box{border-top:0;padding-top:0}
+.mode-row{grid-template-columns:repeat(2,minmax(0,1fr));max-width:220px}
+@media (max-width:400px){.tabs button{font-size:14.5px}.stat{padding:9px 10px;gap:6px}.stat>small{font-size:12.5px}}
+.stat{flex:1 1 0;min-width:0}
+
 </style>
 
 </head>
@@ -334,7 +347,7 @@ const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
 const DEMO = !SUPA_URL;
 const DEMO_CODE = '0000', DEMO_PW = 'teacher';
 const GRADES = ['중1','중2','중3','고1','고2','고3'];
-const TABS = [{id:'kor', name:'국어'}, {id:'flash', name:'카드'}, {id:'qna', name:'Q&A'}, {id:'schedule',name:'일정'}, {id:'notice',name:'알림'}];
+const TABS = [{id:'kor', name:'드릴'}, {id:'flash', name:'카드'}, {id:'qna', name:'Q&A'}, {id:'schedule',name:'일정'}, {id:'notice',name:'알림'}, {id:'settings',name:'설정'}];
 const UNITS = [
   {id:'read', subj:'kor', name:'비문학 독해', tag:'독해'},
   {id:'lit',  subj:'kor', name:'문학', tag:'문학'},
@@ -579,16 +592,22 @@ function render(){
 }
 const masthead = (right, title) => `<header class="brand"><h1 aria-label="아페라">APERA<i class="dot" aria-hidden="true"></i></h1><div class="kick"><b>${title||'국어'}</b>${right?`<i aria-hidden="true"></i><span>${right}</span>`:''}</div></header>`;
 const themeLink = () => `<button data-act="theme">테마</button>`;
-const themeSheet = () => {
-  if(!S.themeOpen) return '';
+const themeBody = () => {
   const dk=darkNow(), acc=ACCENTS.find(a=>a.id===accentId());
-  return `<div class="sheet-back" data-act="themeClose"></div><section class="theme-sheet" role="dialog" aria-label="테마">
-  <div class="ask-meta"><span class="label">화면</span><button class="linkbtn" data-act="themeClose">닫기</button></div>
+  return `<span class="label">화면</span>
   <div class="mode-row">${MODES.map(m=>`<button class="sw" data-modepick="${m.id}" aria-pressed="${(dk?'dark':'light')===m.id}"><span class="sw-tile" style="background:${m.bg};color:${m.ink}"><b>A</b><i style="background:${acc[m.id]}"></i></span><span class="sw-name">${m.name}</span></button>`).join('')}</div>
   <span class="label">색 · 버튼과 강조에 쓰여요</span>
   <div class="sw-grid">${ACCENTS.map(a=>`<button class="sw" data-accentpick="${a.id}" aria-pressed="${a.id===acc.id}"><span class="sw-dot" style="background:${dk?a.dark:a.light}"></span><span class="sw-name">${a.name}</span></button>`).join('')}</div>
-  <p class="note">이 기기에만 저장돼요.</p></section>`;
+  <p class="note">이 기기에만 저장돼요.</p>`;
 };
+const themeSheet = () => S.themeOpen ? `<div class="sheet-back" data-act="themeClose"></div><section class="theme-sheet" role="dialog" aria-label="테마"><div class="ask-meta"><span class="label">테마</span><button class="linkbtn" data-act="themeClose">닫기</button></div>${themeBody()}</section>` : '';
+function vSettings(){
+  return `<section class="set-sec"><span class="label">내 정보</span>
+    <div class="set-row"><span><b>${esc(S.me.nick)}</b> · ${S.me.grade}</span><button class="btn sm alt" data-act="logout">나가기</button></div>
+    <p class="note">닉네임이나 학년을 바꾸려면 나간 뒤 다시 입장하세요. 기록은 닉네임과 학년으로 찾아와요.</p></section>
+  <section class="set-sec set-push">${pushPanel()}</section>
+  <section class="set-sec"><h2 class="schedule-head">테마</h2>${themeBody()}</section>`;
+}
 const demoBanner = () => DEMO ? '<p class="hint">기능 미리보기 · 실제 학생 계정과 연결되지 않으며 이 브라우저에만 저장돼요</p>' : '';
 
 function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:center;padding:40px 0">불러오는 중…</p>`; }
@@ -622,13 +641,13 @@ function vHome(){
   const pool = mine.filter(c=>S.picked.has(c.unit));
   const n = S.size ? Math.min(S.size, pool.length) : pool.length;
   return `${masthead(esc(st.nick)+' · '+st.grade)}
-  <section class="stats" aria-label="학습 현황">
-    <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>풀어 본 문제</small></div>
+  <div class="tabs" role="tablist" style="--n:${TABS.length}">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}</button>`).join('')}</div>
+  ${S.tab==='flash' ? vFlashHome() : S.tab==='settings' ? vSettings() : S.tab==='schedule' ? vSchedule() : S.tab==='notice' ? vNotice() : S.tab==='qna' ? vQna() : `<section class="stats" aria-label="학습 현황">
+    <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>푼 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
-    <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제 대기</small></div>
+    <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제</small></div>
   </section>
-  <div class="tabs" role="tablist">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}</button>`).join('')}</div>
-  ${S.tab==='flash' ? vFlashHome() : S.tab==='schedule' ? vSchedule() : S.tab==='notice' ? vNotice() : S.tab==='qna' ? vQna() : `${tabUnits.length?`<div class="quick">
+  ${tabUnits.length?`<div class="quick">
     <button class="q" data-q="weak"><i style="background:var(--bad)"></i>약한 단원</button>
     <button class="q" data-q="new"><i style="background:var(--track);outline:1px solid var(--rule)"></i>안 푼 단원</button>
     <button class="q" data-q="all">전체</button>
@@ -649,7 +668,7 @@ function vHome(){
     ${S.tab==='kor'?`<button class="btn" data-act="start" ${pool.length?'':'disabled'}>시작 · ${n}문제</button>`:''}
     ${q&&S.tab==='kor'?`<p class="selnote" style="text-align:center">지난 세트에서 막힌 <b style="color:var(--omr)">${q}</b>문제가 먼저 나와요</p>`:''}
     ${S.saveFail?'<p class="err" style="text-align:center">기록 저장이 안 됐어요. 인터넷이 연결되면 다음 문제에서 다시 저장해요.</p>':''}
-    <div class="linkrow"><button data-act="logout">나가기</button>${themeLink()}</div>
+    ${S.tab==='settings'?'':'<div class="linkrow"><button data-act="logout">나가기</button></div>'}
     ${demoBanner()}
   </div>`;
 }
@@ -780,7 +799,7 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button></div>
+  <div class="tabs" role="tablist" style="--n:5"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button></div>
   ${S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
     <div class="seg">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
@@ -1026,11 +1045,11 @@ const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='M
 const STANDALONE=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 function pushSupported(){return window.isSecureContext&&'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
 function pushPanel(){return `<section class="ask-box"><span class="label">휴대폰 배너·잠금화면 알림</span><p class="note">${IOS&&!STANDALONE?'아이폰·아이패드는 Safari 공유 → 홈 화면에 추가 후, 홈 화면의 앱에서 알림을 켜주세요.':!pushSupported()?'이 브라우저에서는 푸시 알림을 사용할 수 없어요. Chrome·Safari 등 지원 브라우저에서 열어주세요.':Notification.permission==='denied'?'이 기기의 알림이 차단되어 있어요. 브라우저·기기 설정에서 이 사이트의 알림을 허용해주세요.':pushEnabled?'이 기기로 새 일정 알림을 받아요. 배너 표시는 기기 알림 설정과 집중 모드에 따라 달라질 수 있어요.':'알림을 켜면 앱을 닫아도 새 일정 소식을 받을 수 있어요.'}</p>${pushSupported()&&(!IOS||STANDALONE)&&Notification.permission!=='denied'?`<button class="btn alt" id="pushToggle" ${pushBusy?'disabled':''}>${pushBusy?'처리 중…':pushEnabled?'이 기기 알림 끄기':'이 기기 알림 켜기'}</button>`:''}${pushMessage?`<p class="note" role="status">${esc(pushMessage)}</p>`:''}</section>`}
-const noticeBeforePush=vNotice;vNotice=()=>noticeBeforePush()+pushPanel();
+const pushPanelBase=pushPanel;pushPanel=()=>DEMO?`<section class="ask-box"><span class="label">휴대폰 배너·잠금화면 알림</span><p class="note">미리보기에서는 알림을 켤 수 없어요. 실제 앱에서 켜 주세요.</p></section>`:pushPanelBase();
 async function pushRegistration(){const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./'});return navigator.serviceWorker.ready}
 async function pushOwner(reg,studentId){const worker=reg.active||reg.waiting||reg.installing;if(!worker)throw Error('worker');await new Promise((resolve,reject)=>{const channel=new MessageChannel(),timer=setTimeout(()=>reject(Error('worker_timeout')),8000);channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();e.data?.ok?resolve():reject(Error('worker_storage'))};worker.postMessage({type:'PUSH_OWNER',studentId},[channel.port2])})}
 function pushKeyBytes(s){const raw=atob(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
-async function syncPushDevice(){if(DEMO||!pushSupported()||!S.me||!S.scheduleToken)return;const studentId=S.me.id,token=S.scheduleToken;try{const reg=await navigator.serviceWorker.getRegistration('./');const subscription=await reg?.pushManager.getSubscription();if(!subscription||Notification.permission!=='granted'){pushEnabled=false;return}await scheduleRPC('drill_push_subscribe',{p_token:token,p_subscription:subscription.toJSON()});if(S.me?.id!==studentId)return;await pushOwner(reg,studentId);pushEnabled=true;if(S.screen==='home'&&S.tab==='notice')render()}catch{pushEnabled=false}}
+async function syncPushDevice(){if(DEMO||!pushSupported()||!S.me||!S.scheduleToken)return;const studentId=S.me.id,token=S.scheduleToken;try{const reg=await navigator.serviceWorker.getRegistration('./');const subscription=await reg?.pushManager.getSubscription();if(!subscription||Notification.permission!=='granted'){pushEnabled=false;return}await scheduleRPC('drill_push_subscribe',{p_token:token,p_subscription:subscription.toJSON()});if(S.me?.id!==studentId)return;await pushOwner(reg,studentId);pushEnabled=true;if(S.screen==='home'&&S.tab==='settings')render()}catch{pushEnabled=false}}
 async function togglePush(){if(pushBusy||!S.me)return;pushBusy=true;pushMessage='';const studentId=S.me.id,token=S.scheduleToken;try{
  if(pushEnabled){const reg=await navigator.serviceWorker.getRegistration('./'),subscription=await reg?.pushManager.getSubscription();if(reg)await pushOwner(reg,null);if(subscription){await scheduleRPC('drill_push_unsubscribe',{p_token:token,p_endpoint:subscription.endpoint});await subscription.unsubscribe()}pushEnabled=false;pushMessage='이 기기 알림을 껐어요.'}
  else{
@@ -1048,7 +1067,7 @@ async function sendEventPush(eventIds){const {data,error}=await sb.functions.inv
 const rpcBeforePush=scheduleRPC;scheduleRPC=async function(name,args){const result=await rpcBeforePush(name,args);if(name==='drill_schedule_publish'&&result?.event_ids?.length){try{const push=await sendEventPush(result.event_ids);result.pushMessage=push.subscribed===0?'푸시 알림을 켠 기기가 아직 없어요.':push.failed?'푸시 '+push.sent+'개 발송 · 일부 실패. 아래에서 다시 보낼 수 있어요.':'푸시 '+push.sent+'개 발송 요청 완료'+(push.expired?' · 만료 기기 제외':'')}catch{result.pushMessage='일정은 저장됐지만 푸시 발송은 실패했어요. 아래에서 다시 보내주세요.'}}return result};
 const bindBeforePush=bindSchedule;bindSchedule=function(){bindBeforePush();if(DEMO)return;const toggle=app.querySelector('#pushToggle');if(toggle)toggle.onclick=togglePush;
  if(S.screen==='home'&&S.me&&pushBoundStudent!==S.me.id){pushBoundStudent=S.me.id;pushEnabled=false;queueMicrotask(syncPushDevice)}
- const logout=app.querySelector('[data-act=logout]');if(logout){const old=logout.onclick;logout.onclick=async e=>{logout.disabled=true;await stopPushOnLogout();return old(e)}}
+ app.querySelectorAll('[data-act=logout]').forEach(logout=>{const old=logout.onclick;logout.onclick=async e=>{logout.disabled=true;await stopPushOnLogout();return old(e)}})
  if(S.screen==='admin'&&!pushSetupStarted){pushSetupStarted=true;sb.functions.invoke('drill-push',{body:{action:'setup'}}).then(({error})=>{if(error)pushSetupStarted=false}).catch(()=>pushSetupStarted=false)}
  app.querySelectorAll('[data-push-retry]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{const result=await sendEventPush([b.dataset.pushRetry]);b.textContent=result.failed?'일부 실패 · 다시 보내기':result.subscribed===0?'알림 허용 기기 없음':'푸시 요청 완료'}catch{b.textContent='발송 실패 · 다시 보내기'}finally{b.disabled=false}})
 };
