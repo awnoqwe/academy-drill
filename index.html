@@ -760,7 +760,7 @@ function render(){
   bind(); bindSchedule(); bindFlash();
 }
 const GEAR = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
-const masthead = (right, title, gear) => `<header class="brand">${gear?`<button class="gear" data-act="settings" aria-label="설정" aria-pressed="${S.tab==='settings'}">${GEAR}</button>`:''}<h1 aria-label="아페라">APERA<i class="dot" aria-hidden="true"></i></h1><div class="kick"><b>${title||'국어'}</b>${(Array.isArray(right)?right:right?[right]:[]).map(x=>`<i aria-hidden="true"></i><span>${x}</span>`).join('')}</div></header>`;
+const masthead = (right, title, gear) => `<header class="brand">${gear?`<button class="gear" data-act="settings" aria-label="설정" aria-pressed="${S.tab==='settings'}">${GEAR}</button>`:''}<h1 aria-label="아페라">APERA<i class="dot" aria-hidden="true"></i></h1>${title===false?'':`<div class="kick"><b>${title||'국어'}</b>${(Array.isArray(right)?right:right?[right]:[]).map(x=>`<i aria-hidden="true"></i><span>${x}</span>`).join('')}</div>`}</header>`;
 const themeLink = () => `<button data-act="theme">테마</button>`;
 const themeBody = () => {
   const dk=darkNow(), acc=ACCENTS.find(a=>a.id===accentId());
@@ -784,19 +784,16 @@ function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:ce
 
 /* --- 입장 --- */
 function vEntry(){
-  return `${masthead('중1~고3')}
-  <p class="lede" style="text-align:center">문제를 보면 무엇부터 떠올려야 하는지, 한 세트씩 연습해요.</p>
+  return `${masthead(null, false)}
   <form id="entryForm" class="form" novalidate autocomplete="off">
     <label class="field"><span>입장 코드</span><input id="code" autocomplete="off" placeholder="선생님이 알려 준 코드" value="${esc(S.form.code)}"></label>
     <label class="field"><span>닉네임</span><input id="nick" maxlength="12" placeholder="실명 말고 별명을 써 주세요 (예: 파란고래)" value="${esc(S.form.nick)}"></label>
     <div class="field" style="padding:12px 0"><span>학년</span>
       <div class="grades" role="group" aria-label="학년">${GRADES.map(g=>`<button type="button" data-g="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join('')}</div></div>
   </form>
-  ${DEMO?`<p class="selnote" style="text-align:center">${S.grade} 국어 문제 ${SAMPLE_CARDS.filter(c=>c.grades.includes(S.grade)).length}개가 나와요</p>`:''}
   ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
   <div class="actions">
     <button class="btn" type="submit" form="entryForm" ${S.busy?'disabled':''}>${S.busy?'들어가는 중…':'시작하기'}</button>
-    ${DEMO?`<p class="hint">미리보기용 입장 코드 <b>${DEMO_CODE}</b> · 이름과 연락처는 받지 않아요</p>`:'<p class="hint">이름과 연락처는 받지 않아요</p>'}
     <div class="linkrow"><button data-act="toAdmin">선생님 화면</button><button data-act="toParent">학부모</button>${themeLink()}</div>
   </div>`;
 }
