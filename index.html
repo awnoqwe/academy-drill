@@ -795,7 +795,7 @@ function vEntry(){
   ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
   <div class="actions">
     <button class="btn" type="submit" form="entryForm" ${S.busy?'disabled':''}>${S.busy?'들어가는 중…':'시작하기'}</button>
-    <div class="linkrow"><button data-act="toAdmin">선생님 화면</button><button data-act="toParent">학부모</button>${themeLink()}</div>
+    <div class="linkrow"><button data-act="toAdmin">선생님</button><button data-act="toOwner">원장</button><button data-act="toParent">학부모</button>${themeLink()}</div>
   </div>`;
 }
 
@@ -941,7 +941,7 @@ function vResult(){
 
 /* --- 관리자 로그인 --- */
 function vAdminLogin(){
-  return `${masthead('진도 확인','선생님')}
+  return `${masthead(S.wantOwner?'학원 운영':'진도 확인', S.wantOwner?'원장':'선생님')}
   <form id="adminForm" class="form" novalidate>
     ${DEMO?'':`<label class="field"><span>이메일</span><input id="email" type="email" autocomplete="username" value="${esc(S.form.email)}"></label>`}
     <label class="field"><span>비밀번호</span><input id="pw" type="password" autocomplete="current-password"></label>
@@ -963,7 +963,7 @@ function vAdmin(){
   const avg = everyone.length ? Math.round(everyone.reduce((a,s)=>a+studentSummary(s).blockedPct,0)/everyone.length) : 0;
   const agg = CARDS.map(c=>{let seen=0,bl=0;everyone.forEach(s=>{const r=s.cards[c.id];if(r){seen+=r.seen;bl+=r.blocked;}});return {c,seen,bl,pct:seen?Math.round(bl/seen*100):0};}).filter(x=>x.bl).sort((a,b)=>b.pct-a.pct).slice(0,5);
   const nameHtml = S.nameEdit ? `<form id="nameForm" class="kick-form"><input id="tName" maxlength="20" value="${esc(A.teacherName||'')}" placeholder="이름" aria-label="이름"><input id="tAlias" maxlength="40" value="${esc(S.academy?.alias||'')}" placeholder="시간표 이름" aria-label="시간표에 적히는 이름 (예: 김)"><button type="submit">저장</button></form>` : `<button class="kick-name" data-act="nameEdit" title="이름 바꾸기">${esc(A.teacherName||(A.email||'').split('@')[0]||'이름 설정')}</button>`;
-  return `${masthead([nameHtml, everyone.length+'명'], roleTitle(S.academy))}
+  return `${masthead([nameHtml, everyone.length+'명'], S.academy?.member===false ? '운영자' : S.ownerMode&&isOwner() ? '원장' : '선생님')}
   <section class="stats" aria-label="학원 현황">
     <div class="stat"><b>${everyone.length}</b><small>등록 학생</small></div>
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
@@ -1133,7 +1133,7 @@ function bind(){
   app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{S.view=b.dataset.stu; go('adminStudent');});
   app.querySelectorAll('[data-act]').forEach(b=>b.onclick=async ()=>{
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
-    if(a==='toAdmin'){ if(S.admin) go('admin'); else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
+    if(a==='toAdmin'||a==='toOwner'){ S.wantOwner = a==='toOwner'; if(S.admin){ S.ownerMode = S.wantOwner && isOwner(); go('admin'); } else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
     else if(a==='toEntry'){ go('entry'); }
     else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
     else if(a==='theme'){ S.themeOpen=!S.themeOpen; render(); }
@@ -2252,6 +2252,7 @@ Object.assign(API, {
 const roleTitle = a => !a ? '선생님' : a.role==='teacher' ? '선생님' : a.member===false ? '운영자' : '원장';
 async function selectAcademy(a){
   S.academy=a; loc().lastAcademy=a.id; saveLoc();
+  S.ownerMode = !!S.wantOwner && a.role==='owner'; S.ownerNote = S.wantOwner && a.role!=='owner' ? '원장 계정이 아니라서 선생님 화면으로 열었어요.' : '';
   S.ta=null; S.fa=null; S.pa=null; S.ow=null; S.admin=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}};
   try{ await API.adminOpen(a.id); }catch(e){}
   openAdmin();
@@ -2605,8 +2606,10 @@ function vOwnerAcct(){
 // 화면 위 전환: 수업 관리 ↔ 원장 업무 (선생님은 '내 시간표')
 const vAdminBeforeOwner = vAdmin;
 vAdmin = () => {
-  const base=vAdminBeforeOwner(), mode=S.ownerMode;
-  const toggle=`<div class="seg full mode-seg" style="--n:2"><button data-omode="0" aria-pressed="${!mode}">수업 관리</button><button data-omode="1" aria-pressed="${!!mode}">${isOwner()?'원장 업무':'내 시간표'}</button></div>`;
+  let base=vAdminBeforeOwner(); const mode=S.ownerMode;
+  const toggle=S.ownerNote?`<p class="note" role="status">${esc(S.ownerNote)}</p>`:'';
+  const sw=`<button data-omode="${mode?0:1}">${mode?(isOwner()?'선생님 화면으로':'수업 관리로'):(isOwner()?'원장 화면으로':'내 시간표')}</button>`;
+  base=base.replace('<div class="linkrow"><button data-act="adminRefresh">', '<div class="linkrow">'+sw+'<button data-act="adminRefresh">');
   const cut=base.indexOf('<section class="stats"');
   if(!mode) return base.slice(0,cut)+toggle+base.slice(cut);
   const end=base.indexOf('<p class="note">현재 입장 코드');
