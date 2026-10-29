@@ -417,6 +417,42 @@ body{background:var(--paper)}
 .pcode b{font-size:20px;letter-spacing:.06em}
 .pcode>span:nth-child(2){font-size:13px;color:var(--muted)}
 
+/* 원장 업무 · 시간표 · 학원비 */
+.mode-seg{margin-top:-4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);padding:4px 4px 4px 10px;font-size:14px;background:var(--sheet)}
+.chip small{color:var(--muted);font-size:12px}
+.inline-form{display:flex;gap:8px}
+.inline-form input{flex:1;min-width:0;font:inherit;font-size:15px;padding:9px 10px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2>label{min-width:0}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}}
+.tt-wrap{overflow-x:auto;border:1px solid var(--rule);-webkit-overflow-scrolling:touch}
+.tt-grid{border-collapse:collapse;min-width:100%;font-size:13px}
+.tt-grid th,.tt-grid td{border:1px solid var(--rule);padding:4px;vertical-align:top}
+.tt-grid thead th{background:var(--sheet);font-weight:700;white-space:nowrap;padding:8px 6px}
+.tt-grid tbody th{background:var(--sheet);min-width:80px;width:80px;font-weight:400}
+.tt-grid .tt-time{width:100%;box-sizing:border-box;font:12.5px var(--f-mono);border:1px solid var(--rule);background:var(--paper);color:var(--ink);padding:3px 4px;display:block;margin-bottom:3px}
+.tt-grid textarea{width:112px;min-height:46px;font:13px/1.45 var(--f-body);border:0;background:transparent;color:var(--ink);resize:vertical;padding:2px}
+.tt-grid textarea:focus{outline:2px solid var(--cta);outline-offset:-2px}
+.tt-grid .linkbtn{font-size:11.5px}
+.tt-flag{font-size:12.5px;font-weight:700;color:var(--omr);margin:0}
+.tt-rows .row{grid-template-columns:52px minmax(0,1fr) auto}
+.tt-rows .mark{font-size:13px;color:var(--ink)}
+.tt-rows .rq{white-space:normal}
+.tt-me{display:flex;flex-direction:column;gap:6px;border-top:2px solid var(--rule-strong);padding-top:10px}
+.tt-me details summary{cursor:pointer;font-size:13px;color:var(--muted);padding:8px 0}
+.fee-row{grid-template-columns:22px minmax(0,1fr) auto}
+.fee-row .rq{white-space:normal}
+.fee-acts .btn{padding:7px 12px}
+.fee-note{border:2px solid var(--cta);padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.fee-note p{margin:0;font:16px var(--f-serif)}
+.fee-note.late{border-color:var(--bad)}
+.fee-note.late .label,.fee-note.late p{color:var(--bad)}
+.notice summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-size:14.5px;list-style:none}
+.notice summary b{font-family:var(--f-serif)}
+.notice summary span{font-size:12px;white-space:nowrap}
+
 </style>
 
 </head>
@@ -574,7 +610,8 @@ function seedExamples(db){
     db.students[id] = {id, nick, grade, example:true, lastSeen: now - (i+1)*day*0.7, cards, queue:[]};
   });
 }
-const fromRow = r => ({id:r.id, nick:r.nick, grade:r.grade, cards:r.cards||{}, queue:r.queue||[], lastSeen: Date.parse(r.last_seen), approved: r.approved!==false, created: r.created_at?Date.parse(r.created_at):null});
+const AID = () => S.academy?.id || null;
+const fromRow = r => ({id:r.id, nick:r.nick, grade:r.grade, cards:r.cards||{}, queue:r.queue||[], lastSeen: Date.parse(r.last_seen), approved: r.approved!==false, created: r.created_at?Date.parse(r.created_at):null, class_id: r.class_id||null, school: r.school||null});
 // 입장 결과: ok(바로 시작) / new(처음 보는 학생 → 확인 화면) / pending(선생님 승인 대기)
 const enterResult = data => (!data.status && data.student) || data.status==='ok' ? {status:'ok', student: fromRow(data.student), cards: data.cards, sessionToken:data.schedule_token||null} : {status:data.status, otherGrades:data.other_grades||[]};
 
@@ -616,9 +653,9 @@ const API = {
     if(DEMO){ demoMerge(from, into); return; }
     const {error} = await sb.rpc('student_merge', {p_from:from, p_into:into}); if(error) throw error;
   },
-  async teacherName(name){
-    if(DEMO){ loc().demoTeacher=name; saveLoc(); return; }
-    const {error} = await sb.rpc('teacher_set_name', {p_name:name}); if(error) throw error;
+  async teacherName(name, alias){
+    if(DEMO){ loc().demoTeacher=name; loc().demoAlias=alias; saveLoc(); S.academy.name_me=name; S.academy.alias=alias; return; }
+    const {error} = await sb.rpc('member_set_me', {p_academy:AID(), p_name:name, p_alias:alias}); if(error) throw error; S.academy.name_me=name||null; S.academy.alias=alias;
   },
   async save(st){
     if(DEMO){ saveLoc(); return; }
@@ -672,17 +709,18 @@ const API = {
       const qna = db.qna.map(q=>({id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, card_id:q.card_id, student_id:q.sid}));
       return {students: Object.values(db.students).map(s=>({...s, approved:s.approved!==false})), cards: SAMPLE_CARDS, entryCode: DEMO_CODE, qna, teacherName: loc().demoTeacher||'김건'};
     }
-    const {data:{user}} = await sb.auth.getUser();
-    const [st, cd, se, qs, tn] = await Promise.all([
-      sb.from('students').select('*'),
-      sb.from('cards').select('*').order('sort'),
-      sb.from('settings').select('entry_code').maybeSingle(),
-      sb.from('questions').select('id,body,answer,created_at,card_id,student_id').order('created_at', {ascending:false}).limit(300),
-      sb.from('teachers').select('name').eq('user_id', user?.id||'').maybeSingle()
+    const {data:{user}} = await sb.auth.getUser(), aid = AID();
+    if(!aid) throw new Error('not_teacher');
+    const [st, cd, se, qs] = await Promise.all([
+      sb.from('students').select('*').eq('academy_id', aid),
+      sb.from('cards').select('*').eq('academy_id', aid).order('sort'),
+      sb.from('academies').select('code').eq('id', aid).maybeSingle(),
+      sb.from('questions').select('id,body,answer,created_at,card_id,student_id').eq('academy_id', aid).order('created_at', {ascending:false}).limit(300)
     ]);
     if(st.error || cd.error) throw new Error('network');
     if(!se.data) throw new Error('not_teacher');
-    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.entry_code, qna: (qs.data||[]).map(q=>({...q, created_at: Date.parse(q.created_at)})), teacherName: tn.error?null:(tn.data?.name||null), email:user?.email||''};
+    const tn = {data:{name:S.academy.name_me}};
+    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.code, qna: (qs.data||[]).map(q=>({...q, created_at: Date.parse(q.created_at)})), teacherName: tn.error?null:(tn.data?.name||null), email:user?.email||''};
   }
 };
 
@@ -716,7 +754,7 @@ function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 function render(){
-  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, parentLogin:vParentLogin, parent:vParent}[S.screen]() + themeSheet();
+  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent}[S.screen]() + themeSheet();
   app.querySelectorAll('[data-modepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.modepick; saveLoc(); applyTheme(); render(); });
   app.querySelectorAll('[data-accentpick]').forEach(b=>b.onclick=()=>{ loc().accent=b.dataset.accentpick; saveLoc(); applyTheme(); render(); });
   bind(); bindSchedule(); bindFlash();
@@ -926,8 +964,8 @@ function vAdmin(){
   const active = everyone.filter(s=>s.lastSeen>=weekAgo).length;
   const avg = everyone.length ? Math.round(everyone.reduce((a,s)=>a+studentSummary(s).blockedPct,0)/everyone.length) : 0;
   const agg = CARDS.map(c=>{let seen=0,bl=0;everyone.forEach(s=>{const r=s.cards[c.id];if(r){seen+=r.seen;bl+=r.blocked;}});return {c,seen,bl,pct:seen?Math.round(bl/seen*100):0};}).filter(x=>x.bl).sort((a,b)=>b.pct-a.pct).slice(0,5);
-  const nameHtml = S.nameEdit ? `<form id="nameForm" class="kick-form"><input id="tName" maxlength="20" value="${esc(A.teacherName||'')}" placeholder="이름" aria-label="선생님 이름"><button type="submit">저장</button></form>` : `<button class="kick-name" data-act="nameEdit" title="이름 바꾸기">${esc(A.teacherName||(A.email||'').split('@')[0]||'이름 설정')}</button>`;
-  return `${masthead([nameHtml, everyone.length+'명'],'선생님')}
+  const nameHtml = S.nameEdit ? `<form id="nameForm" class="kick-form"><input id="tName" maxlength="20" value="${esc(A.teacherName||'')}" placeholder="이름" aria-label="이름"><input id="tAlias" maxlength="40" value="${esc(S.academy?.alias||'')}" placeholder="시간표 이름" aria-label="시간표에 적히는 이름 (예: 김)"><button type="submit">저장</button></form>` : `<button class="kick-name" data-act="nameEdit" title="이름 바꾸기">${esc(A.teacherName||(A.email||'').split('@')[0]||'이름 설정')}</button>`;
+  return `${masthead([nameHtml, everyone.length+'명'], roleTitle(S.academy))}
   <section class="stats" aria-label="학원 현황">
     <div class="stat"><b>${everyone.length}</b><small>등록 학생</small></div>
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
@@ -949,7 +987,7 @@ function vAdmin(){
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">전체 학생이 자주 막히는 문제</span>
     <div class="rows">${agg.map((x,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(x.c.tag)} · ${unitName(x.c.unit)}</span><span class="s">${x.pct}% 막힘</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>`}
   <p class="note">현재 입장 코드: <span class="mono">${esc(A.entryCode)}</span>${DEMO?" · '예시' 표시가 붙은 학생은 화면 확인용 가짜 기록이에요.":''}</p>
-  <div class="actions"><div class="linkrow"><button data-act="adminRefresh">새로고침</button><button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
+  <div class="actions"><div class="linkrow"><button data-act="adminRefresh">새로고침</button>${(S.academies||[]).length>1||S.isAdmin?`<button data-act="switchAcademy">학원 바꾸기 · ${esc(S.academy?.name||'')}</button>`:''}<button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
 }
 
 /* --- 관리자: 학생 상세 --- */
@@ -1037,7 +1075,7 @@ async function openAdmin(){
   try{
     S.admin = await API.adminData(); CARDS = S.admin.cards; go('admin');
   }catch(e){
-    S.admin = null; await API.adminLogout();
+    S.admin = null; S.academy = null; await API.adminLogout();
     go('adminLogin');
     S.err = e.message==='not_teacher' ? '선생님으로 지정된 계정이 아니에요. 설정 SQL에서 이 계정을 선생님으로 등록해 주세요.' : '기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';
     render();
@@ -1169,7 +1207,7 @@ function scheduleGuard(){if(DEMO||scheduleStatus==='ready')return '';return `<di
 const scheduleStudentView=vSchedule,scheduleAdminView=vScheduleAdmin,scheduleNoticeView=vNotice,scheduleGroupsView=vGroups;
 vSchedule=()=>scheduleGuard()||scheduleStudentView();vScheduleAdmin=()=>scheduleGuard()||scheduleAdminView();vNotice=()=>scheduleGuard()||scheduleNoticeView();vGroups=()=>scheduleGuard()||scheduleGroupsView();
 function scheduleCurrentOwner(){if(S.screen==='admin'&&S.admin)return 'teacher';if(S.screen==='home'&&S.me)return S.me.id+':'+(S.scheduleToken||'no-token');return ''}
-async function loadSchedules(force=false,quiet=false){if(DEMO||scheduleLoading)return;const owner=scheduleCurrentOwner();if(!owner||(!force&&owner===scheduleOwner))return;scheduleOwner=owner;scheduleLoading=true;if(!quiet){scheduleStatus='loading';render()}let changed=false;try{if(owner!=='teacher'&&!S.scheduleToken){scheduleStatus='missing';return}const {data,error}=await sb.rpc(owner==='teacher'?'drill_schedule_admin':'drill_schedule_student',owner==='teacher'?{}:{p_token:S.scheduleToken});if(scheduleCurrentOwner()!==owner)return;if(error){scheduleStatus=scheduleError(error);return}const next={groups:data.groups||[],events:(data.events||[]).map(e=>({...e,created:Date.parse(e.created)})),reads:data.reads||{}};changed=JSON.stringify(next)!==JSON.stringify(sched);sched=next;scheduleStatus='ready'}catch(e){if(scheduleCurrentOwner()===owner)scheduleStatus=scheduleError(e)}finally{scheduleLoading=false;if(scheduleCurrentOwner()===owner&&(!quiet||changed)){if(quiet&&S.screen==='home'&&!['schedule','notice'].includes(S.tab)){let badge=app.querySelector('[data-tab=notice]');if(badge)badge.innerHTML='알림'+(scheduleUnread().length?'<span class="badge">'+scheduleUnread().length+'</span>':'')}else render()}}}
+async function loadSchedules(force=false,quiet=false){if(DEMO||scheduleLoading)return;const owner=scheduleCurrentOwner();if(!owner||(!force&&owner===scheduleOwner))return;scheduleOwner=owner;scheduleLoading=true;if(!quiet){scheduleStatus='loading';render()}let changed=false;try{if(owner!=='teacher'&&!S.scheduleToken){scheduleStatus='missing';return}const {data,error}=await sb.rpc(owner==='teacher'?'drill_schedule_admin':'drill_schedule_student',owner==='teacher'?{p_academy:AID()}:{p_token:S.scheduleToken});if(scheduleCurrentOwner()!==owner)return;if(error){scheduleStatus=scheduleError(error);return}const next={groups:data.groups||[],events:(data.events||[]).map(e=>({...e,created:Date.parse(e.created)})),reads:data.reads||{}};changed=JSON.stringify(next)!==JSON.stringify(sched);sched=next;scheduleStatus='ready'}catch(e){if(scheduleCurrentOwner()===owner)scheduleStatus=scheduleError(e)}finally{scheduleLoading=false;if(scheduleCurrentOwner()===owner&&(!quiet||changed)){if(quiet&&S.screen==='home'&&!['schedule','notice'].includes(S.tab)){let badge=app.querySelector('[data-tab=notice]');if(badge)badge.innerHTML='알림'+(scheduleUnread().length?'<span class="badge">'+scheduleUnread().length+'</span>':'')}else render()}}}
 async function scheduleRPC(name,args){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
 function scheduleActionError(e){return e?.code==='23505'?'같은 이름의 그룹이 이미 있어요.':/no_recipients/.test(e?.message||'')?'받을 학생이 있는 그룹이나 개인을 선택해주세요.':/session_expired/.test(e?.message||'')?'다시 입장한 뒤 시도해주세요.':'서버에 저장하지 못했어요. 입력을 유지했으니 연결을 확인하고 다시 시도해주세요.'}
 let scheduleWorking=false;
@@ -1177,9 +1215,9 @@ const bindScheduleLocal=bindSchedule;
 bindSchedule=function(){bindScheduleLocal();if(DEMO)return;let owner=scheduleCurrentOwner();if(owner&&owner!==scheduleOwner&&!scheduleLoading)queueMicrotask(()=>loadSchedules());app.querySelectorAll('[data-sreload]').forEach(b=>b.onclick=()=>loadSchedules(true));
  app.querySelectorAll('[data-read]').forEach(b=>b.onclick=async()=>{if(scheduleWorking)return;scheduleWorking=true;b.disabled=true;try{await scheduleRPC('drill_schedule_read',{p_token:S.scheduleToken,p_events:[b.dataset.read]});await loadSchedules(true)}catch(e){b.insertAdjacentHTML('afterend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;b.disabled=false}});
  let all=app.querySelector('#scheduleReadAll');if(all)all.onclick=async()=>{if(scheduleWorking)return;scheduleWorking=true;all.disabled=true;try{await scheduleRPC('drill_schedule_read',{p_token:S.scheduleToken,p_events:scheduleVisible().map(e=>e.id)});await loadSchedules(true)}catch(e){all.insertAdjacentHTML('afterend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;all.disabled=false}};
- let f=app.querySelector('#scheduleForm');if(f){let reading=false;const oldChange=f.elements.namedItem('attachment').onchange;f.elements.namedItem('attachment').onchange=async()=>{reading=true;try{await oldChange()}finally{reading=false}};f.onsubmit=async e=>{e.preventDefault();let err=f.querySelector('#scheduleFormError');err.textContent='';if(scheduleWorking)return;if(reading){err.textContent='첨부파일을 읽는 중이에요. 잠시 후 배포해주세요.';return}let targets=Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);if(!scheduleRecipients(targets).length){err.textContent='받을 학생이 있는 그룹이나 개인을 선택해주세요.';return}let field=n=>f.elements.namedItem(n),rows=scheduleCsv.length?scheduleCsv.map(r=>({date:r[0],title:r[1].trim(),memo:r[2]||''})):[{date:field('date').value,title:field('title').value.trim(),memo:field('memo').value}];if(rows.some(r=>!r.title||r.title.length>100||r.memo.length>5000)){err.textContent='제목은 1~100자, 안내는 5,000자 이하로 입력해주세요.';return}scheduleWorking=true;let button=f.querySelector('[type=submit]');button.disabled=true;button.textContent='배포하는 중…';try{const data=await scheduleRPC('drill_schedule_publish',{p_rows:rows,p_type:field('type').value,p_groups:targets.filter(t=>t.startsWith('group:')).map(t=>t.slice(6)),p_students:targets.filter(t=>t.startsWith('student:')).map(t=>t.slice(8)),p_all:targets.includes('all'),p_attachment:scheduleFiles});scheduleMessage=data.count+'개 일정을 '+data.recipients+'명에게 배포했어요. '+(data.pushMessage||'학생 알림함에 표시됩니다.');scheduleDraft={};await loadSchedules(true)}catch(e){err.textContent=scheduleActionError(e)}finally{scheduleWorking=false;button.disabled=false;button.textContent='일정 배포·알림 보내기'}};}
- let create=app.querySelector('#groupCreate');if(create)create.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let name=create.elements.namedItem('groupName').value.trim();if(!name)return;scheduleWorking=true;let button=create.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_id:null,p_name:name,p_members:[]});scheduleGroupMessage='그룹을 만들었어요. 구성원을 선택해주세요.';await loadSchedules(true)}catch(e){create.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}};
- app.querySelectorAll('[data-group-form]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let g=sched.groups.find(g=>g.id===f.dataset.groupForm),members=Array.from(f.querySelectorAll('[name=member]:checked')).map(x=>x.value);scheduleWorking=true;let button=f.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_id:g.id,p_name:g.name,p_members:members});scheduleGroupMessage=g.name+' 구성원을 저장했어요.';await loadSchedules(true)}catch(e){f.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}});
+ let f=app.querySelector('#scheduleForm');if(f){let reading=false;const oldChange=f.elements.namedItem('attachment').onchange;f.elements.namedItem('attachment').onchange=async()=>{reading=true;try{await oldChange()}finally{reading=false}};f.onsubmit=async e=>{e.preventDefault();let err=f.querySelector('#scheduleFormError');err.textContent='';if(scheduleWorking)return;if(reading){err.textContent='첨부파일을 읽는 중이에요. 잠시 후 배포해주세요.';return}let targets=Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);if(!scheduleRecipients(targets).length){err.textContent='받을 학생이 있는 그룹이나 개인을 선택해주세요.';return}let field=n=>f.elements.namedItem(n),rows=scheduleCsv.length?scheduleCsv.map(r=>({date:r[0],title:r[1].trim(),memo:r[2]||''})):[{date:field('date').value,title:field('title').value.trim(),memo:field('memo').value}];if(rows.some(r=>!r.title||r.title.length>100||r.memo.length>5000)){err.textContent='제목은 1~100자, 안내는 5,000자 이하로 입력해주세요.';return}scheduleWorking=true;let button=f.querySelector('[type=submit]');button.disabled=true;button.textContent='배포하는 중…';try{const data=await scheduleRPC('drill_schedule_publish',{p_academy:AID(),p_rows:rows,p_type:field('type').value,p_groups:targets.filter(t=>t.startsWith('group:')).map(t=>t.slice(6)),p_students:targets.filter(t=>t.startsWith('student:')).map(t=>t.slice(8)),p_all:targets.includes('all'),p_attachment:scheduleFiles});scheduleMessage=data.count+'개 일정을 '+data.recipients+'명에게 배포했어요. '+(data.pushMessage||'학생 알림함에 표시됩니다.');scheduleDraft={};await loadSchedules(true)}catch(e){err.textContent=scheduleActionError(e)}finally{scheduleWorking=false;button.disabled=false;button.textContent='일정 배포·알림 보내기'}};}
+ let create=app.querySelector('#groupCreate');if(create)create.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let name=create.elements.namedItem('groupName').value.trim();if(!name)return;scheduleWorking=true;let button=create.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_academy:AID(),p_id:null,p_name:name,p_members:[]});scheduleGroupMessage='그룹을 만들었어요. 구성원을 선택해주세요.';await loadSchedules(true)}catch(e){create.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}};
+ app.querySelectorAll('[data-group-form]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();if(scheduleWorking)return;let g=sched.groups.find(g=>g.id===f.dataset.groupForm),members=Array.from(f.querySelectorAll('[name=member]:checked')).map(x=>x.value);scheduleWorking=true;let button=f.querySelector('button');button.disabled=true;try{await scheduleRPC('drill_group_save',{p_academy:AID(),p_id:g.id,p_name:g.name,p_members:members});scheduleGroupMessage=g.name+' 구성원을 저장했어요.';await loadSchedules(true)}catch(e){f.insertAdjacentHTML('beforeend','<p class="err" role="alert">'+esc(scheduleActionError(e))+'</p>')}finally{scheduleWorking=false;button.disabled=false}});
 };
 // 화면을 보고 있는 학생에게만 주기적으로 새 알림을 가져옵니다.
 setInterval(()=>{if(!DEMO&&S.screen==='home'&&document.visibilityState==='visible'&&!scheduleWorking)loadSchedules(true,true)},60000);
@@ -1465,13 +1503,13 @@ function flShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.ra
 Object.assign(API, {
   async flashAdmin(){
     if(DEMO){ const f=flDemo().flash; return {decks:f.decks.slice().sort((a,b)=>a.sort-b.sort), cards:f.cards.slice().sort((a,b)=>a.sort-b.sort), stats:flStatsDemo()}; }
-    const [d,c,s] = await Promise.all([sb.from('flash_decks').select('*').order('sort').order('created_at'), sb.from('flash_cards').select('*').order('sort').order('created_at'), sb.rpc('flash_admin_stats')]);
+    const [d,c,s] = await Promise.all([sb.from('flash_decks').select('*').eq('academy_id',AID()).order('sort').order('created_at'), sb.from('flash_cards').select('*').eq('academy_id',AID()).order('sort').order('created_at'), sb.rpc('flash_admin_stats',{p_academy:AID()})]);
     const e=d.error||c.error||s.error; if(e) throw e;
     return {decks:d.data, cards:c.data.map(x=>({...x,links:x.links||[]})), stats:s.data};
   },
   async flashDeckSave(v){
     if(DEMO){ const f=flDemo().flash; if(v.id) Object.assign(f.decks.find(d=>d.id===v.id), v); else f.decks.push({...v, id:'dk-'+Date.now(), sort:f.decks.length+1}); saveLoc(); return; }
-    const {error} = v.id ? await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id) : await sb.from('flash_decks').insert({name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:(S.fa?.decks.length||0)+1});
+    const {error} = v.id ? await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id) : await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:(S.fa?.decks.length||0)+1});
     if(error) throw error;
   },
   async flashDeckDelete(id){
@@ -1482,7 +1520,7 @@ Object.assign(API, {
     if(DEMO){ const f=flDemo().flash; rows.forEach(v=>{ if(v.id) Object.assign(f.cards.find(c=>c.id===v.id), v); else f.cards.push({...v, id:'fc-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), sort:f.cards.length}); }); saveLoc(); return; }
     const upd=rows.filter(r=>r.id), add=rows.filter(r=>!r.id), base=S.fa?.cards.length||0;
     for(const r of upd){ const {error}=await sb.from('flash_cards').update({front:r.front,back:r.back,links:r.links}).eq('id',r.id); if(error) throw error; }
-    if(add.length){ const {error}=await sb.from('flash_cards').insert(add.map((r,i)=>({deck_id:r.deck_id,front:r.front,back:r.back,links:r.links,sort:base+i}))); if(error) throw error; }
+    if(add.length){ const {error}=await sb.from('flash_cards').insert(add.map((r,i)=>({academy_id:AID(),deck_id:r.deck_id,front:r.front,back:r.back,links:r.links,sort:base+i}))); if(error) throw error; }
   },
   async flashCardDelete(id){
     if(DEMO){ const f=flDemo().flash; f.cards=f.cards.filter(c=>c.id!==id); f.logs=f.logs.filter(l=>l.card_id!==id); Object.values(f.states).forEach(s=>delete s[id]); saveLoc(); return; }
@@ -1661,13 +1699,13 @@ Object.assign(API, {
   async hwAdmin(){
     if(DEMO){ const db=hwDemoDB(); return {hw:db.hw.map(h=>({id:h.id,title:h.title,due:h.due,memo:h.memo,link:h.link,targets:h.targets,created:h.created})),
       rec:db.hw.flatMap(h=>Object.entries(h.rec).map(([sid,d])=>({homework_id:h.id,student_id:sid,done_at:d}))), notes:{...db.notes}}; }
-    const [h,r,n] = await Promise.all([sb.from('drill_homework').select('*').order('due',{ascending:false}).order('created',{ascending:false}), sb.from('drill_homework_recipients').select('*'), sb.from('drill_student_notes').select('*')]);
+    const [h,r,n] = await Promise.all([sb.from('drill_homework').select('*').eq('academy_id',AID()).order('due',{ascending:false}).order('created',{ascending:false}), sb.from('drill_homework_recipients').select('*').eq('academy_id',AID()), sb.from('drill_student_notes').select('*').eq('academy_id',AID())]);
     const e=h.error||r.error||n.error; if(e) throw e;
     return {hw:hwAll(h.data), rec:r.data.map(x=>({...x, done_at:x.done_at?Date.parse(x.done_at):null})), notes:Object.fromEntries(n.data.map(x=>[x.student_id,x.body]))};
   },
   async hwPublish(v){
     if(DEMO){ const db=hwDemoDB(); db.hw.unshift({id:'hw-'+Date.now(), title:v.title, due:v.due, memo:v.memo, link:v.link, targets:v.targets, created:Date.now(), rec:Object.fromEntries(v.students.map(id=>[id,null]))}); saveLoc(); return; }
-    const {error} = await sb.rpc('hw_publish', {p_title:v.title, p_due:v.due, p_memo:v.memo, p_link:v.link, p_targets:v.targets, p_students:v.students}); if(error) throw error;
+    const {error} = await sb.rpc('hw_publish', {p_academy:AID(), p_title:v.title, p_due:v.due, p_memo:v.memo, p_link:v.link, p_targets:v.targets, p_students:v.students}); if(error) throw error;
   },
   async hwDelete(id){
     if(DEMO){ const db=hwDemoDB(); db.hw=db.hw.filter(h=>h.id!==id); saveLoc(); return; }
@@ -1675,7 +1713,7 @@ Object.assign(API, {
   },
   async noteSave(sid, body){
     if(DEMO){ hwDemoDB().notes[sid]=body; saveLoc(); return; }
-    const {error} = await sb.from('drill_student_notes').upsert({student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
+    const {error} = await sb.from('drill_student_notes').upsert({academy_id:AID(), student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
   }
 });
 const hwDday = due => Math.round((Date.parse(due+'T00:00:00') - new Date(new Date().toDateString()).getTime())/DAY);
@@ -1979,7 +2017,7 @@ function bindAccounts(){
   q('[data-reject]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await API.approve(b.dataset.reject,false); }catch(e){ b.disabled=false; b.textContent='실패 · 다시'; return; } S.confirmReject=null; reload(); });
   // 이름
   act('nameEdit', ()=>{ S.nameEdit=true; render(); document.getElementById('tName')?.focus(); });
-  const nf=document.getElementById('nameForm'); if(nf) nf.onsubmit=async e=>{ e.preventDefault(); const v=document.getElementById('tName').value.trim(); try{ await API.teacherName(v); S.admin.teacherName=v||null; }catch(err){} S.nameEdit=false; render(); };
+  const nf=document.getElementById('nameForm'); if(nf) nf.onsubmit=async e=>{ e.preventDefault(); const v=document.getElementById('tName').value.trim(), al=document.getElementById('tAlias').value.trim(); try{ await API.teacherName(v, al); S.admin.teacherName=v||null; }catch(err){} S.nameEdit=false; render(); };
   // 합치기·삭제
   const mi=document.getElementById('mergeInto'); if(mi) mi.onchange=()=>{ S.manage={into:mi.value||null}; render(); };
   act('mergeCancel', ()=>{ S.manage={}; render(); });
@@ -2031,19 +2069,19 @@ Object.assign(API, {
   },
   async parentAdmin(){
     if(DEMO){ const db=parentDemo(); return {codes:Object.entries(db.parents.codes).map(([code,v])=>({code,label:v.label})), links:Object.entries(db.parents.codes).flatMap(([code,v])=>v.kids.map(student_id=>({code,student_id}))), comments:{...db.parents.comments}}; }
-    const [a,b,c] = await Promise.all([sb.from('parent_codes').select('*').order('created'), sb.from('parent_children').select('*'), sb.from('parent_comments').select('*')]);
+    const [a,b,c] = await Promise.all([sb.from('parent_codes').select('*').eq('academy_id',AID()).order('created'), sb.from('parent_children').select('*').eq('academy_id',AID()), sb.from('parent_comments').select('*').eq('academy_id',AID())]);
     const e=a.error||b.error||c.error; if(e) throw e;
     return {codes:a.data, links:b.data, comments:Object.fromEntries(c.data.map(x=>[x.student_id,x.body]))};
   },
   async parentCreate(label, sid){
     const code=pcNew();
     if(DEMO){ parentDemo().parents.codes[code]={label, kids:[sid]}; saveLoc(); return code; }
-    let r=await sb.from('parent_codes').insert({code, label}); if(r.error) throw r.error;
-    r=await sb.from('parent_children').insert({code, student_id:sid}); if(r.error) throw r.error; return code;
+    let r=await sb.from('parent_codes').insert({academy_id:AID(), code, label}); if(r.error) throw r.error;
+    r=await sb.from('parent_children').insert({academy_id:AID(), code, student_id:sid}); if(r.error) throw r.error; return code;
   },
   async parentLink(code, sid, on){
     if(DEMO){ const p=parentDemo().parents.codes[code]; p.kids = on ? [...new Set([...p.kids,sid])] : p.kids.filter(x=>x!==sid); saveLoc(); return; }
-    const r = on ? await sb.from('parent_children').insert({code, student_id:sid}) : await sb.from('parent_children').delete().eq('code',code).eq('student_id',sid);
+    const r = on ? await sb.from('parent_children').insert({academy_id:AID(), code, student_id:sid}) : await sb.from('parent_children').delete().eq('code',code).eq('student_id',sid);
     if(r.error) throw r.error;
   },
   async parentDelete(code){
@@ -2052,7 +2090,7 @@ Object.assign(API, {
   },
   async parentComment(sid, body){
     if(DEMO){ parentDemo().parents.comments[sid]=body; saveLoc(); return; }
-    const {error}=await sb.from('parent_comments').upsert({student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
+    const {error}=await sb.from('parent_comments').upsert({academy_id:AID(), student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
   }
 });
 
@@ -2119,7 +2157,7 @@ function vParent(){
   ${st.weak.length?`<section class="pnote"><span class="label">조금 더 연습하면 좋은 단원</span><p>${st.weak.map(esc).join(', ')} · 선생님이 수업에서 함께 챙기고 있어요.</p></section>`:''}
   ${parentFoot()}`;
 }
-const parentFoot = () => `<div class="actions"><div class="linkrow"><button data-act="toParentAdd">다른 자녀 코드 추가</button><button data-act="parentForget">이 기기에서 코드 지우기</button>${themeLink()}</div>
+let parentFoot = () => `<div class="actions"><div class="linkrow"><button data-act="toParentAdd">다른 자녀 코드 추가</button><button data-act="parentForget">이 기기에서 코드 지우기</button>${themeLink()}</div>
   ${S.pforget?`<p class="selnote" style="text-align:center">저장된 학부모 코드를 모두 지울까요? <button class="linkbtn danger" data-act="parentForgetGo">지우기</button> <button class="linkbtn" data-act="parentForgetNo">취소</button></p>`:''}${demoBanner()}</div>`;
 
 /* --- 선생님: 학생 상세의 학부모 연결 --- */
@@ -2188,6 +2226,560 @@ function bindParent(){
 }
 const bindBeforeParent = bindFlash;
 bindFlash = function(){ bindBeforeParent(); bindParent(); };
+
+/* ===== 학원 고르기 · 계정 만들기 · 운영자 (sql/apera_v2.sql) ===== */
+Object.assign(API, {
+  async myAcademies(){
+    if(DEMO) return [{id:'demo', name:'아페라 학원', code:DEMO_CODE, role:'owner', member:true, name_me:loc().demoTeacher||'김건', alias:loc().demoAlias||'김'}];
+    const {data,error} = await sb.rpc('my_academies'); if(error) throw error; return data||[];
+  },
+  async amAdmin(){
+    if(DEMO) return true;
+    const {data} = await sb.from('platform_admins').select('user_id').maybeSingle(); return !!data;
+  },
+  async adminOpen(id){ if(DEMO) return; await sb.rpc('admin_open', {p_academy:id}); },
+  async signUp(email, pw){
+    if(DEMO) throw new Error('demo');
+    const {data,error} = await sb.auth.signUp({email, password:pw});
+    if(error) throw new Error(/registered|exists/i.test(error.message)?'exists':/password/i.test(error.message)?'weak':'network');
+    return !!data.session;
+  },
+  async createAcademy(name, code, email){
+    if(DEMO) throw new Error('demo');
+    const {data,error} = await sb.rpc('admin_create_academy', {p_name:name, p_code:code, p_owner_email:email});
+    if(error) throw new Error(/no_user/.test(error.message)?'no_user':/duplicate|unique/.test(error.message)?'dup_code':'network'); return data;
+  },
+  async me(){ if(DEMO) return {email:'teacher@apera.kr'}; const {data:{user}} = await sb.auth.getUser(); return {email:user?.email||''}; }
+});
+const roleTitle = a => !a ? '선생님' : a.role==='teacher' ? '선생님' : a.member===false ? '운영자' : '원장';
+async function selectAcademy(a){
+  S.academy=a; loc().lastAcademy=a.id; saveLoc();
+  S.ta=null; S.fa=null; S.pa=null; S.ow=null; S.admin=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}};
+  try{ await API.adminOpen(a.id); }catch(e){}
+  openAdmin();
+}
+const openAdminBase = openAdmin;
+openAdmin = async function(){
+  if(S.academy) return openAdminBase();
+  S.screen='loading'; render();
+  try{
+    const [list, adm, me] = await Promise.all([API.myAcademies(), API.amAdmin(), API.me()]);
+    S.academies=list; S.isAdmin=adm; S.myEmail=me.email;
+    if(!list.length){ go(adm?'academies':'noAcademy'); return; }
+    const last=list.find(a=>a.id===loc().lastAcademy);
+    if(list.length===1) return selectAcademy(list[0]);
+    if(last) return selectAcademy(last);
+    go('academies');
+  }catch(e){
+    await API.adminLogout(); go('adminLogin'); S.err='학원 정보를 불러오지 못했어요. 서버 설정(apera_v2.sql)이 끝났는지, 인터넷이 연결됐는지 확인해 주세요.'; render();
+  }
+};
+function vAcademies(){
+  const list=S.academies||[];
+  return `${masthead(S.myEmail?esc(S.myEmail):'', S.isAdmin?'운영자':'학원 선택')}
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학원 ${list.length}곳</span>
+    <div class="rows">${list.map(a=>`<button class="row" data-academy="${esc(a.id)}"><span class="mark">▸</span><span class="rq"><b>${esc(a.name)}</b> <small class="dim">${roleTitle(a)} · 입장 코드 ${esc(a.code)}${a.active?'':' · 중지됨'}</small></span><span class="s">${S.academy?.id===a.id?'지금':''}</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 학원이 없어요.</p>'}</div></section>
+  ${S.isAdmin?`<form id="acForm" class="schedule-form"><h2 class="schedule-head">새 학원 만들기</h2>
+    <label>학원 이름<input id="acName" required maxlength="40" placeholder="예: 새빛국어학원"></label>
+    <label>학생 입장 코드 · 4~20자, 다른 학원과 겹치면 안 돼요<input id="acCode" required minlength="4" maxlength="20" placeholder="예: saebit2026"></label>
+    <label>원장 계정 이메일 · 원장님이 먼저 앱에서 계정을 만들어야 해요<input id="acEmail" type="email" required placeholder="owner@example.com"></label>
+    ${S.acMsg?`<p class="schedule-success" role="status">${esc(S.acMsg)}</p>`:''}
+    <button class="btn alt" type="submit">학원 만들기</button></form>
+    <p class="note">운영자가 원장이 아닌 학원에 들어가면 들어간 기록이 남아요. 원장님이 물어보시면 확인할 수 있어요.</p>`:''}
+  <div class="actions"><div class="linkrow"><button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
+}
+function vNoAcademy(){
+  return `${masthead('', '계정 확인')}
+  <section class="join"><span class="label">아직 연결된 학원이 없어요</span>
+    <h2 class="join-who">원장님께 이 이메일을 알려 주세요</h2>
+    <p class="lede"><b class="mono">${esc(S.myEmail||'')}</b><br>원장님이 원장 화면의 '선생님 계정'에서 이 이메일을 추가하면 바로 들어갈 수 있어요. 학원을 새로 시작하시는 원장님이라면 아페라 운영자에게 문의해 주세요.</p></section>
+  <div class="actions"><button class="btn" data-act="adminRefresh">다시 확인</button><div class="linkrow"><button data-act="adminOut">로그아웃</button>${themeLink()}</div></div>`;
+}
+// 로그인 화면에 '계정 만들기'
+const vAdminLoginBase = vAdminLogin;
+vAdminLogin = () => {
+  if(!S.signupMode) return vAdminLoginBase().replace('<div class="linkrow">', `${DEMO?'':'<button class="linkbtn" style="align-self:center" data-act="signupMode">처음이세요? 선생님·원장 계정 만들기</button>'}<div class="linkrow">`);
+  return `${masthead('새 계정', '선생님')}
+  <form id="signupForm" class="form" novalidate>
+    <label class="field"><span>이메일</span><input id="suEmail" type="email" autocomplete="username"></label>
+    <label class="field"><span>비밀번호</span><input id="suPw" type="password" autocomplete="new-password" placeholder="8자 이상"></label>
+  </form>
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:''}${S.suMsg?`<p class="schedule-success">${esc(S.suMsg)}</p>`:''}
+  <div class="actions"><button class="btn" type="submit" form="signupForm" ${S.busy?'disabled':''}>${S.busy?'만드는 중…':'계정 만들기'}</button>
+    <p class="hint">계정을 만든 뒤 원장님께 이메일을 알려 주면 학원에 연결돼요.</p>
+    <div class="linkrow"><button data-act="signupBack">로그인으로</button>${themeLink()}</div></div>`;
+};
+function bindAcademy(){
+  const q=sel=>app.querySelectorAll(sel), act=(a,fn)=>q(`[data-act=${a}]`).forEach(b=>b.addEventListener('click',fn));
+  q('[data-academy]').forEach(b=>b.onclick=()=>{ const a=S.academies.find(x=>x.id===b.dataset.academy); if(a) selectAcademy(a); });
+  act('switchAcademy', async()=>{ S.academy=null; S.admin=null; S.screen='loading'; render(); try{ S.academies=await API.myAcademies(); }catch(e){} go('academies'); });
+  act('adminOut', ()=>{ S.academy=null; S.academies=null; S.isAdmin=false; });
+  act('signupMode', ()=>{ S.signupMode=true; S.err=''; S.suMsg=''; render(); });
+  act('signupBack', ()=>{ S.signupMode=false; S.err=''; render(); });
+  const sf=document.getElementById('signupForm');
+  if(sf) sf.onsubmit=async e=>{ e.preventDefault(); if(S.busy) return;
+    const em=document.getElementById('suEmail').value.trim(), pw=document.getElementById('suPw').value;
+    if(!/^\S+@\S+\.\S+$/.test(em)){ S.err='이메일을 확인해 주세요.'; return render(); }
+    if(pw.length<8){ S.err='비밀번호는 8자 이상으로 정해 주세요.'; return render(); }
+    S.busy=true; S.err=''; render();
+    try{ const live=await API.signUp(em,pw); S.busy=false; S.form.email=em;
+      if(live){ S.signupMode=false; openAdmin(); } else { S.suMsg='계정을 만들었어요. 받은 메일에서 인증을 누른 뒤 로그인해 주세요.'; render(); } }
+    catch(err){ S.busy=false; S.err = err.message==='exists'?'이미 있는 이메일이에요. 로그인해 주세요.':err.message==='weak'?'비밀번호가 너무 쉬워요. 다른 비밀번호로 정해 주세요.':'계정을 만들지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); } };
+  const af=document.getElementById('acForm');
+  if(af) af.onsubmit=async e=>{ e.preventDefault();
+    const name=document.getElementById('acName').value.trim(), code=document.getElementById('acCode').value.trim(), em=document.getElementById('acEmail').value.trim();
+    if(!name||code.length<4||!em){ S.err='학원 이름, 입장 코드(4자 이상), 원장 이메일을 모두 써 주세요.'; return render(); }
+    try{ await API.createAcademy(name,code,em); S.err=''; S.acMsg=`'${name}'을 만들었어요. 원장님께 입장 코드 ${code}를 알려 주세요.`; S.academies=await API.myAcademies(); }
+    catch(err){ S.acMsg=''; S.err = err.message==='no_user'?'그 이메일로 만든 계정이 없어요. 원장님이 먼저 앱에서 계정을 만들어야 해요.':err.message==='dup_code'?'다른 학원이 쓰는 입장 코드예요. 다른 코드로 정해 주세요.':err.message==='demo'?'미리보기에서는 학원을 만들 수 없어요.':'학원을 만들지 못했어요.'; }
+    render(); };
+}
+const bindBeforeAcademy = bindFlash;
+bindFlash = function(){ bindBeforeAcademy(); bindAcademy(); };
+
+/* ===== 원장 업무: 학생 정보·반·연락처 · 시간표 · 학원비 · 알림장 · 계정 ===== */
+const won = n => (n==null||n==='') ? '–' : Number(n).toLocaleString('ko-KR')+'원';
+const ymdOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).toLocaleDateString('sv-SE');
+const WEEK = ['월','화','수','목','금','토','일'];
+const DEMO_SLOTS = [['16:40','17:30'],['17:40','18:20'],['18:25','19:05'],['19:10','19:50'],['19:55','20:35'],['20:40','21:20'],['21:25','22:00']].map(([start,end])=>({start,end}));
+
+/* --- 시간표 해석: 칸의 줄마다 '남중-영어오', '고1수학박', '국어김' --- */
+function ttParse(line){
+  const t=String(line||'').trim(); if(!t) return null;
+  let m=t.match(/^([^\s\-–:]{1,10})\s*[-–:]\s*(.+)$/); if(m) return {pre:m[1], body:m[2].trim()};
+  m=t.match(/^((?:중|고)[1-3])\s*(.+)$/); if(m) return {pre:m[1], body:m[2].trim()};
+  return {pre:'', body:t};
+}
+const ttForStudent = (p, who) => !p.pre || p.pre==='전체' || p.pre===who.grade || (who.school && (who.school===p.pre || who.school.startsWith(p.pre) || p.pre.startsWith(who.school)));
+const aliasList = a => String(a||'').split(/[,\s]+/).map(x=>x.trim()).filter(Boolean);
+function ttPick(list, date){ // 그날 쓰는 시간표: 날짜 시간표가 고정 시간표를 덮어쓴다
+  const ymd=ymdOf(date), wd=(date.getDay()+6)%7;
+  const dated=list.filter(t=>t.kind==='dated'&&t.date_from<=ymd&&ymd<=t.date_to).sort((a,b)=>String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+  return dated || list.find(t=>t.kind==='weekly'&&t.weekday===wd) || null;
+}
+// 학생·학부모: 반 칸 하나만 받은 시간표 목록 → 그날 내 수업
+function myLessons(list, date, who){
+  const t=ttPick(list, date); if(!t) return {t:null, lessons:[]};
+  const cell=Array.isArray(t.cell)?t.cell:[];
+  const lessons=(t.slots||[]).flatMap((s,i)=>String(cell[i]||'').split('\n').map(ttParse).filter(p=>p&&ttForStudent(p,who)).map(p=>({start:s.start,end:s.end,text:p.body,pre:p.pre})));
+  return {t, lessons};
+}
+// 선생님: 전체 시간표에서 내 이름(시간표 이름)이 끝에 붙은 수업만
+function teacherLessons(list, date, aliases, classes){
+  const t=ttPick(list, date); if(!t||!aliases.length) return {t, lessons:[]};
+  const name=id=>(classes.find(c=>c.id===id)||{}).name||'반';
+  const out=[];
+  Object.entries(t.cells||{}).forEach(([cid,arr])=>(t.slots||[]).forEach((s,i)=>String((arr||[])[i]||'').split('\n').map(ttParse).filter(Boolean).forEach(p=>{
+    if(aliases.some(a=>p.body.endsWith(a))) out.push({start:s.start,end:s.end,text:p.body,cls:name(cid),pre:p.pre});
+  })));
+  out.sort((a,b)=>a.start.localeCompare(b.start)||a.cls.localeCompare(b.cls));
+  return {t, lessons:out};
+}
+const ttWhen = t => t.kind==='weekly' ? `${WEEK[t.weekday]}요일 고정` : (t.date_from===t.date_to ? `${t.date_from.slice(5).replace('-','/')} (${WEEK[(new Date(t.date_from+'T00:00:00').getDay()+6)%7]})` : `${t.date_from.slice(5).replace('-','/')}~${t.date_to.slice(5).replace('-','/')}`);
+function lessonsHtml(res, empty, withCls){
+  if(!res.t) return `<p class="note" style="padding:6px 0">${empty}</p>`;
+  return `${res.t.kind==='dated'?`<p class="tt-flag">${esc(res.t.title||'변동 시간표')} · ${ttWhen(res.t)}</p>`:''}
+    ${res.lessons.length?`<div class="rows tt-rows">${res.lessons.map(l=>`<div class="row"><span class="mark mono">${esc(l.start)}</span><span class="rq">${withCls?`<b>${esc(l.cls)}</b> `:''}${esc(l.text)}${l.pre?` <small class="dim">${esc(l.pre)}</small>`:''}</span><span class="s">~${esc(l.end)}</span></div>`).join('')}</div>`:`<p class="note" style="padding:6px 0">수업이 없어요.</p>`}`;
+}
+
+/* --- 데모 데이터: 보내 주신 시간표 그대로 --- */
+function ownerDemo(){
+  const db=demoDB();
+  if(!db.owner){
+    const cls=['중1a','중1b','중2','중3','고등'].map((name,i)=>({id:'c'+i, name, sort:i}));
+    const ex=Object.values(db.students).filter(s=>s.example), byGrade=g=>({중1:'c0',중2:'c2',중3:'c3'})[g]||'c4';
+    ex.forEach((s,i)=>{ s.class_id=byGrade(s.grade); s.school=['남중','대청','남중','대청'][i%4]; });
+    const grid={c0:['','국어김','국어김','국어김','','',''], c1:['','남중-영어오\n대청-국어김','남중-영어오\n대청-국어김','남중-영어오\n대청-국어김','','',''],
+      c2:['','영어오','영어오','영어오','','',''], c3:['','','수학박성진','수학박성진','영어오','영어오',''], c4:['','','','','고1수학박','고1수학박','고1수학박']};
+    const today=ymdOf(new Date()), wd=(new Date().getDay()+6)%7;
+    db.owner={classes:cls,
+      contacts:Object.fromEntries(ex.map((s,i)=>[s.id,{student_id:s.id, student_phone:'010-1234-56'+(10+i), parent_phone:'010-9876-54'+(10+i), fee_amount:[280000,320000,350000,380000][i%4], fee_day:5, memo:''}])),
+      timetables:[{id:'tw'+wd, kind:'weekly', weekday:wd, title:'', slots:DEMO_SLOTS, cells:{c0:['','국어김','국어김','','','',''],c1:['','남중-영어오\n대청-국어김','남중-영어오\n대청-국어김','','','',''],c2:['','영어오','영어오','영어오','','',''],c3:['','','수학박성진','수학박성진','영어오','영어오',''],c4:['','','','','고1수학박','고1수학박','']}, updated_at:new Date(Date.now()-7*DAY).toISOString()},
+        {id:'td1', kind:'dated', date_from:today, date_to:today, title:'임시시간표', slots:DEMO_SLOTS, cells:grid, updated_at:new Date().toISOString()}],
+      fees:[], notices:[{id:'n1', title:'11월 학원 모의고사 안내', body:'11월 4일 오후 5시에 학원 모의고사를 봐요. 필기도구를 챙겨 주세요.', targets:['전체 학생'], created:Date.now()-DAY, rec:ex.map(s=>s.id)}],
+      members:[{user_id:'me', role:'owner', name:loc().demoTeacher||'김건', alias:'김', email:'teacher@apera.kr'},{user_id:'t2', role:'teacher', name:'오선생', alias:'오', email:'oh@apera.kr'},{user_id:'t3', role:'teacher', name:'박성진', alias:'박, 박성진', email:'park@apera.kr'}]};
+    const ym=new Date().toISOString().slice(0,7);
+    ex.forEach((s,i)=>db.owner.fees.push({id:'f'+i, student_id:s.id, month:ym, amount:db.owner.contacts[s.id].fee_amount, due:ym+'-05', paid_at:i%3===1?null:ym+'-0'+(2+i), method:i%2?'계좌이체':'카드', memo:''}));
+    saveLoc();
+  }
+  return db;
+}
+
+/* --- 서버 · 데모 --- */
+Object.assign(API, {
+  async ownerData(month){
+    if(DEMO){ const o=ownerDemo().owner; return {classes:o.classes, contacts:o.contacts, timetables:o.timetables, fees:o.fees.filter(f=>f.month===month), notices:o.notices.map(n=>({...n, count:n.rec.length})), members:o.members}; }
+    const aid=AID(), owner=S.academy?.role==='owner';
+    const [c,t,ct,f,n,m] = await Promise.all([
+      sb.from('classes').select('*').eq('academy_id',aid).order('sort').order('name'),
+      sb.from('timetables').select('*').eq('academy_id',aid),
+      owner?sb.from('student_contacts').select('*').eq('academy_id',aid):{data:[]},
+      owner?sb.from('fees').select('*').eq('academy_id',aid).eq('month',month):{data:[]},
+      sb.from('notices').select('*,notice_recipients(count)').eq('academy_id',aid).order('created',{ascending:false}).limit(50),
+      sb.rpc('member_list',{p_academy:aid})]);
+    const e=c.error||t.error||ct.error||f.error||n.error||m.error; if(e) throw e;
+    return {classes:c.data, timetables:t.data, contacts:Object.fromEntries((ct.data||[]).map(x=>[x.student_id,x])), fees:f.data||[],
+      notices:n.data.map(x=>({...x, count:x.notice_recipients?.[0]?.count||0, created:Date.parse(x.created)})), members:m.data||[]};
+  },
+  async classSave(c){
+    if(DEMO){ const o=ownerDemo().owner; if(c.id) Object.assign(o.classes.find(x=>x.id===c.id),c); else o.classes.push({...c, id:'c'+Date.now(), sort:o.classes.length}); saveLoc(); return; }
+    const r = c.id ? await sb.from('classes').update({name:c.name}).eq('id',c.id) : await sb.from('classes').insert({academy_id:AID(), name:c.name, sort:(S.ow?.classes.length||0)}); if(r.error) throw r.error;
+  },
+  async classDelete(id){
+    if(DEMO){ const db=ownerDemo(); db.owner.classes=db.owner.classes.filter(x=>x.id!==id); Object.values(db.students).forEach(s=>{ if(s.class_id===id) s.class_id=null; }); db.owner.timetables.forEach(t=>delete t.cells[id]); saveLoc(); return; }
+    const r=await sb.from('classes').delete().eq('id',id); if(r.error) throw r.error;
+  },
+  async studentInfoSave(sid, info, contact){
+    if(DEMO){ const db=ownerDemo(); Object.assign(db.students[sid], info); db.owner.contacts[sid]={student_id:sid, ...contact}; saveLoc(); return; }
+    let r=await sb.from('students').update(info).eq('id',sid); if(r.error) throw r.error;
+    if(contact){ r=await sb.from('student_contacts').upsert({student_id:sid, academy_id:AID(), ...contact, updated_at:new Date().toISOString()}); if(r.error) throw r.error; }
+  },
+  async ttSave(t){
+    if(DEMO){ const o=ownerDemo().owner, v={...t, updated_at:new Date().toISOString()}; if(t.id){ Object.assign(o.timetables.find(x=>x.id===t.id), v); saveLoc(); return t.id; } v.id='t'+Date.now(); o.timetables.push(v); saveLoc(); return v.id; }
+    const row={kind:t.kind, weekday:t.kind==='weekly'?t.weekday:null, date_from:t.kind==='dated'?t.date_from:null, date_to:t.kind==='dated'?t.date_to:null, title:t.title||'', slots:t.slots, cells:t.cells, updated_at:new Date().toISOString()};
+    if(t.id){ const {error}=await sb.from('timetables').update(row).eq('id',t.id); if(error) throw error; return t.id; }
+    const {data,error}=await sb.from('timetables').insert({academy_id:AID(), ...row}).select('id').single(); if(error) throw error; return data.id;
+  },
+  async ttDelete(id){
+    if(DEMO){ const o=ownerDemo().owner; o.timetables=o.timetables.filter(t=>t.id!==id); saveLoc(); return; }
+    const {error}=await sb.from('timetables').delete().eq('id',id); if(error) throw error;
+  },
+  async push(kind, id){
+    if(DEMO) return {demo:true};
+    const {data,error}=await sb.functions.invoke('drill-push',{body:{action:'push', kind, ids:[id]}}); if(error||data?.error) throw new Error('push'); return data;
+  },
+  async feeGenerate(month){
+    if(DEMO){ const db=ownerDemo(), o=db.owner; let n=0; Object.values(db.students).filter(s=>s.approved!==false).forEach(s=>{ const c=o.contacts[s.id]; if(!c||c.fee_amount==null||o.fees.some(f=>f.student_id===s.id&&f.month===month)) return; o.fees.push({id:'f'+Date.now()+n, student_id:s.id, month, amount:c.fee_amount, due:month+'-'+String(Math.min(c.fee_day||1,28)).padStart(2,'0'), paid_at:null, method:'', memo:''}); n++; }); saveLoc(); return n; }
+    const {data,error}=await sb.rpc('fee_generate',{p_academy:AID(), p_month:month}); if(error) throw error; return data;
+  },
+  async feeSave(f){
+    if(DEMO){ const o=ownerDemo().owner; if(f.id) Object.assign(o.fees.find(x=>x.id===f.id), f); else o.fees.push({...f, id:'f'+Date.now()}); saveLoc(); return; }
+    const r = f.id ? await sb.from('fees').update({amount:f.amount, due:f.due, paid_at:f.paid_at, method:f.method||'', memo:f.memo||''}).eq('id',f.id)
+                   : await sb.from('fees').insert({academy_id:AID(), student_id:f.student_id, month:f.month, amount:f.amount, due:f.due, paid_at:f.paid_at||null, method:f.method||'', memo:f.memo||''});
+    if(r.error) throw r.error;
+  },
+  async feeDelete(id){ if(DEMO){ const o=ownerDemo().owner; o.fees=o.fees.filter(x=>x.id!==id); saveLoc(); return; } const {error}=await sb.from('fees').delete().eq('id',id); if(error) throw error; },
+  async noticePublish(v){
+    if(DEMO){ const o=ownerDemo().owner; o.notices.unshift({id:'n'+Date.now(), title:v.title, body:v.body, targets:v.targets, created:Date.now(), rec:v.students}); saveLoc(); return 'n'; }
+    const {data,error}=await sb.rpc('notice_publish',{p_academy:AID(), p_title:v.title, p_body:v.body, p_targets:v.targets, p_students:v.students}); if(error) throw error; return data.id;
+  },
+  async noticeDelete(id){ if(DEMO){ const o=ownerDemo().owner; o.notices=o.notices.filter(x=>x.id!==id); saveLoc(); return; } const {error}=await sb.from('notices').delete().eq('id',id); if(error) throw error; },
+  async memberAdd(email, role){ if(DEMO) throw new Error('demo'); const {error}=await sb.rpc('member_add',{p_academy:AID(), p_email:email, p_role:role}); if(error) throw new Error(/no_user/.test(error.message)?'no_user':'network'); },
+  async memberRemove(uid){ if(DEMO) throw new Error('demo'); const {error}=await sb.rpc('member_remove',{p_academy:AID(), p_user:uid}); if(error) throw new Error(/last_owner/.test(error.message)?'last_owner':'network'); },
+  async academySave(name, code){
+    if(DEMO) throw new Error('demo');
+    const {error}=await sb.from('academies').update({name, code}).eq('id',AID()); if(error) throw new Error(/duplicate|unique/.test(error.message)?'dup_code':'network');
+    S.academy.name=name; S.academy.code=code;
+  },
+  async ttStudent(){
+    if(DEMO){ const db=ownerDemo(), st=db.students[S.me.id]||S.me, o=db.owner; return {class:(o.classes.find(c=>c.id===st.class_id)||{}).name||null, school:st.school||null, grade:st.grade,
+      timetables:st.class_id?o.timetables.filter(t=>t.cells[st.class_id]).map(t=>({...t, cell:t.cells[st.class_id]})):[]}; }
+    if(!S.scheduleToken) throw {message:'session_expired'};
+    const {data,error}=await sb.rpc('tt_student',{p_token:S.scheduleToken}); if(error) throw error; return data;
+  }
+});
+
+/* --- 원장 업무 화면 --- */
+const OTABS = [['stu','학생 정보'],['tt','시간표'],['fee','학원비'],['notice','알림장'],['acct','계정']];
+const isOwner = () => S.academy?.role==='owner';
+async function owLoad(){
+  const month=S.owMonth||(S.owMonth=new Date().toISOString().slice(0,7));
+  S.ow={status:'loading'}; render();
+  try{ const d=await API.ownerData(month); S.ow={status:'ready', ...d, msg:'', err:''}; }
+  catch(e){ S.ow={status:flErr(e)==='missing'?'missing':'error'}; }
+  render();
+}
+function vOwner(){
+  const O=S.ow;
+  if(!O||O.status==='loading') return '<p class="lede" style="padding:14px 0">불러오는 중…</p>';
+  if(O.status==='missing') return `<div class="ask-box"><p class="lede">원장 업무 기능의 서버 설정이 아직 안 됐어요.</p><a class="linkbtn" target="_blank" rel="noopener" href="https://github.com/awnoqwe/academy-drill/blob/main/sql/apera_v2.sql">아페라 v2 설정 SQL 열기</a></div>`;
+  if(O.status!=='ready') return `<div class="ask-box"><p class="lede">불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p><button class="btn alt" data-ow="reload">다시 불러오기</button></div>`;
+  const tab=S.otab||'stu';
+  const msg=`${O.msg?`<p class="schedule-success" role="status">${esc(O.msg)}</p>`:''}${O.err?`<p class="err" role="alert">${esc(O.err)}</p>`:''}`;
+  return `<div class="tabs" role="tablist" style="--n:${OTABS.length}">${OTABS.map(([id,n])=>`<button role="tab" data-otab="${id}" aria-selected="${tab===id}">${n}</button>`).join('')}</div>
+  ${msg}${tab==='tt'?vOwnerTT():tab==='fee'?vOwnerFee():tab==='notice'?vOwnerNotice():tab==='acct'?vOwnerAcct():vOwnerStu()}`;
+}
+// 학생 정보
+function vOwnerStu(){
+  const O=S.ow, studs=S.admin.students.filter(s=>s.approved!==false).sort((a,b)=>(a.class_id||'').localeCompare(b.class_id||'')||a.nick.localeCompare(b.nick));
+  const cname=id=>(O.classes.find(c=>c.id===id)||{}).name;
+  const ed=S.owEdit, s=ed?studs.find(x=>x.id===ed):null, c=s?(O.contacts[s.id]||{}):null;
+  return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">반 ${O.classes.length}개</span>
+    <div class="chips">${O.classes.map(x=>`<span class="chip">${esc(x.name)} <small>${studs.filter(s=>s.class_id===x.id).length}명</small>${S.owDelClass===x.id?` <button class="linkbtn danger" data-ow-delclass-go="${esc(x.id)}">지우기</button><button class="linkbtn" data-ow="cancel">취소</button>`:` <button class="linkbtn" data-ow-delclass="${esc(x.id)}" aria-label="${esc(x.name)} 지우기">×</button>`}</span>`).join('')}</div>
+    <form id="classForm" class="inline-form"><input id="className" maxlength="20" placeholder="새 반 이름 (예: 중1a)" aria-label="새 반 이름"><button class="btn sm alt" type="submit">반 추가</button></form></section>
+  ${s?`<form id="stuInfo" class="schedule-form fc-edit" data-sid="${esc(s.id)}"><h2 class="schedule-head">${esc(s.nick)} <small class="dim">${s.grade}</small></h2>
+    <div class="grid2"><label>반<select id="siClass"><option value="">반 없음</option>${O.classes.map(x=>`<option value="${esc(x.id)}" ${s.class_id===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+    <label>학교<input id="siSchool" maxlength="20" value="${esc(s.school||'')}" placeholder="예: 남중"></label></div>
+    ${isOwner()?`<div class="grid2"><label>학생 전화번호<input id="siSp" inputmode="tel" maxlength="14" value="${esc(c.student_phone||'')}" placeholder="010-0000-0000"></label>
+    <label>학부모 전화번호<input id="siPp" inputmode="tel" maxlength="14" value="${esc(c.parent_phone||'')}" placeholder="010-0000-0000"></label></div>
+    <div class="grid2"><label>월 학원비(원)<input id="siFee" inputmode="numeric" value="${c.fee_amount??''}" placeholder="예: 350000"></label>
+    <label>납부일(매월)<input id="siDay" type="number" min="1" max="31" value="${c.fee_day??''}" placeholder="예: 5"></label></div>
+    <label>메모<input id="siMemo" maxlength="500" value="${esc(c.memo||'')}"></label>`:''}
+    <div class="schedule-btns"><button class="btn sm" type="submit">저장</button><button class="linkbtn" type="button" data-ow="closeEdit">닫기</button></div>
+    <p class="note">전화번호와 학원비는 원장 계정에서만 보여요.</p></form>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학생 ${studs.length}명 · 눌러서 고치기</span>
+  <div class="rows">${studs.map(x=>{ const k=O.contacts[x.id]||{}; return `<button class="row" data-ow-stu="${esc(x.id)}"><span class="mark">${esc((cname(x.class_id)||'–').slice(0,3))}</span><span class="rq"><b>${esc(x.nick)}</b> <small class="dim">${x.grade}${x.school?' · '+esc(x.school):''}</small>${isOwner()?`<br><small class="mono dim">${esc(k.student_phone||'학생 번호 없음')} · 학부모 ${esc(k.parent_phone||'없음')}</small>`:''}</span><span class="s">${isOwner()&&k.fee_amount!=null?won(k.fee_amount):''}</span></button>`; }).join('')}</div></section>`;
+}
+// 시간표
+function vOwnerTT(){
+  const O=S.ow, list=O.timetables.slice().sort((a,b)=>a.kind===b.kind?(a.kind==='weekly'?a.weekday-b.weekday:String(b.date_from).localeCompare(String(a.date_from))):a.kind==='weekly'?-1:1);
+  const e=S.ttEdit;
+  if(e) return vTTEditor(e);
+  const myAl=aliasList(S.academy?.alias);
+  const mine=teacherLessons(O.timetables, new Date(), myAl, O.classes);
+  return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">오늘 내 수업 · 시간표 이름 ${myAl.length?esc(myAl.join(', ')):'없음'}</span>
+    ${myAl.length?lessonsHtml(mine,'오늘 시간표가 없어요.',true):'<p class="note">위쪽 이름을 눌러 시간표 이름(예: 김)을 정하면 내 수업만 모아 보여요.</p>'}</section>
+  ${isOwner()?`<div class="schedule-btns"><button class="btn sm" data-ow="newWeekly">요일 고정 시간표 만들기</button><button class="btn sm alt" data-ow="newDated">날짜 시간표 만들기 (시험 기간·임시)</button></div>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">시간표 ${list.length}개 · 날짜 시간표가 그 기간 동안 고정 시간표를 대신해요</span>
+  <div class="rows">${list.map(t=>`<button class="row" data-tt="${esc(t.id)}"><span class="mark">${t.kind==='weekly'?WEEK[t.weekday]:'변'}</span><span class="rq"><b>${esc(ttWhen(t))}</b>${t.title?` <small class="dim">${esc(t.title)}</small>`:''}</span><span class="s">${(t.slots||[]).length}교시</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 시간표가 없어요.</p>'}</div></section>`;
+}
+function ttBlank(kind){
+  const O=S.ow, wd=(new Date().getDay()+6)%7, today=ymdOf(new Date());
+  const base = kind==='weekly' ? null : (ttPick(O.timetables.filter(t=>t.kind==='weekly'), new Date()));
+  return {kind, weekday:wd, date_from:today, date_to:today, title:kind==='dated'?'임시시간표':'', slots:JSON.parse(JSON.stringify(base?.slots||DEMO_SLOTS)),
+    cells:Object.fromEntries(O.classes.map(c=>[c.id, (base?.cells?.[c.id]||[]).slice()]))};
+}
+function vTTEditor(e){
+  const O=S.ow, own=isOwner();
+  return `<div class="top"><button class="quit" data-ow="ttBack">← 시간표 목록</button><span class="combo">${e.id?'고치기':'새 시간표'}</span></div>
+  <form id="ttForm" class="schedule-form">
+    ${e.kind==='weekly'?`<label>요일<div class="seg full" style="--n:7">${WEEK.map((w,i)=>`<button type="button" data-ttwd="${i}" aria-pressed="${e.weekday===i}">${w}</button>`).join('')}</div></label>`
+      :`<div class="grid2"><label>시작 날짜<input id="ttFrom" type="date" value="${esc(e.date_from)}"></label><label>끝 날짜<input id="ttTo" type="date" value="${esc(e.date_to)}"></label></div>
+        <label>이름<input id="ttTitle" maxlength="40" value="${esc(e.title||'')}" placeholder="예: 기말고사 기간 시간표"></label>`}
+    <p class="note">칸 안에서 줄을 바꾸면 수업을 여러 개 쓸 수 있어요. 학교나 학년만 듣는 수업은 '남중-영어오', '고1수학박'처럼 앞에 붙이세요. 끝에 선생님 시간표 이름을 쓰면 선생님은 자기 수업만 봐요.</p>
+    <div class="tt-wrap"><table class="tt-grid"><thead><tr><th>교시</th>${O.classes.map(c=>`<th>${esc(c.name)}</th>`).join('')}</tr></thead><tbody>
+      ${e.slots.map((s,i)=>`<tr><th><input class="tt-time" data-slot="${i}" data-k="start" value="${esc(s.start)}" aria-label="${i+1}교시 시작" placeholder="16:40"><input class="tt-time" data-slot="${i}" data-k="end" value="${esc(s.end)}" aria-label="${i+1}교시 끝" placeholder="17:30">${own?`<button type="button" class="linkbtn danger" data-ttdelslot="${i}" aria-label="${i+1}교시 빼기">빼기</button>`:''}</th>
+        ${O.classes.map(c=>`<td><textarea data-cell="${esc(c.id)}" data-i="${i}" rows="2" aria-label="${esc(c.name)} ${i+1}교시">${esc((e.cells[c.id]||[])[i]||'')}</textarea></td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>
+    ${O.classes.length?'':'<p class="err">먼저 학생 정보 탭에서 반을 만들어 주세요.</p>'}
+    <div class="schedule-btns"><button type="button" class="btn sm alt" data-ow="ttAddSlot">교시 추가</button></div>
+    ${own?`<div class="schedule-btns"><button class="btn" type="submit" data-push="1">저장하고 학생·학부모에게 알리기</button><button class="btn alt" type="submit" data-push="0">저장만</button></div>
+    ${e.id?(S.ttDel?`<p class="selnote">이 시간표를 지울까요? <button type="button" class="linkbtn danger" data-ow="ttDelGo">지우기</button> <button type="button" class="linkbtn" data-ow="cancel">취소</button></p>`:`<button type="button" class="linkbtn danger" style="align-self:flex-start" data-ow="ttDel">이 시간표 지우기</button>`):''}`:''}
+  </form>`;
+}
+// 학원비
+function vOwnerFee(){
+  const O=S.ow, m=S.owMonth, studs=Object.fromEntries(S.admin.students.map(s=>[s.id,s])), today=ymdOf(new Date());
+  const rows=O.fees.slice().sort((a,b)=>(!!a.paid_at-!!b.paid_at)||a.due.localeCompare(b.due));
+  const paid=rows.filter(f=>f.paid_at), unpaid=rows.filter(f=>!f.paid_at), late=unpaid.filter(f=>f.due<today);
+  const sum=a=>a.reduce((x,f)=>x+(+f.amount||0),0);
+  return `<div class="ask-meta"><button class="linkbtn" data-ow-month="-1">← 이전 달</button><b class="mono">${m}</b><button class="linkbtn" data-ow-month="1">다음 달 →</button></div>
+  <section class="stats"><div class="stat"><b>${paid.length}<small>/${rows.length}</small></b><small>수납</small></div><div class="stat ${unpaid.length?'alert':''}"><b>${unpaid.length}</b><small>미납</small></div><div class="stat"><b>${(sum(unpaid)/10000).toFixed(unpaid.length?0:0)}<small>만원</small></b><small>미납 금액</small></div></section>
+  ${late.length?`<p class="err">납부일이 지난 미납 ${late.length}건 · ${won(sum(late))}</p>`:''}
+  <div class="schedule-btns"><button class="btn sm" data-ow="feeGen">${m} 청구 한꺼번에 만들기</button></div>
+  <p class="note">학생 정보에 적은 월 학원비·납부일로 만들어요. 이미 있는 학생은 건너뛰어요. 학부모 화면에는 이번 달 미납이면 안내가 보여요.</p>
+  <div class="rows fee-rows">${rows.map(f=>{ const s=studs[f.student_id]||{nick:'(삭제된 학생)',grade:''}, st=f.paid_at?'o':f.due<today?'x':'m';
+    return `<div class="row fee-row"><span class="mark ${st}">${f.paid_at?'O':f.due<today?'!':'·'}</span><span class="rq"><b>${esc(s.nick)}</b> <small class="dim">${s.grade}</small><br><small class="mono">${won(f.amount)} · ${f.due.slice(5).replace('-','/')}까지${f.paid_at?' · '+f.paid_at.slice(5).replace('-','/')+' 납부'+(f.method?' ('+esc(f.method)+')':''):''}</small></span>
+      <span class="s fee-acts">${f.paid_at?`<button class="linkbtn" data-fee-unpay="${esc(f.id)}">납부 취소</button>`:`<button class="btn sm" data-fee-pay="${esc(f.id)}">납부</button>`}</span></div>`; }).join('')||'<p class="lede" style="padding:12px 0">이 달 청구가 없어요.</p>'}</div>
+  ${S.feePay?`<form id="feePayForm" class="schedule-form fc-edit"><span class="label">납부 처리 · ${esc((studs[O.fees.find(f=>f.id===S.feePay)?.student_id]||{}).nick||'')}</span>
+    <div class="grid2"><label>납부일<input id="fpDate" type="date" value="${today}"></label><label>방법<select id="fpMethod"><option>계좌이체</option><option>카드</option><option>현금</option><option>기타</option></select></label></div>
+    <div class="schedule-btns"><button class="btn sm" type="submit">납부 처리</button><button type="button" class="linkbtn" data-ow="cancel">취소</button></div></form>`:''}`;
+}
+// 알림장
+function vOwnerNotice(){
+  const O=S.ow, studs=S.admin.students.filter(s=>s.approved!==false);
+  const targets=[['all','전체 학생'],...O.classes.map(c=>['class:'+c.id,c.name+' 반']),...studs.map(s=>['student:'+s.id,s.nick+' · '+s.grade])];
+  return `<form id="noticeForm" class="schedule-form"><h2 class="schedule-head">알림장 쓰기</h2>
+    <label>제목<input id="nTitle" required maxlength="100" placeholder="예: 11월 셋째 주 수업 안내"></label>
+    <label>내용<textarea id="nBody" rows="5" maxlength="3000" placeholder="학부모님께 전할 내용"></textarea></label>
+    <span class="label">받을 학생의 학부모</span>
+    <div class="schedule-targets">${targets.map(([v,n])=>`<label class="check"><input type="checkbox" name="ntarget" value="${esc(v)}">${esc(n)}</label>`).join('')}</div>
+    <p class="note" id="nCount">받을 대상을 골라 주세요.</p>
+    <button class="btn" type="submit">보내고 학부모에게 알리기</button>
+    <p class="note">학부모 화면 알림장에 올라가고, 알림을 켠 학부모 폰에 배너가 떠요.</p></form>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">보낸 알림장</span>
+  <div class="posts">${O.notices.map(n=>`<article class="post"><div class="who"><span><b>${esc(n.title)}</b></span><span>${fmtDate(n.created)}</span></div>${n.body?`<p class="qt" style="font-weight:400">${esc(n.body)}</p>`:''}<span class="ref">${esc((n.targets||[]).join(' · '))} · ${n.count}명</span>
+    <div class="schedule-btns" style="justify-content:flex-end">${S.nDel===n.id?`<span class="selnote">지울까요?</span><button class="linkbtn danger" data-ndel-go="${esc(n.id)}">지우기</button><button class="linkbtn" data-ow="cancel">취소</button>`:`<button class="linkbtn danger" data-ndel="${esc(n.id)}">지우기</button>`}</div></article>`).join('')||'<p class="lede" style="padding:12px 0">아직 보낸 알림장이 없어요.</p>'}</div></section>`;
+}
+// 계정
+function vOwnerAcct(){
+  const O=S.ow, a=S.academy;
+  return `${isOwner()?`<form id="acctForm" class="schedule-form"><h2 class="schedule-head">학원</h2>
+    <div class="grid2"><label>학원 이름<input id="aName" maxlength="40" value="${esc(a.name||'')}"></label><label>학생 입장 코드<input id="aCode" minlength="4" maxlength="20" value="${esc(a.code||S.admin.entryCode||'')}"></label></div>
+    <p class="note">입장 코드를 바꾸면 이미 들어와 있는 학생은 그대로 쓰지만, 새로 들어올 때는 새 코드가 필요해요.</p>
+    <button class="btn sm alt" type="submit">저장</button></form>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">선생님 계정</span>
+    <div class="rows">${O.members.map(m=>`<div class="row"><span class="mark">${m.role==='owner'?'원':'선'}</span><span class="rq"><b>${esc(m.name||'이름 없음')}</b> <small class="dim">${m.role==='owner'?'원장':'선생님'}${m.alias?' · 시간표 '+esc(m.alias):''}</small>${m.email?`<br><small class="mono dim">${esc(m.email)}</small>`:''}</span><span class="s">${isOwner()?(S.mDel===m.user_id?`<button class="linkbtn danger" data-mdel-go="${esc(m.user_id)}">빼기</button> <button class="linkbtn" data-ow="cancel">취소</button>`:`<button class="linkbtn danger" data-mdel="${esc(m.user_id)}">빼기</button>`):''}</span></div>`).join('')}</div></section>
+  ${isOwner()?`<form id="memberForm" class="schedule-form"><span class="label">선생님 추가 · 선생님이 먼저 앱에서 계정을 만들어야 해요</span>
+    <div class="grid2"><label>이메일<input id="mEmail" type="email" placeholder="teacher@example.com"></label><label>역할<select id="mRole"><option value="teacher">선생님</option><option value="owner">원장</option></select></label></div>
+    <button class="btn sm" type="submit">추가</button></form>`:''}`;
+}
+// 화면 위 전환: 수업 관리 ↔ 원장 업무 (선생님은 '내 시간표')
+const vAdminBeforeOwner = vAdmin;
+vAdmin = () => {
+  const base=vAdminBeforeOwner(), mode=S.ownerMode;
+  const toggle=`<div class="seg full mode-seg" style="--n:2"><button data-omode="0" aria-pressed="${!mode}">수업 관리</button><button data-omode="1" aria-pressed="${!!mode}">${isOwner()?'원장 업무':'내 시간표'}</button></div>`;
+  const cut=base.indexOf('<section class="stats"');
+  if(!mode) return base.slice(0,cut)+toggle+base.slice(cut);
+  const end=base.indexOf('<p class="note">현재 입장 코드');
+  return base.slice(0,cut)+toggle+(isOwner()?vOwner():vTeacherTT())+base.slice(end);
+};
+function vTeacherTT(){
+  const O=S.ow;
+  if(!O||O.status!=='ready') return vOwner();
+  const al=aliasList(S.academy?.alias), days=[0,1,2,3,4,5,6].map(i=>{ const d=new Date(); d.setDate(d.getDate()+i); return d; });
+  return `<p class="note">위쪽 이름을 눌러 시간표 이름(예: 김)을 정하면, 시간표에서 이 이름이 붙은 수업만 보여요.</p>
+  ${days.map((d,i)=>`<section style="display:flex;flex-direction:column;gap:6px"><span class="label">${i?'':'오늘 · '}${d.getMonth()+1}/${d.getDate()} ${WEEK[(d.getDay()+6)%7]}요일</span>${lessonsHtml(teacherLessons(O.timetables,d,al,O.classes),'시간표가 없어요.',true)}</section>`).join('')}`;
+}
+
+/* --- 학생·학부모 화면: 내 수업 --- */
+let TT={owner:'', status:'idle'};
+async function ttLoad(){ const owner=S.me.id; TT={owner, status:'loading'}; try{ const d=await API.ttStudent(); if(TT.owner!==owner) return; TT={owner, status:'ready', ...d}; try{ loc().ttSnap={sid:owner, d}; saveLoc(); }catch(e){} }catch(e){ if(TT.owner!==owner) return; const snap=loc().ttSnap; TT = snap?.sid===owner ? {owner, status:'ready', ...snap.d} : {owner, status:flErr(e)}; } if(S.screen==='home') render(); }
+function ttStudentSection(){
+  if(TT.owner!==S.me?.id||TT.status!=='ready'||!TT.class) return '';
+  const who={grade:TT.grade, school:TT.school}, today=new Date(), tomorrow=new Date(); tomorrow.setDate(today.getDate()+1);
+  const a=myLessons(TT.timetables||[], today, who), b=myLessons(TT.timetables||[], tomorrow, who);
+  if(!a.t&&!b.t) return '';
+  return `<section class="tt-me"><span class="label">오늘 내 수업 · ${esc(TT.class)}${TT.school?' · '+esc(TT.school):''}</span>${lessonsHtml(a,'오늘은 시간표가 없어요.',false)}
+    <details><summary>내일 수업 보기</summary>${lessonsHtml(b,'내일은 시간표가 없어요.',false)}</details></section>`;
+}
+const vScheduleBeforeTT = vSchedule;
+vSchedule = () => ttStudentSection() + vScheduleBeforeTT();
+
+function bindOwner(){
+  if(S.screen==='admin' && S.ownerMode && S.admin && !S.ow) queueMicrotask(owLoad);
+  if(S.screen==='home' && S.me && TT.owner!==S.me.id) queueMicrotask(ttLoad);
+  const q=sel=>app.querySelectorAll(sel), act=(a,fn)=>q(`[data-act=${a}]`).forEach(b=>b.addEventListener('click',fn));
+  act('adminRefresh', ()=>{ S.ow=null; });
+  act('logout', ()=>{ TT={owner:'',status:'idle'}; });
+  act('adminOut', ()=>{ S.ow=null; S.ownerMode=false; });
+  q('[data-omode]').forEach(b=>b.onclick=()=>{ S.ownerMode=b.dataset.omode==='1'; render(); });
+  q('[data-otab]').forEach(b=>b.onclick=()=>{ S.otab=b.dataset.otab; S.ttEdit=null; S.owEdit=null; if(S.ow){ S.ow.msg=''; S.ow.err=''; } render(); });
+  const O=S.ow; if(!O||O.status!=='ready'){ q('[data-ow=reload]').forEach(b=>b.onclick=owLoad); return; }
+  const done=async(job,msg)=>{ O.err=''; try{ const extra=await job(); const d=await API.ownerData(S.owMonth); Object.assign(O,d,{msg:typeof extra==='string'&&extra?extra:msg}); try{ S.admin=await API.adminData(); CARDS=S.admin.cards; }catch(e){} }catch(e){ O.msg=''; O.err=e?.message==='demo'?'미리보기에서는 할 수 없어요.':e?.message==='no_user'?'그 이메일로 만든 계정이 없어요. 먼저 앱에서 계정을 만들어 주세요.':e?.message==='last_owner'?'원장이 한 명뿐이라 뺄 수 없어요.':e?.message==='dup_code'?'다른 학원이 쓰는 입장 코드예요.':'저장하지 못했어요. 인터넷 연결을 확인해 주세요.'; } render(); };
+  q('[data-ow]').forEach(b=>b.onclick=()=>{ const a=b.dataset.ow;
+    if(a==='cancel'){ S.owDelClass=null; S.ttDel=false; S.feePay=null; S.nDel=null; S.mDel=null; render(); }
+    else if(a==='closeEdit'){ S.owEdit=null; render(); }
+    else if(a==='newWeekly'||a==='newDated'){ S.ttEdit=ttBlank(a==='newWeekly'?'weekly':'dated'); S.ttDel=false; render(); window.scrollTo(0,0); }
+    else if(a==='ttBack'){ S.ttEdit=null; render(); }
+    else if(a==='ttAddSlot'){ ttCollect(); const sl=S.ttEdit.slots, last=sl[sl.length-1]; sl.push({start:last?.end||'',end:''}); render(); }
+    else if(a==='ttDel'){ S.ttDel=true; render(); }
+    else if(a==='ttDelGo'){ const id=S.ttEdit.id; S.ttEdit=null; done(()=>API.ttDelete(id),'시간표를 지웠어요.'); }
+    else if(a==='feeGen'){ done(async()=>{ const n=await API.feeGenerate(S.owMonth); return n?`${S.owMonth} 청구 ${n}건을 만들었어요.`:'새로 만들 청구가 없어요. 학생 정보에 월 학원비를 적었는지 확인해 주세요.'; }); }
+  });
+  q('[data-ow-stu]').forEach(b=>b.onclick=()=>{ S.owEdit=b.dataset.owStu; render(); document.getElementById('stuInfo')?.scrollIntoView({block:'start'}); });
+  q('[data-ow-delclass]').forEach(b=>b.onclick=()=>{ S.owDelClass=b.dataset.owDelclass; render(); });
+  q('[data-ow-delclass-go]').forEach(b=>b.onclick=()=>{ S.owDelClass=null; done(()=>API.classDelete(b.dataset.owDelclassGo),'반을 지웠어요. 그 반 학생은 반 없음이 돼요.'); });
+  const cf=document.getElementById('classForm'); if(cf) cf.onsubmit=e=>{ e.preventDefault(); const n=document.getElementById('className').value.trim(); if(!n) return; done(()=>API.classSave({name:n}),`'${n}' 반을 만들었어요.`); };
+  const sf=document.getElementById('stuInfo'); if(sf) sf.onsubmit=e=>{ e.preventDefault(); const sid=sf.dataset.sid, v=id=>document.getElementById(id)?.value.trim();
+    const info={class_id:v('siClass')||null, school:v('siSchool')||null};
+    const phone=x=>x?x.replace(/[^0-9-]/g,''):null, num=x=>x===''||x==null?null:Math.max(0,parseInt(String(x).replace(/[^0-9]/g,''),10)||0);
+    const contact=isOwner()?{student_phone:phone(v('siSp'))||null, parent_phone:phone(v('siPp'))||null, fee_amount:num(v('siFee')), fee_day:v('siDay')?Math.min(31,Math.max(1,+v('siDay'))):null, memo:v('siMemo')||''}:null;
+    if(contact&&[contact.student_phone,contact.parent_phone].some(p=>p&&!/^[0-9-]{9,14}$/.test(p))){ O.err='전화번호는 숫자와 - 로 9~14자로 써 주세요.'; O.msg=''; return render(); }
+    S.owEdit=null; done(()=>API.studentInfoSave(sid, info, contact),'학생 정보를 저장했어요.'); };
+  // 시간표 편집
+  q('[data-tt]').forEach(b=>b.onclick=()=>{ const t=O.timetables.find(x=>x.id===b.dataset.tt); S.ttEdit=JSON.parse(JSON.stringify({...t, cells:t.cells||{}})); O.classes.forEach(c=>{ S.ttEdit.cells[c.id] ||= []; }); S.ttDel=false; render(); window.scrollTo(0,0); });
+  q('[data-ttwd]').forEach(b=>b.onclick=()=>{ ttCollect(); S.ttEdit.weekday=+b.dataset.ttwd; render(); });
+  q('[data-ttdelslot]').forEach(b=>b.onclick=()=>{ ttCollect(); const i=+b.dataset.ttdelslot; S.ttEdit.slots.splice(i,1); Object.values(S.ttEdit.cells).forEach(a=>a.splice(i,1)); render(); });
+  const tf=document.getElementById('ttForm');
+  if(tf) tf.onsubmit=e=>{ e.preventDefault(); ttCollect(); const t=S.ttEdit, push=e.submitter?.dataset.push==='1';
+    const bad=t.slots.find(s=>!/^\d{1,2}:\d{2}$/.test(s.start)||!/^\d{1,2}:\d{2}$/.test(s.end));
+    if(bad){ O.err='교시 시간은 16:40처럼 시:분으로 써 주세요.'; O.msg=''; return render(); }
+    if(t.kind==='dated'&&(!t.date_from||!t.date_to||t.date_to<t.date_from)){ O.err='날짜를 확인해 주세요. 끝 날짜가 시작 날짜보다 앞설 수 없어요.'; O.msg=''; return render(); }
+    t.slots=t.slots.map(s=>({start:s.start.padStart(5,'0'),end:s.end.padStart(5,'0')}));
+    done(async()=>{ const id=await API.ttSave(t); S.ttEdit=null; if(!push) return '시간표를 저장했어요.';
+      try{ const r=await API.push('timetable', id); return r.demo?'시간표를 저장했어요. (미리보기에서는 알림이 가지 않아요)':`시간표를 저장하고 알림 ${r.sent}건을 보냈어요.${r.subscribed?'':' 아직 알림을 켠 기기가 없어요.'}`; }
+      catch(err){ return '시간표는 저장됐지만 알림은 보내지 못했어요. 푸시 서버를 확인해 주세요.'; } }); };
+  // 학원비
+  q('[data-ow-month]').forEach(b=>b.onclick=()=>{ const [y,m]=S.owMonth.split('-').map(Number), d=new Date(y, m-1+(+b.dataset.owMonth), 1); S.owMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); owLoad(); });
+  q('[data-fee-pay]').forEach(b=>b.onclick=()=>{ S.feePay=b.dataset.feePay; render(); document.getElementById('feePayForm')?.scrollIntoView({block:'center'}); });
+  q('[data-fee-unpay]').forEach(b=>b.onclick=()=>{ const f=O.fees.find(x=>x.id===b.dataset.feeUnpay); done(()=>API.feeSave({...f, paid_at:null, method:''}),'납부를 취소했어요.'); });
+  const fp=document.getElementById('feePayForm'); if(fp) fp.onsubmit=e=>{ e.preventDefault(); const f=O.fees.find(x=>x.id===S.feePay); S.feePay=null;
+    done(()=>API.feeSave({...f, paid_at:document.getElementById('fpDate').value, method:document.getElementById('fpMethod').value}),'납부 처리했어요.'); };
+  // 알림장
+  const nf=document.getElementById('noticeForm');
+  if(nf){ const pick=()=>Array.from(nf.querySelectorAll('[name=ntarget]:checked')).map(x=>x.value);
+    const studs=()=>{ const t=pick(), all=S.admin.students.filter(s=>s.approved!==false); return all.filter(s=>t.includes('all')||t.includes('student:'+s.id)||t.includes('class:'+s.class_id)).map(s=>s.id); };
+    nf.querySelectorAll('[name=ntarget]').forEach(x=>x.onchange=()=>{ const n=studs().length; document.getElementById('nCount').textContent=n?`학생 ${n}명의 학부모에게 가요`:'받을 대상을 골라 주세요.'; });
+    nf.onsubmit=e=>{ e.preventDefault(); const title=document.getElementById('nTitle').value.trim(), body=document.getElementById('nBody').value.trim(), ids=studs();
+      if(!title){ O.err='제목을 써 주세요.'; O.msg=''; return render(); } if(!ids.length){ O.err='받을 대상을 골라 주세요.'; O.msg=''; return render(); }
+      const labels=pick().map(v=>v==='all'?'전체 학생':v.startsWith('class:')?((O.classes.find(c=>c.id===v.slice(6))||{}).name||'반')+' 반':((S.admin.students.find(s=>s.id===v.slice(8))||{}).nick||'학생'));
+      done(async()=>{ const id=await API.noticePublish({title, body, targets:labels, students:ids});
+        try{ const r=await API.push('notice', id); return r.demo?`알림장을 보냈어요. 학부모 ${ids.length}명 화면에 올라가요. (미리보기에서는 알림이 가지 않아요)`:`알림장을 보냈어요. 학부모 폰 ${r.sent}대에 알렸어요.`; }
+        catch(err){ return '알림장은 올라갔지만 폰 알림은 보내지 못했어요.'; } }); }; }
+  q('[data-ndel]').forEach(b=>b.onclick=()=>{ S.nDel=b.dataset.ndel; render(); });
+  q('[data-ndel-go]').forEach(b=>b.onclick=()=>{ S.nDel=null; done(()=>API.noticeDelete(b.dataset.ndelGo),'알림장을 지웠어요.'); });
+  // 계정
+  const af=document.getElementById('acctForm'); if(af) af.onsubmit=e=>{ e.preventDefault(); const n=document.getElementById('aName').value.trim(), c=document.getElementById('aCode').value.trim();
+    if(!n||c.length<4){ O.err='학원 이름과 입장 코드(4자 이상)를 확인해 주세요.'; O.msg=''; return render(); } done(()=>API.academySave(n,c),'학원 정보를 저장했어요.'); };
+  const mf=document.getElementById('memberForm'); if(mf) mf.onsubmit=e=>{ e.preventDefault(); const em=document.getElementById('mEmail').value.trim(), role=document.getElementById('mRole').value; if(!em) return; done(()=>API.memberAdd(em,role),'추가했어요. 그 선생님이 다시 로그인하면 이 학원이 보여요.'); };
+  q('[data-mdel]').forEach(b=>b.onclick=()=>{ S.mDel=b.dataset.mdel; render(); });
+  q('[data-mdel-go]').forEach(b=>b.onclick=()=>{ S.mDel=null; done(()=>API.memberRemove(b.dataset.mdelGo),'뺐어요.'); });
+}
+function ttCollect(){ const e=S.ttEdit; if(!e) return;
+  app.querySelectorAll('.tt-time').forEach(i=>{ const s=e.slots[+i.dataset.slot]; if(s) s[i.dataset.k]=i.value.trim(); });
+  app.querySelectorAll('[data-cell]').forEach(t=>{ (e.cells[t.dataset.cell] ||= [])[+t.dataset.i]=t.value.replace(/\r/g,'').trim(); });
+  const f=document.getElementById('ttFrom'), to=document.getElementById('ttTo'), ti=document.getElementById('ttTitle');
+  if(f) e.date_from=f.value; if(to) e.date_to=to.value; if(ti) e.title=ti.value.trim();
+  Object.keys(e.cells).forEach(k=>{ e.cells[k]=e.slots.map((_,i)=>e.cells[k][i]||''); });
+}
+const bindBeforeOwner = bindFlash;
+bindFlash = function(){ bindBeforeOwner(); bindOwner(); };
+
+/* ===== 학부모 화면 추가: 오늘 수업 · 학원비 안내 · 알림장 · 이 기기 알림 ===== */
+const demoKidBase = demoKid;
+demoKid = function(db, sid){
+  const k=demoKidBase(db, sid); if(!k) return k;
+  const o=ownerDemo().owner, s=db.students[sid], ym=new Date().toISOString().slice(0,7), f=o.fees.find(x=>x.student_id===sid&&x.month===ym);
+  return {...k, class:(o.classes.find(c=>c.id===s.class_id)||{}).name||null, school:s.school||null,
+    fee:f?{month:f.month, amount:f.amount, due:f.due, paid:!!f.paid_at}:null,
+    notices:o.notices.filter(n=>n.rec.includes(sid)).map(n=>({id:n.id, title:n.title, body:n.body, created:n.created})),
+    timetables:s.class_id?o.timetables.filter(t=>t.cells[s.class_id]).map(t=>({...t, cell:t.cells[s.class_id]})):[]};
+};
+const vParentBase = vParent;
+vParent = () => {
+  const html=vParentBase(), P=S.pv; if(!P||P.status!=='ready'||!P.kids.length) return html;
+  const k=P.kids.find(x=>x.id===P.pick)||P.kids[0], today=ymdOf(new Date());
+  const fee = k.fee&&!k.fee.paid ? `<section class="fee-note ${k.fee.due<today?'late':''}"><span class="label">${k.fee.month.slice(5).replace(/^0/,'')}월 학원비</span><p><b>${won(k.fee.amount)}</b> · ${k.fee.due.slice(5).replace('-','/')}${k.fee.due<today?' 납부일이 지났어요':'까지 납부해 주세요'}</p></section>` : '';
+  const lessons = (k.timetables||[]).length ? `<section class="tt-me"><span class="label">오늘 수업${k.class?' · '+esc(k.class):''}</span>${lessonsHtml(myLessons(k.timetables, new Date(), {grade:k.grade, school:k.school}),'오늘은 수업이 없어요.',false)}</section>` : '';
+  const notes = (k.notices||[]).length ? `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">알림장</span><div class="posts">${k.notices.slice(0,5).map((n,i)=>`<details class="post notice" ${i===0?'open':''}><summary><b>${esc(n.title)}</b><span class="dim">${fmtDate(typeof n.created==='number'?n.created:Date.parse(n.created))}</span></summary>${n.body?`<p class="qt" style="font-weight:400">${esc(n.body)}</p>`:''}</details>`).join('')}</div></section>` : '';
+  // 학원비 안내와 오늘 수업은 주간 요약 위, 알림장은 선생님 한마디 다음
+  const lead=html.indexOf('<section class="lead">');
+  let out = html.slice(0,lead) + fee + lessons + html.slice(lead);
+  const after = out.indexOf('<section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제 · 최근 2주</span>');
+  if(after>0) out = out.slice(0,after) + notes + out.slice(after);
+  return out;
+};
+// 이 기기 알림 (학부모)
+async function swPost(reg, msg){ const w=reg.active||reg.waiting||reg.installing; if(!w) return; await new Promise(res=>{ const ch=new MessageChannel(), t=setTimeout(res,4000); ch.port1.onmessage=()=>{ clearTimeout(t); res(); }; w.postMessage(msg,[ch.port2]); }); }
+async function parentPushToggle(){
+  const L=loc(), codes=parentCodes();
+  if(DEMO){ S.ppMsg='미리보기에서는 알림을 켤 수 없어요. 실제 앱에서 켜 주세요.'; return render(); }
+  if(IOS&&!STANDALONE){ S.ppMsg='아이폰은 Safari 공유 → 홈 화면에 추가한 뒤, 홈 화면의 앱에서 알림을 켜 주세요.'; return render(); }
+  if(!pushSupported()){ S.ppMsg='이 브라우저에서는 알림을 쓸 수 없어요.'; return render(); }
+  S.ppBusy=true; render();
+  try{
+    const reg=await pushRegistration();
+    if(L.parentPush){
+      const sub=await reg.pushManager.getSubscription();
+      if(sub){ for(const c of codes){ try{ await sb.rpc('parent_push_unsubscribe',{p_code:c, p_endpoint:sub.endpoint}); }catch(e){} } }
+      L.parentPush=false; saveLoc(); await swPost(reg,{type:'PARENT_CODES', codes:[]}); S.ppMsg='이 기기 알림을 껐어요.';
+    } else {
+      const perm=await Notification.requestPermission(); if(perm!=='granted'){ S.ppMsg='알림 허용을 눌러야 알림을 받을 수 있어요.'; return; }
+      const {data:key,error}=await sb.rpc('parent_push_public_key',{p_code:codes[0]}); if(error||!key) throw Error('key');
+      let sub=await reg.pushManager.getSubscription(); if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:pushKeyBytes(key)});
+      for(const c of codes){ const r=await sb.rpc('parent_push_subscribe',{p_code:c, p_subscription:sub.toJSON()}); if(r.error) throw r.error; }
+      await swPost(reg,{type:'PARENT_CODES', codes}); L.parentPush=true; saveLoc(); S.ppMsg='알림을 켰어요. 알림장과 시간표 소식을 배너로 알려 드려요.';
+    }
+  }catch(e){ S.ppMsg='알림 설정을 마치지 못했어요. 브라우저 알림 설정과 인터넷 연결을 확인해 주세요.'; }
+  finally{ S.ppBusy=false; render(); }
+}
+const parentFootBase = parentFoot;
+parentFoot = () => `<section class="ask-box"><span class="label">이 기기 알림</span><p class="note">${loc().parentPush?'알림장과 시간표가 나오면 이 기기에 배너로 알려 드려요.':'켜 두면 알림장과 시간표 소식을 배너로 받아요.'}</p>
+  <button class="btn alt" data-act="parentPush" ${S.ppBusy?'disabled':''}>${S.ppBusy?'처리 중…':loc().parentPush?'이 기기 알림 끄기':'이 기기 알림 켜기'}</button>${S.ppMsg?`<p class="note" role="status">${esc(S.ppMsg)}</p>`:''}</section>` + parentFootBase();
+function bindParent2(){
+  app.querySelectorAll('[data-act=parentPush]').forEach(b=>b.onclick=parentPushToggle);
+  // 코드가 바뀌면(추가·삭제) 기기 알림이 받을 코드도 맞춘다
+  if(S.screen==='parent' && !DEMO && loc().parentPush && S.pv?.status==='ready' && S.ppSynced!==parentCodes().join()){
+    S.ppSynced=parentCodes().join();
+    navigator.serviceWorker?.getRegistration('./').then(async reg=>{ if(!reg) return; const sub=await reg.pushManager.getSubscription(); if(!sub) return;
+      for(const c of parentCodes()){ try{ await sb.rpc('parent_push_subscribe',{p_code:c, p_subscription:sub.toJSON()}); }catch(e){} } swPost(reg,{type:'PARENT_CODES', codes:parentCodes()}); }).catch(()=>{});
+  }
+}
+const bindBeforeParent2 = bindFlash;
+bindFlash = function(){ bindBeforeParent2(); bindParent2(); };
+// 알림에서 열기: 시간표 → 일정 탭, 학부모 알림 → 학부모 화면
+(()=>{ const v=new URLSearchParams(location.search).get('view'); if(v==='timetable') S.tab='schedule'; })();
 
 /* ===== 시작 ===== */
 applyTheme();
