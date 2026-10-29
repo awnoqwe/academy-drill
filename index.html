@@ -279,7 +279,7 @@ body{overflow-x:clip}
 .stat b{font-family:var(--f-body);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.3}
 .stat b small{font-size:12px;opacity:.7}
 .stat.alert{background:var(--cta);color:var(--cta-ink)}
-.stat.alert>small{color:var(--cta-ink)}
+.stat.alert>small,.stat.alert b{color:var(--cta-ink)}
 .stat .c-new,.stat .c-lrn,.stat .c-rev{color:inherit}
 /* 버튼: 각진 신문 광고 상자 */
 .btn{border-radius:0;background:var(--cta);border-color:var(--cta);color:var(--cta-ink)}
@@ -399,6 +399,24 @@ body{background:var(--paper)}
 .field-col{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
 .field-col select{font:inherit;font-size:15px;padding:10px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:0}
 
+/* 학부모 */
+.kid-seg button{display:flex;flex-direction:column;align-items:center;gap:0;padding-block:7px;line-height:1.3}
+.kid-seg small{font-size:11px;opacity:.75}
+.weekdots{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:6px 0 2px;max-width:420px}
+.weekdots span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.weekdots i{width:100%;max-width:36px;aspect-ratio:1;border:1px solid var(--rule);background:var(--sheet)}
+.weekdots .on i{background:var(--cta);border-color:var(--cta)}
+.weekdots .future{opacity:.45}
+.weekdots .today{color:var(--ink);font-weight:700}
+.weekdots .today i{outline:2px solid var(--ink);outline-offset:2px}
+.pq{margin:0;border-left:3px solid var(--cta);padding:2px 0 2px 14px;display:flex;flex-direction:column;gap:6px}
+.pq p{font:16px/1.8 var(--f-serif);margin:0;white-space:pre-line}
+.pnote{display:flex;flex-direction:column;gap:6px}
+.pnote p{font:15px/1.7 var(--f-serif);margin:0;color:var(--muted)}
+.pcode{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.pcode b{font-size:20px;letter-spacing:.06em}
+.pcode>span:nth-child(2){font-size:13px;color:var(--muted)}
+
 </style>
 
 </head>
@@ -414,7 +432,7 @@ const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
 const DEMO = !SUPA_URL;
 const DEMO_CODE = '0000', DEMO_PW = 'teacher';
 const GRADES = ['중1','중2','중3','고1','고2','고3'];
-const TABS = [{id:'home', name:'홈'}, {id:'kor', name:'드릴'}, {id:'flash', name:'카드'}, {id:'news', name:'소식'}];
+const TABS = [{id:'kor', name:'드릴'}, {id:'flash', name:'카드'}, {id:'qna', name:'Q&A'}, {id:'schedule',name:'일정'}, {id:'notice',name:'알림'}, {id:'settings',name:'설정'}];
 const UNITS = [
   {id:'read', subj:'kor', name:'비문학 독해', tag:'독해'},
   {id:'lit',  subj:'kor', name:'문학', tag:'문학'},
@@ -690,7 +708,7 @@ function demoMerge(from, into){
 const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
   set:[], idx:0, phase:'think', sel:new Set(), excluded:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
   admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:'',q:''},
-  tab:'home', news:'schedule', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
+  tab:'kor', news:'schedule', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
 function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId(); if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
   if(a==='red') r.removeAttribute('data-accent'); else r.setAttribute('data-accent', a);
@@ -698,7 +716,7 @@ function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 function render(){
-  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending}[S.screen]() + themeSheet();
+  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, parentLogin:vParentLogin, parent:vParent}[S.screen]() + themeSheet();
   app.querySelectorAll('[data-modepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.modepick; saveLoc(); applyTheme(); render(); });
   app.querySelectorAll('[data-accentpick]').forEach(b=>b.onclick=()=>{ loc().accent=b.dataset.accentpick; saveLoc(); applyTheme(); render(); });
   bind(); bindSchedule(); bindFlash();
@@ -716,7 +734,7 @@ const themeBody = () => {
 };
 const themeSheet = () => S.themeOpen ? `<div class="sheet-back" data-act="themeClose"></div><section class="theme-sheet" role="dialog" aria-label="테마"><div class="ask-meta"><span class="label">테마</span><button class="linkbtn" data-act="themeClose">닫기</button></div>${themeBody()}</section>` : '';
 function vSettings(){
-  return `<h2 class="schedule-head">설정</h2><section class="set-sec"><span class="label">내 정보</span>
+  return `<section class="set-sec"><span class="label">내 정보</span>
     <div class="set-row"><span><b>${esc(S.me.nick)}</b> · ${S.me.grade}</span><button class="btn sm alt" data-act="logout">로그아웃</button></div>
     <p class="note">닉네임이나 학년을 바꾸려면 로그아웃한 뒤 다시 입장하세요. 기록은 닉네임과 학년으로 찾아와요.</p></section>
   <section class="set-sec set-push">${pushPanel()}</section>
@@ -741,13 +759,13 @@ function vEntry(){
   <div class="actions">
     <button class="btn" type="submit" form="entryForm" ${S.busy?'disabled':''}>${S.busy?'들어가는 중…':'시작하기'}</button>
     ${DEMO?`<p class="hint">미리보기용 입장 코드 <b>${DEMO_CODE}</b> · 이름과 연락처는 받지 않아요</p>`:'<p class="hint">이름과 연락처는 받지 않아요</p>'}
-    <div class="linkrow"><button data-act="toAdmin">선생님 화면</button>${themeLink()}</div>
+    <div class="linkrow"><button data-act="toAdmin">선생님 화면</button><button data-act="toParent">학부모</button>${themeLink()}</div>
   </div>`;
 }
 
 /* --- 홈: 단원 고르기 --- */
 function vHome(){
-  if(['schedule','notice','qna'].includes(S.tab)){ S.news=S.tab; S.tab='news'; }
+  if(S.tab==='home'||S.tab==='news'){ S.tab = S.tab==='news' ? S.news : 'kor'; }
   const st = S.me, mine = gradeCards(st.grade);
   const seen = mine.filter(c=>st.cards[c.id]?.seen).length;
   const mature = UNITS.reduce((a,u)=>a+unitStats(st,u.id).mature,0);
@@ -755,10 +773,10 @@ function vHome(){
   const tabUnits = gradeUnits(st.grade,'kor');
   const pool = mine.filter(c=>S.picked.has(c.unit));
   const n = S.size ? Math.min(S.size, pool.length) : pool.length;
-  return `${masthead(esc(st.nick)+' · '+st.grade, null, true)}
+  return `${masthead(esc(st.nick)+' · '+st.grade)}
   ${S.offline?'<p class="offline" role="status"><b>오프라인</b> 기기에 저장된 문제로 열었어요. 푼 기록은 인터넷이 연결되면 저장돼요.</p>':''}
-  <div class="tabs" role="tablist" style="--n:${TABS.length}">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='news'&&(scheduleUnread().length+hwTodo())?`<span class="badge">${scheduleUnread().length+hwTodo()}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}</button>`).join('')}</div>
-  ${S.tab==='home' ? vToday() : S.tab==='flash' ? vFlashHome() : S.tab==='settings' ? vSettings() : S.tab==='news' ? vNews() : `<section class="stats" aria-label="학습 현황">
+  <div class="tabs" role="tablist" style="--n:${TABS.length}">${TABS.map(t=>`<button role="tab" data-tab="${t.id}" aria-selected="${S.tab===t.id}">${t.name}${t.id==='notice'&&scheduleUnread().length?`<span class="badge">${scheduleUnread().length}</span>`:''}${t.id==='schedule'&&hwTodo()?`<span class="badge">${hwTodo()}</span>`:''}${t.id==='flash'&&flTodayTotal()?`<span class="badge">${flTodayTotal()}</span>`:''}</button>`).join('')}</div>
+  ${S.tab==='flash' ? vFlashHome() : S.tab==='settings' ? vSettings() : S.tab==='schedule' ? vSchedule() : S.tab==='notice' ? vNotice() : S.tab==='qna' ? vQna() : `<section class="stats" aria-label="학습 현황">
     <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>푼 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
     <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제</small></div>
@@ -1053,7 +1071,7 @@ function bind(){
   app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{S.grade=b.dataset.g; render();});
   const qb = document.getElementById('qbody');
   if(qb) qb.oninput = () => { S.form.q = qb.value; const qc = document.getElementById('qcount'); if(qc) qc.textContent = qb.value.length+'/500'; };
-  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; S.toast=''; if(S.tab==='news'&&S.news==='qna') loadQna(); else render(); });
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; S.toast=''; if(S.tab==='qna') loadQna(); else render(); });
   app.querySelectorAll('[data-news]').forEach(b=>b.onclick=()=>{ S.news=b.dataset.news; S.toast=''; if(S.news==='qna') loadQna(); else render(); });
   app.querySelectorAll('[data-atab]').forEach(b=>b.onclick=()=>{ S.adminTab=b.dataset.atab; S.confirmDel=null; render(); });
   app.querySelectorAll('[data-ans]').forEach(t=>t.oninput=()=>{ S.ans[t.dataset.ans]=t.value; });
@@ -1081,7 +1099,7 @@ function bind(){
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
     if(a==='toAdmin'){ if(S.admin) go('admin'); else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
     else if(a==='toEntry'){ go('entry'); }
-    else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
+    else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
     else if(a==='theme'){ S.themeOpen=!S.themeOpen; render(); }
     else if(a==='themeClose'){ S.themeOpen=false; render(); }
     else if(a==='start') startSet();
@@ -1094,7 +1112,7 @@ function bind(){
     else if(a==='missing') record('missing');
     else if(a==='check'){ const ok = S.sel.size===c.ans.length && c.ans.every(i=>S.sel.has(i)); record(ok?'ok':'wrong'); }
     else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
-    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; scheduleOwner=''; sched={groups:[],events:[],reads:{}}; go('entry'); }
+    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; go('entry'); }
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
     else if(a==='cancelDel'){ S.confirmDel=null; render(); }
@@ -1952,9 +1970,9 @@ function bindAccounts(){
     catch(e){ S.busy=false; S.err = e.message==='bad_code' ? '입장 코드가 바뀌었어요. 선생님께 코드를 다시 확인하세요.' : e.message==='too_many' ? '지금 가입 신청이 너무 많아요. 잠시 뒤 다시 눌러 주세요.' : '신청을 보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'; render(); }
   });
   q('[data-joingrade]').forEach(b=>b.onclick=()=>{ const j=S.join; S.grade=b.dataset.joingrade; S.form.nick=j.nick; enter(j.code, j.nick, b.dataset.joingrade); });
-  q('[data-news-go]').forEach(b=>b.onclick=()=>{ S.tab='news'; S.news=b.dataset.newsGo; render(); window.scrollTo(0,0); });
+  q('[data-news-go]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.newsGo; render(); window.scrollTo(0,0); });
   // 선생님: 승인·거절
-  const reload=async(msg)=>{ try{ S.admin=await API.adminData(); CARDS=S.admin.cards; }catch(e){} S.ta=null; S.fa=null; render(); };
+  const reload=async(msg)=>{ try{ S.admin=await API.adminData(); CARDS=S.admin.cards; }catch(e){} S.ta=null; S.fa=null; S.pa=null; render(); };
   q('[data-approve]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await API.approve(b.dataset.approve,true); }catch(e){ b.disabled=false; b.textContent='실패 · 다시'; return; } reload(); });
   q('[data-askreject]').forEach(b=>b.onclick=()=>{ S.confirmReject=b.dataset.askreject; render(); });
   act('cancelReject', ()=>{ S.confirmReject=null; render(); });
@@ -1974,10 +1992,208 @@ function bindAccounts(){
 const bindBeforeAccounts = bindFlash;
 bindFlash = function(){ bindBeforeAccounts(); bindAccounts(); };
 
+/* ===== 학부모 화면 (sql/parents.sql) =====
+   선생님이 가족 코드를 만들어 자녀(형제·자매 여러 명)를 연결한다. 학부모는 코드로 들어와 읽기만 한다.
+   한 기기에 코드를 여러 개 저장할 수 있어서, 코드가 따로 있는 형제도 한 화면에서 전환해 본다. */
+// 드릴은 하루에 몇 문제 풀었는지 기록해 둔다(학부모 주간 요약용)
+const recordBeforeAct = record;
+record = function(out){
+  if(S.me){ const d=dayKey(), a=(S.me.cards._act&&typeof S.me.cards._act==='object'&&!Array.isArray(S.me.cards._act))?S.me.cards._act:{};
+    a[d]=(a[d]||0)+1; Object.keys(a).sort().slice(0,-35).forEach(k=>delete a[k]); S.me.cards._act=a; }
+  recordBeforeAct(out);
+};
+const PCODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const pcNorm = c => String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const pcShow = c => c.slice(0,4)+'-'+c.slice(4);
+const pcNew = () => Array.from(crypto.getRandomValues(new Uint32Array(8)), n=>PCODE_CHARS[n%PCODE_CHARS.length]).join('');
+function parentDemo(){
+  const db=demoDB();
+  if(!db.parents){ db.parents={codes:{APERA226:{label:'파란고래·오렌지 가족', kids:['ex-0','ex-2']}}, comments:{'ex-0':'요즘 비문학 중심 문장 찾기가 많이 빨라졌어요. 이번 주는 추론 문제를 집중해서 볼게요.'}}; saveLoc(); }
+  return db;
+}
+function demoKid(db, sid){
+  const s=db.students[sid]; if(!s) return null;
+  const fd={}; (db.flash?.logs||[]).filter(l=>l.student_id===sid).forEach(l=>{ const d=dayKey(l.reviewed_at); fd[d]=(fd[d]||0)+1; });
+  const hw=(db.hw||[]).filter(h=>sid in h.rec).map(h=>({title:h.title, due:h.due, done_at:h.rec[sid]}));
+  const ev=sched.events.filter(e=>e.recipients.includes(sid)||e.targets.includes('all')).map(e=>({type:e.type,title:e.title,date:e.date,memo:e.memo}));
+  const cards = s.example && !s.cards._days ? {...s.cards, _days:[0,1,2,4,6,8].map(i=>dayKey(Date.now()-i*DAY)), _act:Object.fromEntries([0,1,2,4,6,8].map((i,j)=>[dayKey(Date.now()-i*DAY), 3+j*2]))} : s.cards;
+  return {id:sid, nick:s.nick, grade:s.grade, last_seen:s.lastSeen, cards, units:SAMPLE_CARDS.filter(c=>c.grades.includes(s.grade)).map(c=>({id:c.id,unit:c.unit})),
+    flash_days:Object.entries(fd).map(([day,n])=>({day,n})), homework:hw, events:ev, comment:db.parents.comments[sid]||''};
+}
+Object.assign(API, {
+  async parentView(code){
+    const c=pcNorm(code);
+    if(DEMO){ const db=parentDemo(), p=db.parents.codes[c]; if(!p) throw new Error('bad_code'); return {code:c, label:p.label, kids:p.kids.map(id=>demoKid(db,id)).filter(Boolean)}; }
+    if(!sb) throw new Error('lib');
+    const {data,error} = await sb.rpc('parent_view', {p_code:c});
+    if(error) throw new Error(/bad_code/.test(error.message)?'bad_code':flErr(error)==='missing'?'missing':'network');
+    return {code:c, label:data.label, kids:data.kids.map(k=>({...k, last_seen:Date.parse(k.last_seen)}))};
+  },
+  async parentAdmin(){
+    if(DEMO){ const db=parentDemo(); return {codes:Object.entries(db.parents.codes).map(([code,v])=>({code,label:v.label})), links:Object.entries(db.parents.codes).flatMap(([code,v])=>v.kids.map(student_id=>({code,student_id}))), comments:{...db.parents.comments}}; }
+    const [a,b,c] = await Promise.all([sb.from('parent_codes').select('*').order('created'), sb.from('parent_children').select('*'), sb.from('parent_comments').select('*')]);
+    const e=a.error||b.error||c.error; if(e) throw e;
+    return {codes:a.data, links:b.data, comments:Object.fromEntries(c.data.map(x=>[x.student_id,x.body]))};
+  },
+  async parentCreate(label, sid){
+    const code=pcNew();
+    if(DEMO){ parentDemo().parents.codes[code]={label, kids:[sid]}; saveLoc(); return code; }
+    let r=await sb.from('parent_codes').insert({code, label}); if(r.error) throw r.error;
+    r=await sb.from('parent_children').insert({code, student_id:sid}); if(r.error) throw r.error; return code;
+  },
+  async parentLink(code, sid, on){
+    if(DEMO){ const p=parentDemo().parents.codes[code]; p.kids = on ? [...new Set([...p.kids,sid])] : p.kids.filter(x=>x!==sid); saveLoc(); return; }
+    const r = on ? await sb.from('parent_children').insert({code, student_id:sid}) : await sb.from('parent_children').delete().eq('code',code).eq('student_id',sid);
+    if(r.error) throw r.error;
+  },
+  async parentDelete(code){
+    if(DEMO){ delete parentDemo().parents.codes[code]; saveLoc(); return; }
+    const {error}=await sb.from('parent_codes').delete().eq('code',code); if(error) throw error;
+  },
+  async parentComment(sid, body){
+    if(DEMO){ parentDemo().parents.comments[sid]=body; saveLoc(); return; }
+    const {error}=await sb.from('parent_comments').upsert({student_id:sid, body, updated_at:new Date().toISOString()}); if(error) throw error;
+  }
+});
+
+/* --- 학부모: 입장 --- */
+const parentCodes = () => { const L=loc(); return Array.isArray(L.parentCodes)?L.parentCodes:[]; };
+function vParentLogin(){
+  return `${masthead('자녀 공부 현황', '학부모')}
+  <p class="lede" style="text-align:center">선생님께 받은 코드를 넣으면 자녀의 이번 주 공부와 숙제, 시험 일정을 볼 수 있어요.</p>
+  <form id="parentForm" class="form" novalidate autocomplete="off">
+    <label class="field"><span>학부모 코드</span><input id="pcode" autocomplete="off" autocapitalize="characters" placeholder="예: ABCD-2345" value="${esc(S.form.pcode||'')}"></label>
+  </form>
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
+  <div class="actions">
+    <button class="btn" type="submit" form="parentForm" ${S.busy?'disabled':''}>${S.busy?'확인하는 중…':parentCodes().length?'자녀 추가':'들어가기'}</button>
+    ${DEMO?'<p class="hint">미리보기용 학부모 코드 <b>APER-A226</b> · 자녀 두 명이 연결돼 있어요</p>':'<p class="hint">형제·자매의 코드가 따로 있으면 하나씩 추가하면 한 화면에서 볼 수 있어요</p>'}
+    <div class="linkrow">${parentCodes().length?'<button data-act="toParentView">자녀 화면으로</button>':''}<button data-act="toEntry">학생 화면</button>${themeLink()}</div>
+  </div>`;
+}
+async function parentLoad(){
+  S.pv={status:'loading', list:[], pick:S.pv?.pick||null}; render();
+  const codes=parentCodes(), list=[]; let fail='';
+  for(const c of codes){ try{ list.push(await API.parentView(c)); } catch(e){ if(e.message==='bad_code'){ const L=loc(); L.parentCodes=parentCodes().filter(x=>x!==c); saveLoc(); } else fail=e.message; } }
+  const kids=[]; list.forEach(p=>p.kids.forEach(k=>{ if(!kids.some(x=>x.id===k.id)) kids.push(k); }));
+  S.pv={status: list.length||!fail ? 'ready' : fail, list, kids, pick: kids.some(k=>k.id===S.pv.pick) ? S.pv.pick : kids[0]?.id||null};
+  if(S.screen==='parent') render();
+}
+
+/* --- 학부모: 자녀 화면 --- */
+function kidStats(k){
+  const ymd=t=>new Date(t).toLocaleDateString('sv-SE'), act=(k.cards._act&&typeof k.cards._act==='object'&&!Array.isArray(k.cards._act))?k.cards._act:{};
+  const fl=Object.fromEntries((k.flash_days||[]).map(x=>[x.day,+x.n]));
+  const days=new Set([...(Array.isArray(k.cards._days)?k.cards._days:[]), ...Object.keys(act).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)), ...Object.keys(fl)]);
+  const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), mon=new Date(today); mon.setDate(today.getDate()-((today.getDay()+6)%7));
+  const week=off=>Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i+off*7); const key=ymd(d); return {key, label:'월화수목금토일'[i], on:days.has(key), future:d>today, today:+d===+today, drill:+act[key]||0, flash:fl[key]||0}; });
+  const tw=week(0), lw=week(-1), sum=(w,f)=>w.reduce((a,x)=>a+x[f],0);
+  const by={}; (k.units||[]).forEach(u=>{ const r=k.cards[u.id]; if(!r||typeof r!=='object') return; const b=(by[u.unit] ||= {seen:0,blocked:0}); b.seen+=r.seen||0; b.blocked+=r.blocked||0; });
+  const weak=Object.entries(by).filter(([,v])=>v.seen>=3&&v.blocked/v.seen>=0.3).sort((a,b)=>b[1].blocked/b[1].seen-a[1].blocked/a[1].seen).map(([u])=>unitName(u));
+  return {tw, lw, days:tw.filter(x=>x.on).length, lastDays:lw.filter(x=>x.on).length, drill:sum(tw,'drill'), flash:sum(tw,'flash'), weak};
+}
+function vParent(){
+  const P=S.pv, head=`${masthead(P?.list?.length===1&&P.list[0].label?esc(P.list[0].label):'자녀 공부 현황', '학부모')}`;
+  if(!P||P.status==='loading') return head+'<p class="lede" style="text-align:center;padding:30px 0">불러오는 중…</p>';
+  if(P.status==='missing') return head+'<p class="lede" style="padding:18px 0">학부모 화면은 아직 준비 중이에요. 선생님께 문의해 주세요.</p>'+parentFoot();
+  if(P.status!=='ready') return head+`<div class="ask-box"><p class="lede">불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p><button class="btn alt" data-act="parentReload">다시 불러오기</button></div>`+parentFoot();
+  if(!P.kids.length) return head+'<p class="lede" style="padding:18px 0">이 코드에 연결된 학생이 아직 없어요. 선생님께 연결을 부탁해 주세요.</p>'+parentFoot();
+  const k=P.kids.find(x=>x.id===P.pick)||P.kids[0], st=kidStats(k), diff=st.days-st.lastDays;
+  const today=new Date(new Date().toDateString()).getTime(), dd=d=>Math.round((Date.parse(d+'T00:00:00')-today)/DAY);
+  const hw=(k.homework||[]).slice().sort((a,b)=>(!!a.done_at-!!b.done_at)||a.due.localeCompare(b.due));
+  const ev=(k.events||[]).filter(e=>dd(e.date)>=0).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  return `${head}
+  ${P.kids.length>1?`<div class="seg full kid-seg" style="--n:${P.kids.length}">${P.kids.map(x=>`<button data-kid="${esc(x.id)}" aria-pressed="${x.id===k.id}">${esc(x.nick)}<small>${x.grade}</small></button>`).join('')}</div>`:''}
+  <section class="lead">
+    <span class="label">주간 아페라 · ${st.tw[0].key.slice(5).replace('-','/')}–${st.tw[6].key.slice(5).replace('-','/')}</span>
+    <h2 class="lead-head">${esc(k.nick)} 학생의 이번 주</h2>
+    <p class="lead-deck">${st.days}일 공부 · 드릴 ${st.drill}문제 · 카드 ${st.flash}장</p>
+    <div class="weekdots" role="img" aria-label="이번 주 공부한 날 ${st.days}일">${st.tw.map(x=>`<span class="${x.on?'on':''} ${x.future?'future':''} ${x.today?'today':''}"><i></i>${x.label}</span>`).join('')}</div>
+    <p class="streak">${diff>0?`지난주보다 <b>${diff}일</b> 더 공부했어요.`:diff<0?`지난주에는 ${st.lastDays}일 공부했어요.`:st.days?`지난주와 같은 ${st.days}일 공부했어요.`:'이번 주에는 아직 기록이 없어요.'} 최근 접속 ${k.last_seen?fmtDate(k.last_seen):'없음'}</p>
+  </section>
+  ${k.comment?`<blockquote class="pq"><span class="label">선생님 한마디</span><p>${esc(k.comment)}</p></blockquote>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제 · 최근 2주</span>
+    <div class="rows">${hw.map(h=>`<div class="row"><span class="mark ${h.done_at?'o':dd(h.due)<0?'x':'m'}">${h.done_at?'O':dd(h.due)<0?'X':'·'}</span><span class="rq">${esc(h.title)}</span><span class="s">${h.done_at?'완료':dd(h.due)<0?'기한 지남':dd(h.due)===0?'오늘까지':'D-'+dd(h.due)}</span></div>`).join('')||'<p class="lede" style="padding:12px 0">최근 숙제가 없어요.</p>'}</div></section>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">다가오는 일정</span>
+    <div class="rows">${ev.map(e=>`<div class="row"><span class="mark ${e.type==='exam'?'x':'m'}">${e.type==='exam'?'시':'학'}</span><span class="rq">${esc(e.title)}${e.memo?` <small class="dim">${esc(e.memo.split('\n')[0])}</small>`:''}</span><span class="s">${dd(e.date)?'D-'+dd(e.date):'오늘'}</span></div>`).join('')||'<p class="lede" style="padding:12px 0">다가오는 일정이 없어요.</p>'}</div></section>
+  ${st.weak.length?`<section class="pnote"><span class="label">조금 더 연습하면 좋은 단원</span><p>${st.weak.map(esc).join(', ')} · 선생님이 수업에서 함께 챙기고 있어요.</p></section>`:''}
+  ${parentFoot()}`;
+}
+const parentFoot = () => `<div class="actions"><div class="linkrow"><button data-act="toParentAdd">다른 자녀 코드 추가</button><button data-act="parentForget">이 기기에서 코드 지우기</button>${themeLink()}</div>
+  ${S.pforget?`<p class="selnote" style="text-align:center">저장된 학부모 코드를 모두 지울까요? <button class="linkbtn danger" data-act="parentForgetGo">지우기</button> <button class="linkbtn" data-act="parentForgetNo">취소</button></p>`:''}${demoBanner()}</div>`;
+
+/* --- 선생님: 학생 상세의 학부모 연결 --- */
+async function paLoad(){
+  S.pa={status:'loading'}; render();
+  try{ const d=await API.parentAdmin(); S.pa={status:'ready', ...d, msg:'', sel:''}; }
+  catch(e){ S.pa={status:flErr(e)==='missing'?'missing':'error'}; }
+  render();
+}
+function parentSection(s){
+  const A=S.pa;
+  if(!A||A.status==='loading') return '<section><span class="label">학부모 연결</span><p class="lede" style="padding:12px 0">불러오는 중…</p></section>';
+  if(A.status==='missing') return `<section class="manage"><span class="label">학부모 연결</span><p class="note">학부모 화면 설정 SQL을 실행하면 열려요.</p><a class="linkbtn" target="_blank" rel="noopener" href="https://github.com/awnoqwe/academy-drill/blob/main/sql/parents.sql">학부모 설정 SQL 열기</a></section>`;
+  if(A.status!=='ready') return '';
+  const byId=Object.fromEntries(S.admin.students.map(x=>[x.id,x])), mine=A.links.filter(l=>l.student_id===s.id).map(l=>l.code);
+  const others=A.codes.filter(c=>!mine.includes(c.code));
+  const kidsOf=code=>A.links.filter(l=>l.code===code).map(l=>byId[l.student_id]).filter(Boolean);
+  return `<section class="manage"><span class="label">학부모 연결</span>
+    ${A.msg?`<p class="schedule-success" role="status">${esc(A.msg)}</p>`:''}
+    ${mine.map(code=>{ const c=A.codes.find(x=>x.code===code)||{label:''}, ks=kidsOf(code); return `<div class="pcode"><b class="mono">${pcShow(code)}</b><span>${esc(c.label||'')} · ${ks.map(x=>esc(x.nick)+' '+x.grade).join(', ')}</span>
+      <span class="schedule-btns">${ks.length>1?`<button class="linkbtn" data-punlink="${code}">이 학생만 연결 해제</button>`:''}${S.pdel===code?`<button class="linkbtn danger" data-pdelgo="${code}">코드 지우기</button><button class="linkbtn" data-act="pdelNo">취소</button>`:`<button class="linkbtn danger" data-pdel="${code}">코드 지우기</button>`}</span></div>`; }).join('')||'<p class="note">아직 연결된 학부모 코드가 없어요.</p>'}
+    <div class="schedule-btns"><button class="btn sm" data-act="pcreate">새 학부모 코드 만들기</button></div>
+    ${others.length?`<label class="field-col">형제·자매가 이미 코드를 받았다면 그 코드에 이 학생을 추가
+      <select id="plinkSel"><option value="">가족 코드 고르기</option>${others.map(c=>`<option value="${c.code}">${pcShow(c.code)} · ${esc(c.label)} (${kidsOf(c.code).map(x=>esc(x.nick)).join(', ')})</option>`).join('')}</select></label>
+      <div class="schedule-btns"><button class="btn sm alt" data-act="plink">이 코드에 추가</button></div>`:''}
+    <form id="pcomment" class="schedule-form" data-sid="${esc(s.id)}"><label>학부모에게 보이는 선생님 한마디<textarea id="pcBody" rows="3" maxlength="1000" placeholder="예: 요즘 비문학 속도가 많이 좋아졌어요.">${esc(A.comments[s.id]||'')}</textarea></label>
+      <div class="schedule-btns"><button class="btn sm alt" type="submit">한마디 저장</button></div></form>
+    <p class="note">코드를 학부모님께 문자로 보내 주세요. 학부모 화면에서는 공부한 날·숙제·일정·한마디만 보이고, Q&A와 선생님 메모는 안 보여요.</p>
+  </section>`;
+}
+const vAdminStudentBeforeParent = vAdminStudent;
+vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); return s ? vAdminStudentBeforeParent().replace('<section class="manage"><span class="label">학생 관리</span>', parentSection(s)+'<section class="manage"><span class="label">학생 관리</span>') : vAdmin(); };
+
+function bindParent(){
+  if(S.screen==='parent' && !S.pv) queueMicrotask(parentLoad);
+  if(S.screen==='adminStudent' && S.admin && !S.pa) queueMicrotask(paLoad);
+  const q=sel=>app.querySelectorAll(sel), act=(a,fn)=>q(`[data-act=${a}]`).forEach(b=>b.addEventListener('click',fn));
+  act('toParent', ()=>{ S.form.pcode=''; go(parentCodes().length?'parent':'parentLogin'); });
+  act('toParentAdd', ()=>{ S.form.pcode=''; go('parentLogin'); });
+  act('toParentView', ()=>go('parent'));
+  act('parentReload', ()=>{ S.pv=null; render(); });
+  act('parentForget', ()=>{ S.pforget=true; render(); });
+  act('parentForgetNo', ()=>{ S.pforget=false; render(); });
+  act('parentForgetGo', ()=>{ const L=loc(); L.parentCodes=[]; saveLoc(); S.pv=null; S.pforget=false; go('entry'); });
+  act('adminRefresh', ()=>{ S.pa=null; });
+  act('adminBack', ()=>{ S.pdel=null; });
+  q('[data-kid]').forEach(b=>b.onclick=()=>{ S.pv.pick=b.dataset.kid; render(); });
+  const pf=document.getElementById('parentForm');
+  if(pf){ const inp=document.getElementById('pcode'); inp.oninput=()=>{ S.form.pcode=inp.value; };
+    pf.onsubmit=async e=>{ e.preventDefault(); if(S.busy) return; const c=pcNorm(S.form.pcode);
+      if(c.length!==8){ S.err='코드 8자리를 확인해 주세요. (예: ABCD-2345)'; return render(); }
+      S.busy=true; S.err=''; render();
+      try{ await API.parentView(c); const L=loc(); L.parentCodes=[...new Set([...parentCodes(), c])]; saveLoc(); S.busy=false; S.pv=null; go('parent'); }
+      catch(err){ S.busy=false; S.err = err.message==='bad_code' ? '코드가 맞지 않아요. 선생님께 받은 코드를 다시 확인해 주세요.' : err.message==='missing' ? '학부모 화면은 아직 준비 중이에요. 선생님께 문의해 주세요.' : '서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); } };
+  }
+  // 선생님
+  const A=S.pa, sid=S.view, done=async(job,msg)=>{ try{ await job(); const d=await API.parentAdmin(); Object.assign(A,d,{msg}); }catch(e){ A.msg=''; alertBox('저장하지 못했어요. 인터넷 연결을 확인해 주세요.'); } S.pdel=null; render(); };
+  const alertBox=t=>{ if(A) A.msg=t; };
+  act('pcreate', ()=>{ const s=S.admin.students.find(x=>x.id===sid); done(async()=>{ const code=await API.parentCreate(s.nick+' 가족', sid); A.newCode=code; }, '새 학부모 코드를 만들었어요. 위 코드를 학부모님께 보내 주세요.'); });
+  act('plink', ()=>{ const v=document.getElementById('plinkSel')?.value; if(!v) return; done(()=>API.parentLink(v, sid, true), '형제·자매 코드에 추가했어요. 학부모님은 같은 코드로 두 자녀를 모두 봐요.'); });
+  q('[data-punlink]').forEach(b=>b.onclick=()=>done(()=>API.parentLink(b.dataset.punlink, sid, false), '이 학생을 코드에서 뺐어요.'));
+  q('[data-pdel]').forEach(b=>b.onclick=()=>{ S.pdel=b.dataset.pdel; render(); });
+  act('pdelNo', ()=>{ S.pdel=null; render(); });
+  q('[data-pdelgo]').forEach(b=>b.onclick=()=>done(()=>API.parentDelete(b.dataset.pdelgo), '코드를 지웠어요. 그 코드로는 더 이상 볼 수 없어요.'));
+  const cf=document.getElementById('pcomment'); if(cf) cf.onsubmit=e=>{ e.preventDefault(); const body=document.getElementById('pcBody').value.trim(); done(()=>API.parentComment(cf.dataset.sid, body), '한마디를 저장했어요. 학부모 화면에 보여요.'); };
+}
+const bindBeforeParent = bindFlash;
+bindFlash = function(){ bindBeforeParent(); bindParent(); };
+
 /* ===== 시작 ===== */
 applyTheme();
 const last = loc().session;
 if(last){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; enter(last.code, last.nick, last.grade); }
+else if(parentCodes().length) go('parent');
 else render();
 
 </script>

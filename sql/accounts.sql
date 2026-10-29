@@ -70,6 +70,16 @@ begin
  merged := b.cards;
  for k, v in select key, value from jsonb_each(a.cards) loop
   w := merged -> k;
+  -- '_'로 시작하는 키는 공부한 날·하루 기록 같은 보조 정보: 합칠 대상에 없을 때만 옮긴다
+  if left(k, 1) = '_' then
+   if w is null then merged := merged || jsonb_build_object(k, v);
+   elsif k = '_days' and jsonb_typeof(v) = 'array' and jsonb_typeof(w) = 'array' then
+    merged := merged || jsonb_build_object(k, (select jsonb_agg(distinct x order by x) from (select jsonb_array_elements(w) x union select jsonb_array_elements(v)) z));
+   elsif k = '_act' and jsonb_typeof(v) = 'object' and jsonb_typeof(w) = 'object' then
+    merged := merged || jsonb_build_object(k, (select jsonb_object_agg(key, n) from (select key, sum(value::numeric)::int n from (select * from jsonb_each_text(w) union all select * from jsonb_each_text(v)) z where value ~ '^[0-9]+$' group by key) y));
+   end if;
+   continue;
+  end if;
   if w is null or jsonb_typeof(v) <> 'object' or jsonb_typeof(w) <> 'object' then
    if w is null then merged := merged || jsonb_build_object(k, v); end if;
   else
@@ -83,7 +93,9 @@ begin
   queue = coalesce((select jsonb_agg(distinct x) from (select jsonb_array_elements(b.queue) x union select jsonb_array_elements(a.queue)) q), '[]'::jsonb),
   last_seen = greatest(a.last_seen, b.last_seen), approved = true
  where id = b.id;
- update public.questions set student_id = b.id where student_id = a.id;
+ if to_regclass('public.questions') is not null then
+  update public.questions set student_id = b.id where student_id = a.id;
+ end if;
  insert into public.drill_group_members (group_id, student_id) select group_id, b.id from public.drill_group_members where student_id = a.id on conflict do nothing;
  insert into public.drill_event_recipients (event_id, student_id, read_at) select event_id, b.id, read_at from public.drill_event_recipients where student_id = a.id on conflict do nothing;
  delete from public.drill_student_sessions where student_id = a.id;
