@@ -98,11 +98,30 @@ p{margin:0}
 .grades button{border:0;background:none;padding:8px 0;font-size:14px;cursor:pointer}
 .grades button+button{border-left:1px solid var(--ink)}
 .grades button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
-/* 입장 화면 맨 위 역할 선택. 학년 박스와 같은 모양, 한 단계 크게 */
-.roles{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink);border-radius:4px;overflow:hidden}
-.roles button{border:0;background:none;min-height:46px;font-size:15px;font-weight:600;cursor:pointer;color:var(--muted)}
-.roles button+button{border-left:1px solid var(--ink)}
+/* 로그인 화면(학생·학부모·선생님·원장): 흑백 카드 한 장. 빨강은 제호의 점에만 */
+.login{width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px;padding-top:12px;--cta:#c4161c}
+.login .brand{padding:18px 0 14px}
+.login .brand h1{font-size:52px}
+.roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:var(--sheet);border:1px solid var(--rule)}
+.roles button{border:0;background:none;min-height:44px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;color:var(--muted)}
 .roles button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.login .form{border-top:0;gap:10px}
+.login .field{display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:10px 14px 8px;border:1px solid var(--rule);border-radius:14px;background:var(--sheet)}
+.login .field span{font-size:12.5px}
+.login .field input{padding:4px 0 2px;font-size:16px}
+.login .field:focus-within{border-color:var(--ink)}
+.login .help{margin:-4px 4px 0;font-size:12.5px;color:var(--faint);line-height:1.5}
+.gradebox{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--rule);border-radius:14px;background:var(--sheet)}
+.gradebox .gl{font-size:12.5px;color:var(--muted);font-weight:600;padding:0 4px}
+.gradebox .lv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:3px;border-radius:11px;background:var(--paper)}
+.gradebox .yr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.gradebox button{border:0;background:none;min-height:44px;border-radius:9px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer}
+.gradebox .lv button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule)}
+.gradebox .yr button{background:var(--paper)}
+.gradebox .yr button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.login .actions{margin-top:6px;padding-top:0}
+.login .btn{border-radius:14px;min-height:54px;background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.login .err{padding:0 4px}
 .err{color:var(--bad);font-size:13.5px;margin:0}
 .hint{font-size:12.5px;color:var(--faint);text-align:center}
 .hint b{font-family:var(--f-mono);color:var(--muted)}
@@ -655,6 +674,10 @@ const API = {
     if(DEMO){ const db=demoDB(); if(ok) db.students[id].approved=true; else delete db.students[id]; saveLoc(); return; }
     const {error} = await sb.rpc('student_approve', {p_id:id, p_ok:ok}); if(error) throw error;
   },
+  async renameStudent(id, nick){
+    if(DEMO){ const db=demoDB(), s=db.students[id]; if(Object.values(db.students).some(x=>x.id!==id&&x.grade===s.grade&&x.nick===nick)) throw new Error('dup'); s.nick=nick; saveLoc(); return; }
+    const {error} = await sb.from('students').update({nick}).eq('id', id); if(error) throw new Error(error.code==='23505'?'dup':(error.message||'db'));
+  },
   async removeStudent(id){
     if(DEMO){ demoMerge(id, null); return; }
     const {error} = await sb.from('students').delete().eq('id', id); if(error) throw error;
@@ -764,7 +787,9 @@ function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 function render(){
-  app.innerHTML = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent}[S.screen]() + themeSheet();
+  const LOGIN_SCREENS = ['entry','adminLogin','parentLogin'];
+  const view = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent}[S.screen]();
+  app.innerHTML = (LOGIN_SCREENS.includes(S.screen) ? `<div class="login">${view}</div>` : view) + themeSheet();
   app.querySelectorAll('[data-modepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.modepick; saveLoc(); applyTheme(); render(); });
   app.querySelectorAll('[data-accentpick]').forEach(b=>b.onclick=()=>{ loc().accent=b.dataset.accentpick; saveLoc(); applyTheme(); render(); });
   bind(); bindSchedule(); bindFlash();
@@ -786,7 +811,7 @@ const themeSheet = () => S.themeOpen ? `<div class="sheet-back" data-act="themeC
 function vSettings(){
   return `<section class="set-sec"><span class="label">내 정보</span>
     <div class="set-row"><span><b>${esc(S.me.nick)}</b> · ${S.me.grade}</span><button class="btn sm alt" data-act="logout">로그아웃</button></div>
-    <p class="note">닉네임이나 학년을 바꾸려면 로그아웃한 뒤 다시 입장하세요. 기록은 닉네임과 학년으로 찾아와요.</p></section>
+    <p class="note">이름이나 학년을 바꾸려면 로그아웃한 뒤 다시 입장하세요. 기록은 이름과 학년으로 찾아와요.</p></section>
   <section class="set-sec set-push">${pushPanel()}</section>
   <section class="set-sec"><h2 class="schedule-head">테마</h2>${themeBody()}</section>`;
 }
@@ -800,9 +825,11 @@ function vEntry(){
   ${roleSeg('student')}
   <form id="entryForm" class="form" novalidate autocomplete="off">
     <label class="field"><span>입장 코드</span><input id="code" autocomplete="off" placeholder="선생님이 알려 준 코드" value="${esc(S.form.code)}"></label>
-    <label class="field"><span>닉네임</span><input id="nick" maxlength="12" placeholder="실명 말고 별명을 써 주세요 (예: 파란고래)" value="${esc(S.form.nick)}"></label>
-    <div class="field" style="padding:12px 0"><span>학년</span>
-      <div class="grades" role="group" aria-label="학년">${GRADES.map(g=>`<button type="button" data-g="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join('')}</div></div>
+    <label class="field"><span>이름</span><input id="nick" maxlength="12" placeholder="홍길동" value="${esc(S.form.nick)}"></label>
+    <p class="help">이름이 같은 친구가 있으면 '김민준2'처럼 써 주세요.</p>
+    <div class="gradebox" role="group" aria-label="학년"><span class="gl">학년</span>
+      <div class="lv">${['중','고'].map(l=>`<button type="button" data-lv="${l}" aria-pressed="${S.grade[0]===l}">${l==='중'?'중학생':'고등학생'}</button>`).join('')}</div>
+      <div class="yr">${['1','2','3'].map(y=>`<button type="button" data-yr="${y}" aria-pressed="${S.grade[1]===y}">${y}학년</button>`).join('')}</div></div>
   </form>
   ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
   <div class="actions">
@@ -984,7 +1011,7 @@ function vAdmin(){
   <div class="tabs" role="tablist" style="--n:6"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
   ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
   ${waiting.length?`<section class="waiting"><span class="label">가입 대기 ${waiting.length}명 · 승인해야 시작할 수 있어요</span>
-    <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${same.length?` <small class="err">같은 닉네임: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
+    <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${same.length?` <small class="err">같은 이름: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
       <span class="s wait-acts">${S.confirmReject===s.id?`<button class="linkbtn danger" data-reject="${esc(s.id)}">거절</button><button class="linkbtn" data-act="cancelReject">취소</button>`:`<button class="linkbtn danger" data-askreject="${esc(s.id)}">거절</button><button class="btn sm" data-approve="${esc(s.id)}">승인</button>`}</span></div>`; }).join('')}</div></section>`:''}
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
     <div class="seg full" style="--n:${GRADES.length+1}">${['전체',...GRADES].map(g=>`<button data-grade="${g}" aria-pressed="${S.gradeFilter===g}">${g}</button>`).join('')}</div></section>
@@ -1101,7 +1128,7 @@ function bind(){
       if(S.busy) return;
       const code = S.form.code.trim(), nick = S.form.nick.trim();
       if(!code){ S.err='입장 코드를 써 주세요.'; return render(); }
-      if(nick.length<2){ S.err='닉네임을 두 글자 이상 써 주세요.'; return render(); }
+      if(nick.length<2){ S.err='이름을 두 글자 이상 써 주세요.'; return render(); }
       enter(code, nick, S.grade);
     };
   }
@@ -1117,6 +1144,8 @@ function bind(){
     };
   }
   app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{S.grade=b.dataset.g; render();});
+  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{S.grade=b.dataset.lv+S.grade.slice(1); render();});
+  app.querySelectorAll('[data-yr]').forEach(b=>b.onclick=()=>{S.grade=S.grade[0]+b.dataset.yr; render();});
   const qb = document.getElementById('qbody');
   if(qb) qb.oninput = () => { S.form.q = qb.value; const qc = document.getElementById('qcount'); if(qc) qc.textContent = qb.value.length+'/500'; };
   app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; S.toast=''; if(S.tab==='qna') loadQna(); else render(); });
@@ -1917,14 +1946,14 @@ function vJoin(){
   <section class="join">
     <span class="label">처음 오셨네요</span>
     <h2 class="join-who">${esc(j.nick)} <small>${j.grade}</small></h2>
-    <p class="lede">이 닉네임과 학년으로 새로 등록할까요? 선생님이 확인하면 바로 시작할 수 있어요. 기록은 닉네임과 학년으로 찾아오니, 다음에도 똑같이 입력해 주세요.</p>
-    ${j.other.length?`<div class="join-warn"><b>잠깐!</b> ${j.other.join(', ')}에 같은 닉네임 '${esc(j.nick)}'이 이미 있어요. 학년을 잘못 고르셨다면 아래에서 그 학년으로 들어가세요.
+    <p class="lede">이 이름과 학년으로 새로 등록할까요? 선생님이 확인하면 바로 시작할 수 있어요. 기록은 이름과 학년으로 찾아오니, 다음에도 똑같이 입력해 주세요.</p>
+    ${j.other.length?`<div class="join-warn"><b>잠깐!</b> ${j.other.join(', ')}에 같은 이름 '${esc(j.nick)}'이 이미 있어요. 학년을 잘못 고르셨다면 아래에서 그 학년으로 들어가세요.
       <div class="schedule-btns">${j.other.map(g=>`<button class="btn sm alt" data-joingrade="${g}">${g}로 들어가기</button>`).join('')}</div></div>`:''}
   </section>
   ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
   <div class="actions">
     <button class="btn" data-act="joinOk" ${S.busy?'disabled':''}>${S.busy?'신청하는 중…':'이대로 등록 신청'}</button>
-    <button class="btn alt" data-act="joinBack">닉네임·학년 다시 고르기</button>
+    <button class="btn alt" data-act="joinBack">이름·학년 다시 고르기</button>
     ${demoBanner()}
   </div>`;
 }
@@ -1939,7 +1968,7 @@ function vPending(){
   ${S.err?`<p class="err">${esc(S.err)}</p>`:''}
   <div class="actions">
     <button class="btn" data-act="pendingCheck" ${S.busy?'disabled':''}>${S.busy?'확인하는 중…':'승인됐는지 확인'}</button>
-    <button class="btn alt" data-act="joinBack">다른 닉네임으로 들어가기</button>
+    <button class="btn alt" data-act="joinBack">다른 이름으로 들어가기</button>
     ${DEMO?'<p class="hint">미리보기: 선생님 화면(비밀번호 teacher) → 학생 탭에서 승인할 수 있어요</p>':''}
   </div>`;
 }
@@ -1997,9 +2026,11 @@ function manageSection(s){
   return `<section class="manage"><span class="label">학생 관리</span>
     ${m.msg?`<p class="err" role="alert">${esc(m.msg)}</p>`:''}
     <label class="field-col">다른 학생과 합치기 · 학년을 잘못 골라 두 번 등록된 경우
-      <select id="mergeInto"><option value="">합칠 학생 고르기</option>${others.map(x=>`<option value="${esc(x.id)}" ${m.into===x.id?'selected':''}>${esc(x.nick)} · ${x.grade}${x.nick===s.nick?' (같은 닉네임)':''}</option>`).join('')}</select></label>
+      <select id="mergeInto"><option value="">합칠 학생 고르기</option>${others.map(x=>`<option value="${esc(x.id)}" ${m.into===x.id?'selected':''}>${esc(x.nick)} · ${x.grade}${x.nick===s.nick?' (같은 이름)':''}</option>`).join('')}</select></label>
     ${target?`<p class="note">${esc(s.nick)} · ${s.grade}의 풀이·카드·숙제·질문 기록을 <b>${esc(target.nick)} · ${target.grade}</b>로 옮기고, ${esc(s.nick)} · ${s.grade}는 지워요. 되돌릴 수 없어요.</p>
       <div class="schedule-btns"><button class="btn sm" data-act="mergeGo">기록 합치기</button><button class="linkbtn" data-act="mergeCancel">취소</button></div>`:''}
+    <form id="renameForm" class="field-col">이름 고치기 · 별명으로 가입한 학생을 실명으로 바꿀 때
+      <span class="schedule-btns"><input id="stuName" maxlength="12" value="${esc(m.name??s.nick)}" aria-label="새 이름"><button class="btn sm" type="submit">저장</button></span></form>
     <div class="schedule-btns">${m.del?`<span class="selnote">${esc(s.nick)}의 모든 기록을 지울까요? 되돌릴 수 없어요.</span><button class="linkbtn danger" data-act="delStuGo">지우기</button><button class="linkbtn" data-act="delStuCancel">취소</button>`:`<button class="linkbtn danger" data-act="delStu">이 학생 지우기</button>`}</div>
   </section>`;
 }
@@ -2032,6 +2063,7 @@ function bindAccounts(){
   const mi=document.getElementById('mergeInto'); if(mi) mi.onchange=()=>{ S.manage={into:mi.value||null}; render(); };
   act('mergeCancel', ()=>{ S.manage={}; render(); });
   act('delStu', ()=>{ S.manage={del:true}; render(); });
+  const rf=document.getElementById('renameForm'); if(rf) rf.onsubmit=async e=>{ e.preventDefault(); const v=document.getElementById('stuName').value.trim(); if(v.length<2){ S.manage={name:v, msg:'이름을 두 글자 이상 써 주세요.'}; return render(); } try{ await API.renameStudent(S.view, v); S.manage={}; await reload(); }catch(err){ S.manage={name:v, msg: err.message==='dup' ? '같은 학년에 같은 이름이 이미 있어요. 숫자를 붙여 구분해 주세요.' : '이름을 바꾸지 못했어요. 인터넷 연결을 확인해 주세요.'}; render(); } };
   act('delStuCancel', ()=>{ S.manage={}; render(); });
   act('mergeGo', async()=>{ const from=S.view, into=S.manage.into; try{ await API.merge(from, into); S.manage={}; S.view=into; await reload(); }catch(e){ S.manage={into, msg:'합치지 못했어요. 숙제·카드 설정 SQL과 가입 설정 SQL을 실행했는지 확인해 주세요.'}; render(); } });
   act('delStuGo', async()=>{ try{ await API.removeStudent(S.view); S.manage={}; S.screen='admin'; await reload(); }catch(e){ S.manage={msg:'지우지 못했어요. 인터넷 연결을 확인해 주세요.'}; render(); } });
