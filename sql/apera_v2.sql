@@ -174,7 +174,9 @@ begin
 end $$;
 -- 학원마다 같은 닉네임·그룹 이름을 쓸 수 있게
 alter table public.students drop constraint if exists students_grade_nick_key;
-create unique index if not exists students_academy_grade_nick on public.students(academy_id, grade, nick);
+-- 이름이 같은 학생도 받는다(전화번호로 구분). 예전의 '학년+이름 중복 금지'는 푼다.
+drop index if exists public.students_academy_grade_nick;
+create index if not exists students_academy_grade_nick_idx on public.students(academy_id, grade, nick);
 alter table public.drill_groups drop constraint if exists drill_groups_name_key;
 create unique index if not exists drill_groups_academy_name on public.drill_groups(academy_id, name);
 
@@ -293,15 +295,40 @@ returns uuid language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.academy_by_code(text) from public, anon, authenticated;
 
-create or replace function public.student_enter(p_code text, p_nick text, p_grade text)
+-- 학생 로그인: 학원(입장 코드) + 학년 + 이름 + 전화번호. 이름이 같은 학생은 전화번호로 구분한다.
+-- 전화번호는 원장 화면의 연락처(student_contacts.student_phone)에 저장되고, 하이픈 유무와 관계없이 숫자로 비교한다.
+-- 전화번호가 아직 없는 예전 학생: 같은 학년·이름에 번호 없는 학생이 딱 한 명이면, 처음 넣은 번호를 그 학생 번호로 저장한다.
+create or replace function public.apera_phone_digits(p text) returns text language sql immutable as $f$ select regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g') $f$;
+create or replace function public.apera_phone_fmt(d text) returns text language sql immutable as $f$
+ select case when length(d) = 11 then substr(d, 1, 3) || '-' || substr(d, 4, 4) || '-' || substr(d, 8)
+  when d like '02%' then substr(d, 1, 2) || '-' || substr(d, 3, 4) || '-' || substr(d, 7)
+  else substr(d, 1, 3) || '-' || substr(d, 4, 3) || '-' || substr(d, 7) end $f$;
+
+drop function if exists public.student_signup(text, text, text);
+drop function if exists public.student_enter(text, text, text);
+
+create or replace function public.student_enter(p_code text, p_nick text, p_grade text, p_phone text)
 returns json language plpgsql security definer set search_path = public as $$
-declare aid uuid := public.academy_by_code(p_code); s public.students; t uuid;
+declare aid uuid := public.academy_by_code(p_code); s public.students; t uuid; ph text := public.apera_phone_digits(p_phone); legacy uuid[];
 begin
  if aid is null then raise exception 'bad_code'; end if;
- select * into s from public.students where academy_id = aid and grade = p_grade and nick = btrim(p_nick);
+ if length(ph) not between 10 and 11 then raise exception 'bad_phone'; end if;
+ select st.* into s from public.students st join public.student_contacts c on c.student_id = st.id
+  where st.academy_id = aid and st.grade = p_grade and st.nick = btrim(p_nick) and public.apera_phone_digits(c.student_phone) = ph
+  order by st.approved desc, st.created_at limit 1;
+ if s.id is null then
+  select array_agg(st.id) into legacy from public.students st left join public.student_contacts c on c.student_id = st.id
+   where st.academy_id = aid and st.grade = p_grade and st.nick = btrim(p_nick) and coalesce(c.student_phone, '') = '';
+  if cardinality(legacy) = 1 then
+   insert into public.student_contacts (student_id, academy_id, student_phone) values (legacy[1], aid, public.apera_phone_fmt(ph))
+    on conflict (student_id) do update set student_phone = excluded.student_phone, updated_at = now();
+   select * into s from public.students where id = legacy[1];
+  end if;
+ end if;
  if s.id is null then
   return json_build_object('status', 'new', 'other_grades',
-   coalesce((select json_agg(grade order by grade) from public.students where academy_id = aid and nick = btrim(p_nick) and approved), '[]'::json));
+   coalesce((select json_agg(st.grade order by st.grade) from public.students st join public.student_contacts c on c.student_id = st.id
+    where st.academy_id = aid and st.nick = btrim(p_nick) and st.approved and public.apera_phone_digits(c.student_phone) = ph), '[]'::json));
  end if;
  if not s.approved then return json_build_object('status', 'pending'); end if;
  update public.students set last_seen = now() where id = s.id returning * into s;
@@ -314,14 +341,19 @@ begin
   'schedule_token', t);
 end $$;
 
-create or replace function public.student_signup(p_code text, p_nick text, p_grade text)
+create or replace function public.student_signup(p_code text, p_nick text, p_grade text, p_phone text)
 returns json language plpgsql security definer set search_path = public as $$
-declare aid uuid := public.academy_by_code(p_code);
+declare aid uuid := public.academy_by_code(p_code); ph text := public.apera_phone_digits(p_phone); sid uuid;
 begin
  if aid is null then raise exception 'bad_code'; end if;
+ if length(ph) not between 10 and 11 then raise exception 'bad_phone'; end if;
  if (select count(*) from public.students where academy_id = aid and not approved and created_at > now() - interval '1 hour') >= 30 then raise exception 'too_many'; end if;
- insert into public.students (academy_id, nick, grade, approved) values (aid, btrim(p_nick), p_grade, false) on conflict do nothing;
- return public.student_enter(p_code, p_nick, p_grade);
+ if not exists (select 1 from public.students st join public.student_contacts c on c.student_id = st.id
+  where st.academy_id = aid and st.grade = p_grade and st.nick = btrim(p_nick) and public.apera_phone_digits(c.student_phone) = ph) then
+  insert into public.students (academy_id, nick, grade, approved) values (aid, btrim(p_nick), p_grade, false) returning id into sid;
+  insert into public.student_contacts (student_id, academy_id, student_phone) values (sid, aid, public.apera_phone_fmt(ph));
+ end if;
+ return public.student_enter(p_code, p_nick, p_grade, p_phone);
 end $$;
 
 create or replace function public.student_save(p_code text, p_id uuid, p_cards jsonb, p_queue jsonb)
@@ -788,7 +820,7 @@ do $$
 declare f text;
 begin
  foreach f in array array[
-  'student_enter(text,text,text)','student_signup(text,text,text)','student_save(text,uuid,jsonb,jsonb)','qna_list(text,uuid)','qna_post(text,uuid,text,text)',
+  'student_enter(text,text,text,text)','student_signup(text,text,text,text)','student_save(text,uuid,jsonb,jsonb)','qna_list(text,uuid)','qna_post(text,uuid,text,text)',
   'drill_schedule_student(uuid)','drill_schedule_read(uuid,uuid[])','flash_student_load(uuid,timestamptz)','flash_review(uuid,uuid,uuid,int,text,int,int,jsonb)',
   'hw_student_list(uuid)','hw_student_done(uuid,uuid,boolean)','tt_student(uuid)','drill_push_public_key(uuid)','drill_push_subscribe(uuid,jsonb)','drill_push_unsubscribe(uuid,text)',
   'parent_view(text)','parent_push_public_key(text)','parent_push_subscribe(text,jsonb)','parent_push_unsubscribe(text,text)'] loop

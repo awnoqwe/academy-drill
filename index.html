@@ -644,30 +644,36 @@ const fromRow = r => ({id:r.id, nick:r.nick, grade:r.grade, cards:r.cards||{}, q
 // 입장 결과: ok(바로 시작) / new(처음 보는 학생 → 확인 화면) / pending(선생님 승인 대기)
 const enterResult = data => (!data.status && data.student) || data.status==='ok' ? {status:'ok', student: fromRow(data.student), cards: data.cards, sessionToken:data.schedule_token||null} : {status:data.status, otherGrades:data.other_grades||[]};
 
+const phoneDigits = p => String(p||'').replace(/\D/g,'');
+const phoneFmt = d => d.length===11 ? d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7) : d.startsWith('02') ? d.slice(0,2)+'-'+d.slice(2,6)+'-'+d.slice(6) : d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+
 const API = {
-  async enter(code, nick, grade){
+  async enter(code, nick, grade, phone){
+    const ph = phoneDigits(phone);
     if(DEMO){
       if(code!==DEMO_CODE) throw new Error('bad_code');
-      const db = demoDB();
-      const st = Object.values(db.students).find(s=>s.grade===grade && s.nick===nick);
-      if(!st) return {status:'new', otherGrades: Object.values(db.students).filter(s=>s.nick===nick&&s.approved!==false).map(s=>s.grade)};
+      if(ph.length<10||ph.length>11) throw new Error('bad_phone');
+      const db = demoDB(), all = Object.values(db.students);
+      let st = all.find(s=>s.grade===grade && s.nick===nick && phoneDigits(s.phone)===ph);
+      if(!st){ const legacy = all.filter(s=>s.grade===grade && s.nick===nick && !s.phone); if(legacy.length===1){ st=legacy[0]; st.phone=phoneFmt(ph); saveLoc(); } }
+      if(!st) return {status:'new', otherGrades: all.filter(s=>s.nick===nick&&phoneDigits(s.phone)===ph&&s.approved!==false).map(s=>s.grade)};
       if(st.approved===false) return {status:'pending'};
       st.lastSeen = Date.now(); saveLoc();
       return {status:'ok', student: st, cards: SAMPLE_CARDS};
     }
     if(!sb) throw new Error('lib');
     let res;
-    try{ res = await sb.rpc('student_enter', {p_code: code, p_nick: nick, p_grade: grade}); }
+    try{ res = await sb.rpc('student_enter', {p_code: code, p_nick: nick, p_grade: grade, p_phone: ph}); }
     catch(e){ throw new Error('fetch: '+(e.message||e)); }
     const {data, error} = res;
-    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : 'db: '+(error.code||'')+' '+error.message);
+    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : /bad_phone/.test(error.message) ? 'bad_phone' : 'db: '+(error.code||'')+' '+error.message);
     return enterResult(data);
   },
-  async signup(code, nick, grade){
-    if(DEMO){ if(code!==DEMO_CODE) throw new Error('bad_code'); const db=demoDB(); if(!Object.values(db.students).some(s=>s.grade===grade&&s.nick===nick)){ const id='d-'+Date.now(); db.students[id]={id, nick, grade, cards:{}, queue:[], lastSeen:Date.now(), created:Date.now(), approved:false}; saveLoc(); } return API.enter(code, nick, grade); }
+  async signup(code, nick, grade, phone){
+    if(DEMO){ if(code!==DEMO_CODE) throw new Error('bad_code'); const db=demoDB(); if(!Object.values(db.students).some(s=>s.grade===grade&&s.nick===nick&&phoneDigits(s.phone)===phoneDigits(phone))){ const id='d-'+Date.now(); db.students[id]={id, nick, grade, phone:phoneFmt(phoneDigits(phone)), cards:{}, queue:[], lastSeen:Date.now(), created:Date.now(), approved:false}; saveLoc(); } return API.enter(code, nick, grade, phone); }
     if(!sb) throw new Error('lib');
-    const {data, error} = await sb.rpc('student_signup', {p_code: code, p_nick: nick, p_grade: grade});
-    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : /too_many/.test(error.message) ? 'too_many' : 'db: '+(error.code||'')+' '+error.message);
+    const {data, error} = await sb.rpc('student_signup', {p_code: code, p_nick: nick, p_grade: grade, p_phone: phoneDigits(phone)});
+    if(error) throw new Error(/bad_code/.test(error.message) ? 'bad_code' : /bad_phone/.test(error.message) ? 'bad_phone' : /too_many/.test(error.message) ? 'too_many' : 'db: '+(error.code||'')+' '+error.message);
     return enterResult(data);
   },
   async approve(id, ok){
@@ -675,7 +681,7 @@ const API = {
     const {error} = await sb.rpc('student_approve', {p_id:id, p_ok:ok}); if(error) throw error;
   },
   async renameStudent(id, nick){
-    if(DEMO){ const db=demoDB(), s=db.students[id]; if(Object.values(db.students).some(x=>x.id!==id&&x.grade===s.grade&&x.nick===nick)) throw new Error('dup'); s.nick=nick; saveLoc(); return; }
+    if(DEMO){ const db=demoDB(), s=db.students[id]; s.nick=nick; saveLoc(); return; }
     const {error} = await sb.from('students').update({nick}).eq('id', id); if(error) throw new Error(error.code==='23505'?'dup':(error.message||'db'));
   },
   async removeStudent(id){
@@ -778,7 +784,7 @@ function demoMerge(from, into){
 /* ===== 화면 상태 ===== */
 const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
   set:[], idx:0, phase:'think', sel:new Set(), excluded:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
-  admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',email:'',q:''},
+  admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',phone:'',email:'',q:''},
   tab:'kor', news:'schedule', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
 function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId(); if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
@@ -811,7 +817,7 @@ const themeSheet = () => S.themeOpen ? `<div class="sheet-back" data-act="themeC
 function vSettings(){
   return `<section class="set-sec"><span class="label">내 정보</span>
     <div class="set-row"><span><b>${esc(S.me.nick)}</b> · ${S.me.grade}</span><button class="btn sm alt" data-act="logout">로그아웃</button></div>
-    <p class="note">이름이나 학년을 바꾸려면 로그아웃한 뒤 다시 입장하세요. 기록은 이름과 학년으로 찾아와요.</p></section>
+    <p class="note">이름이나 학년을 바꾸려면 로그아웃한 뒤 다시 입장하세요. 기록은 이름·전화번호·학년으로 찾아와요.</p></section>
   <section class="set-sec set-push">${pushPanel()}</section>
   <section class="set-sec"><h2 class="schedule-head">테마</h2>${themeBody()}</section>`;
 }
@@ -826,7 +832,8 @@ function vEntry(){
   <form id="entryForm" class="form" novalidate autocomplete="off">
     <label class="field"><span>입장 코드</span><input id="code" autocomplete="off" placeholder="선생님이 알려 준 코드" value="${esc(S.form.code)}"></label>
     <label class="field"><span>이름</span><input id="nick" maxlength="12" placeholder="홍길동" value="${esc(S.form.nick)}"></label>
-    <p class="help">이름이 같은 친구가 있으면 '김민준2'처럼 써 주세요.</p>
+    <label class="field"><span>전화번호</span><input id="phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="010-0000-0000" value="${esc(S.form.phone||'')}"></label>
+    <p class="help">휴대폰이 없으면 보호자 번호를 써 주세요.</p>
     <div class="gradebox" role="group" aria-label="학년"><span class="gl">학년</span>
       <div class="lv">${['중','고'].map(l=>`<button type="button" data-lv="${l}" aria-pressed="${S.grade[0]===l}">${l==='중'?'중학생':'고등학생'}</button>`).join('')}</div>
       <div class="yr">${['1','2','3'].map(y=>`<button type="button" data-yr="${y}" aria-pressed="${S.grade[1]===y}">${y}학년</button>`).join('')}</div></div>
@@ -1050,24 +1057,25 @@ function vAdminStudent(){
 }
 
 /* ===== 동작 ===== */
-async function enter(code, nick, grade){
+async function enter(code, nick, grade, phone){
   S.busy = true; S.err=''; render();
   try{
-    const r = await API.enter(code, nick, grade);
+    const r = await API.enter(code, nick, grade, phone);
     if(r.status!=='ok'){
-      S.busy=false; S.join={code, nick, grade, other:(r.otherGrades||[]).filter(g=>g!==grade)};
-      loc().session = r.status==='pending' ? {code, nick, grade} : null; saveLoc();
+      S.busy=false; S.join={code, nick, grade, phone, other:(r.otherGrades||[]).filter(g=>g!==grade)};
+      loc().session = r.status==='pending' ? {code, nick, grade, phone} : null; saveLoc();
       go(r.status==='pending' ? 'pending' : 'join'); return;
     }
     const {student, cards, sessionToken} = r;
-    CARDS = cards; S.me = student; S.code = code; S.scheduleToken=sessionToken||null; scheduleOwner='';
+    CARDS = cards; S.me = student; S.code = code; S.phone = phone; S.scheduleToken=sessionToken||null; scheduleOwner='';
     S.picked = new Set(gradeUnits(grade,'kor').map(u=>u.id));
-    loc().session = {code, nick, grade}; saveLoc();
+    loc().session = {code, nick, grade, phone}; saveLoc();
     S.busy = false; go('home');
   }catch(e){
     S.busy = false;
     go('entry');
     if(e.message==='bad_code'){ loc().session = null; saveLoc(); S.err='입장 코드가 맞지 않아요. 선생님께 코드를 다시 확인하세요.'; }
+    else if(e.message==='bad_phone'){ loc().session = null; saveLoc(); S.err='전화번호를 정확히 써 주세요. (예: 010-1234-5678)'; }
     else if(e.message==='lib') S.err='서버 연결 프로그램을 불러오지 못했어요. 와이파이를 바꾸거나 광고 차단을 끄고 새로고침해 주세요. (코드: lib)';
     else S.err='서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (오류: '+e.message+')';
     render();
@@ -1122,14 +1130,16 @@ async function openAdmin(){
 function bind(){
   const ef = document.getElementById('entryForm');
   if(ef){
-    ['code','nick'].forEach(k=>{const el=document.getElementById(k); el.oninput=()=>{S.form[k]=el.value;};});
+    ['code','nick','phone'].forEach(k=>{const el=document.getElementById(k); el.oninput=()=>{S.form[k]=el.value;};});
     ef.onsubmit = e => {
       e.preventDefault();
       if(S.busy) return;
       const code = S.form.code.trim(), nick = S.form.nick.trim();
       if(!code){ S.err='입장 코드를 써 주세요.'; return render(); }
       if(nick.length<2){ S.err='이름을 두 글자 이상 써 주세요.'; return render(); }
-      enter(code, nick, S.grade);
+      const phone = phoneDigits(S.form.phone);
+      if(phone.length<10||phone.length>11){ S.err='전화번호를 정확히 써 주세요. (예: 010-1234-5678)'; return render(); }
+      enter(code, nick, S.grade, phone);
     };
   }
   const af = document.getElementById('adminForm');
@@ -1879,26 +1889,26 @@ function bindTa(){
 
 /* ===== 오프라인 · 글자 크기 ===== */
 // 마지막으로 받은 문제·기록을 기기에 남겨 두었다가, 인터넷이 없을 때 그걸로 바로 연다.
-function snapSave(){ try{ if(!S.me||DEMO) return; const L=loc(); L.snap={code:S.code, nick:S.me.nick, grade:S.me.grade, student:S.me, cards:CARDS, at:Date.now()}; saveLoc(); }catch(e){} }
+function snapSave(){ try{ if(!S.me||DEMO) return; const L=loc(); L.snap={code:S.code, nick:S.me.nick, grade:S.me.grade, phone:S.phone, student:S.me, cards:CARDS, at:Date.now()}; saveLoc(); }catch(e){} }
 const enterOnline = enter;
-enter = async function(code, nick, grade){
+enter = async function(code, nick, grade, phone){
   const snap=loc().snap;
-  if(!DEMO && snap && snap.code===code && snap.nick===nick && snap.grade===grade && (navigator.onLine===false)){
+  if(!DEMO && snap && snap.code===code && snap.nick===nick && snap.grade===grade && snap.phone===phone && (navigator.onLine===false)){
     return enterOffline(snap);
   }
-  await enterOnline(code, nick, grade);
+  await enterOnline(code, nick, grade, phone);
   if(S.screen==='home' && S.me){ S.offline=false; snapSave(); return; }
   // 서버에 못 닿았을 때(입장 코드 오류 제외) 저장된 기록으로 연다
-  if(!DEMO && S.screen==='entry' && snap && snap.code===code && snap.nick===nick && snap.grade===grade && !/입장 코드가 맞지 않아요/.test(S.err)) enterOffline(snap);
+  if(!DEMO && S.screen==='entry' && snap && snap.code===code && snap.nick===nick && snap.grade===grade && snap.phone===phone && !/입장 코드가 맞지 않아요|전화번호를 정확히/.test(S.err)) enterOffline(snap);
 };
 function enterOffline(snap){
-  CARDS=snap.cards; S.me=snap.student; S.code=snap.code; S.scheduleToken=null; S.offline=true; S.err='';
+  CARDS=snap.cards; S.me=snap.student; S.code=snap.code; S.phone=snap.phone; S.scheduleToken=null; S.offline=true; S.err='';
   S.picked=new Set(gradeUnits(snap.grade,'kor').map(u=>u.id)); go('home');
 }
 async function reconnect(){
   if(!S.offline || !S.me || DEMO) return;
   try{
-    const r=await API.enter(S.code, S.me.nick, S.me.grade), mine=S.me; if(r.status!=='ok') return;
+    const r=await API.enter(S.code, S.me.nick, S.me.grade, S.phone), mine=S.me; if(r.status!=='ok') return;
     // 오프라인에서 푼 기록이 서버보다 최신이므로 기기 기록을 유지하고 서버에 다시 저장한다
     CARDS=r.cards; S.scheduleToken=r.sessionToken||null; S.offline=false; mine.id=r.student.id; persist(); snapSave();
     FC.owner=''; HW.owner=''; scheduleOwner='';
@@ -1946,7 +1956,7 @@ function vJoin(){
   <section class="join">
     <span class="label">처음 오셨네요</span>
     <h2 class="join-who">${esc(j.nick)} <small>${j.grade}</small></h2>
-    <p class="lede">이 이름과 학년으로 새로 등록할까요? 선생님이 확인하면 바로 시작할 수 있어요. 기록은 이름과 학년으로 찾아오니, 다음에도 똑같이 입력해 주세요.</p>
+    <p class="lede">이 이름과 학년으로 새로 등록할까요? 선생님이 확인하면 바로 시작할 수 있어요. 기록은 이름·전화번호·학년으로 찾아오니, 다음에도 똑같이 입력해 주세요.</p>
     ${j.other.length?`<div class="join-warn"><b>잠깐!</b> ${j.other.join(', ')}에 같은 이름 '${esc(j.nick)}'이 이미 있어요. 학년을 잘못 고르셨다면 아래에서 그 학년으로 들어가세요.
       <div class="schedule-btns">${j.other.map(g=>`<button class="btn sm alt" data-joingrade="${g}">${g}로 들어가기</button>`).join('')}</div></div>`:''}
   </section>
@@ -2040,15 +2050,15 @@ vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); return 
 function bindAccounts(){
   const q=sel=>app.querySelectorAll(sel), act=(a,fn)=>q(`[data-act=${a}]`).forEach(b=>b.addEventListener('click',fn));
   act('joinBack', ()=>{ loc().session=null; saveLoc(); S.join=null; go('entry'); });
-  act('pendingCheck', ()=>{ const j=S.join; enter(j.code, j.nick, j.grade); });
+  act('pendingCheck', ()=>{ const j=S.join; enter(j.code, j.nick, j.grade, j.phone); });
   act('joinOk', async()=>{
     const j=S.join; S.busy=true; S.err=''; render();
-    try{ const r=await API.signup(j.code, j.nick, j.grade); S.busy=false;
-      if(r.status==='ok') return enter(j.code, j.nick, j.grade);
-      loc().session={code:j.code, nick:j.nick, grade:j.grade}; saveLoc(); go('pending'); }
+    try{ const r=await API.signup(j.code, j.nick, j.grade, j.phone); S.busy=false;
+      if(r.status==='ok') return enter(j.code, j.nick, j.grade, j.phone);
+      loc().session={code:j.code, nick:j.nick, grade:j.grade, phone:j.phone}; saveLoc(); go('pending'); }
     catch(e){ S.busy=false; S.err = e.message==='bad_code' ? '입장 코드가 바뀌었어요. 선생님께 코드를 다시 확인하세요.' : e.message==='too_many' ? '지금 가입 신청이 너무 많아요. 잠시 뒤 다시 눌러 주세요.' : '신청을 보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'; render(); }
   });
-  q('[data-joingrade]').forEach(b=>b.onclick=()=>{ const j=S.join; S.grade=b.dataset.joingrade; S.form.nick=j.nick; enter(j.code, j.nick, b.dataset.joingrade); });
+  q('[data-joingrade]').forEach(b=>b.onclick=()=>{ const j=S.join; S.grade=b.dataset.joingrade; S.form.nick=j.nick; enter(j.code, j.nick, b.dataset.joingrade, j.phone); });
   q('[data-news-go]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.newsGo; render(); window.scrollTo(0,0); });
   // 선생님: 승인·거절
   const reload=async(msg)=>{ try{ S.admin=await API.adminData(); CARDS=S.admin.cards; }catch(e){} S.ta=null; S.fa=null; S.pa=null; render(); };
@@ -2830,7 +2840,8 @@ bindFlash = function(){ bindBeforeParent2(); bindParent2(); };
 /* ===== 시작 ===== */
 applyTheme();
 const last = loc().session;
-if(last){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; enter(last.code, last.nick, last.grade); }
+if(last && !last.phone){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; loc().session = null; saveLoc(); S.err = '이제 전화번호도 함께 입력해요. 한 번만 넣으면 다음부터는 자동으로 들어가요.'; render(); }
+else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = last.phone; S.grade = last.grade; enter(last.code, last.nick, last.grade, last.phone); }
 else if(parentCodes().length) go('parent');
 else render();
 
