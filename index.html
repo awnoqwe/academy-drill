@@ -14,7 +14,8 @@
 <script>try{var L=JSON.parse(localStorage.getItem('academy-drill-v3'))||{},t={paper:'light',ink:'dark'}[L.theme]||L.theme;if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);if(L.accent)document.documentElement.setAttribute('data-accent',L.accent);if(L.fs==='l'||L.fs==='xl')document.documentElement.setAttribute('data-fs',L.fs)}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;600;700;900&family=Source+Serif+4:opsz,wght@8..60,900&display=swap">
+<link rel="stylesheet" href="fonts/pretendard/pretendard.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Serif+KR:wght@500;600&display=swap">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
 
@@ -24,9 +25,11 @@
   --paper:#ffffff; --sheet:#f5f5f3; --ink:#121212; --muted:#545452; --faint:#8b8b88; --rule:#dedede; --rule-strong:#121212;
   --good:#147a3d; --good-soft:#e7f4ec; --bad:#b42318; --bad-soft:#fdecec; --track:#ececea; --mid:#9a5b00; --hover:#f4f4f2; --pill:#121212; --pill-ink:#ffffff; color-scheme:light;
   --cta:#c4161c; --cta-ink:#ffffff; --omr:#c4161c; --new:#c4161c; --omr-soft:#fdecec;
-  --f-mast:"Source Serif 4","Noto Serif KR",Georgia,serif;
-  --f-serif:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",Georgia,serif;
-  --f-body:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  /* 글꼴: 화면 전체는 Pretendard(OFL), 국어 지문만 명조(Noto Serif KR, OFL). --f-serif·--f-mast는 예전 이름을 그대로 두고 Pretendard를 가리킨다. */
+  --f-mast:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-serif:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-body:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-text:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",Georgia,serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -145,7 +148,7 @@ p{margin:0}
 .meta{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);letter-spacing:.06em}
 .meta .unit{color:var(--omr);font-weight:600}
 .trigger{font-family:var(--f-serif);font-size:20px;font-weight:500;line-height:1.7;margin:0;letter-spacing:-.005em}
-.passage{font-family:var(--f-serif);font-size:16px;line-height:1.95;white-space:pre-line;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 2px}
+.passage{font-family:var(--f-text);font-size:16px;line-height:1.95;white-space:pre-line;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 2px}
 .passage.poem{padding-left:22px;border-left:1px solid var(--rule);border-top:0;border-bottom:0;padding-block:4px}
 .ask{font-size:14px;color:var(--muted);text-align:center;font-family:var(--f-serif)}
 .opts{display:flex;flex-direction:column;margin:0;padding:0;list-style:none;border-top:1px solid var(--rule)}

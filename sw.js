@@ -2,8 +2,8 @@
 // 푸시 알림 + 앱 화면 저장(오프라인 실행).
 // 앱 화면(index.html)은 항상 인터넷에서 먼저 받고, 안 될 때만 저장본을 쓴다 → 업데이트는 바로 반영된다.
 // 서버(Supabase) 요청은 가로채지 않는다. 글꼴·서버 연결 프로그램만 저장본을 먼저 쓰고 뒤에서 새로 받는다.
-const SHELL='apera-shell-v2';
-const SHELL_FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./apple-touch-icon.png','./favicon-32.png'];
+const SHELL='apera-shell-v3';
+const SHELL_FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./apple-touch-icon.png','./favicon-32.png','./fonts/pretendard/pretendard.css'];
 const SHARED=/^https:\/\/(cdn\.jsdelivr\.net\/npm\/@supabase\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
 const DB='trigger-push-device-v1';
 function deviceStore(mode,action){return new Promise((resolve,reject)=>{const open=indexedDB.open(DB,1);open.onupgradeneeded=()=>open.result.createObjectStore('settings');open.onerror=()=>reject(open.error);open.onsuccess=()=>{const db=open.result,tx=db.transaction('settings',mode),req=action(tx.objectStore('settings'));let value;req.onsuccess=()=>value=req.result;tx.oncomplete=()=>{db.close();resolve(value)};tx.onerror=()=>{db.close();reject(tx.error)}}})}
@@ -12,7 +12,7 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{const keys=aw
 self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);
  if(url.origin===self.location.origin){
   if(req.mode==='navigate'||url.pathname.endsWith('/index.html')){event.respondWith((async()=>{try{const res=await fetch(req);if(res.ok){const c=await caches.open(SHELL);c.put('./index.html',res.clone())}return res}catch(e){return (await caches.match('./index.html'))||(await caches.match('./'))||Response.error()}})());return}
-  if(/\.(png|webmanifest)$/.test(url.pathname)){event.respondWith((async()=>{const hit=await caches.match(req);const net=fetch(req).then(res=>{if(res.ok)caches.open(SHELL).then(c=>c.put(req,res.clone()));return res}).catch(()=>hit);return hit||net})());}
+  if(/\.(png|webmanifest)$/.test(url.pathname)||url.pathname.includes('/fonts/')){event.respondWith((async()=>{const hit=await caches.match(req);const net=fetch(req).then(res=>{if(res.ok)caches.open(SHELL).then(c=>c.put(req,res.clone()));return res}).catch(()=>hit);return hit||net})());}
   return}
  if(SHARED.test(req.url)){event.respondWith((async()=>{const hit=await caches.match(req);const net=fetch(req).then(res=>{if(res.ok||res.type==='opaque')caches.open(SHELL).then(c=>c.put(req,res.clone()));return res}).catch(()=>hit);return hit||net})())}
 });
