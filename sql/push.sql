@@ -1,3 +1,6 @@
+-- ⚠ 기록용 예전 파일입니다. 실행하지 마세요. 지금은 apera_v2.sql 하나만 씁니다.
+--   apera_v2.sql을 적용한 뒤 이 파일을 다시 실행하면 학원 구분 없는 예전 권한 정책(is_teacher)이 되살아나
+--   다른 학원의 카드·학생 데이터까지 고칠 수 있게 됩니다.
 -- Web Push 구독·키·중복 방지. 기존 일정과 학생 데이터 보존.
 begin;
 create table if not exists public.drill_push_config(id int primary key check(id=1), public_key text not null, private_key text not null);

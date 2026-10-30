@@ -561,7 +561,7 @@ function studentSummary(st){
 }
 const fmtDate = t => { const d=new Date(t); return (d.getMonth()+1)+'월 '+d.getDate()+'일'; };
 const todayStr = () => { const d=new Date(); return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+'일월화수목금토'[d.getDay()]+'요일'; };
-const esc = s => String(s).replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const esc = s => String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const unitName = id => (UNITS.find(u=>u.id===id)||{name:id}).name;
 const MARK = {ok:['O','o','맞힘'], wrong:['X','x','틀림'], unknown:['?','x','모름'], missing:['△','m','선지에 없음']};
 const MODES = [{id:'light',name:'라이트',bg:'#ffffff',ink:'#121212'},{id:'dark',name:'다크',bg:'#121212',ink:'#f1f1ee'}];

@@ -10,7 +10,17 @@
 3. 기존 데이터는 '1호 학원'으로 옮겨지고, 기존 선생님 계정은 1호 학원 원장 + 운영자가 됩니다
 
 예전 파일(`setup.sql`, `qna.sql`, `schedule.sql`, `push.sql`, `flash.sql`, `teacher_tools.sql`, `accounts.sql`, `parents.sql`)은
-기록용으로 남겨 둔 것이라 새로 실행하지 않아도 됩니다.
+기록용으로 남겨 둔 것입니다. **실행하지 마세요.** v2 적용 뒤에 다시 실행하면 학원 구분 없는 예전 권한 정책이 되살아납니다.
+
+### v2 권한이 제대로 적용됐는지 확인
+
+SQL Editor에서 아래를 실행해 `policyname`이 `academy member`(또는 `academy owner`)만 나오면 정상입니다. `teacher manages …`가 보이면 `apera_v2.sql`을 다시 실행하세요.
+
+```sql
+select tablename, policyname from pg_policies
+where schemaname = 'public' and tablename in ('flash_cards','flash_decks','cards','students','questions')
+order by 1, 2;
+```
 
 ## 푸시 서버 다시 배포
 
