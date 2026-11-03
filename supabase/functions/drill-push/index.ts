@@ -81,7 +81,7 @@ Deno.serve(async(req)=>{
    let status='failed';
    try{
     if(!allowedEndpoint(s.endpoint))throw Error('invalid_endpoint');
-    const details=webpush.generateRequestDetails({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},JSON.stringify({...job.payload,tag:job.message}),{TTL:86400,urgency:'normal',vapidDetails:{subject:appUrl,publicKey:keys.public_key,privateKey:keys.private_key}});
+    const details=webpush.generateRequestDetails({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},JSON.stringify({...job.payload,tag:job.message}),{TTL:86400,urgency:'high',vapidDetails:{subject:appUrl,publicKey:keys.public_key,privateKey:keys.private_key}});
     const result=await fetch(details.endpoint,{method:details.method,headers:details.headers,body:details.body,redirect:'error',signal:AbortSignal.timeout(10000)});
     await result.body?.cancel();
     if(result.ok){sent++;status='sent'}else if(result.status===404||result.status===410){expired++;status='expired';await admin.from(job.kind==='student'?'drill_push_subscriptions':'parent_push_subscriptions').update({active:false}).eq('id',s.id)}else{failed++}
