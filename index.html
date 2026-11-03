@@ -101,7 +101,7 @@ p{margin:0}
 /* 로그인 화면(학생·학부모·선생님·원장): 흑백 카드 한 장. 빨강은 제호의 점에만 */
 .login{width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px;padding-top:12px;--cta:#c4161c}
 .login .brand{padding:18px 0 14px}
-.login .brand h1{font-size:52px}
+.login .brand h1{font-size:58px}
 .roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:var(--sheet);border:1px solid var(--rule)}
 .roles button{border:0;background:none;min-height:44px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;color:var(--muted)}
 .roles button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
@@ -243,6 +243,22 @@ p{margin:0}
 .post .a small{font-size:11.5px;color:var(--good);font-weight:600;letter-spacing:.04em}
 .post .a p{font-family:var(--f-serif);font-size:15px;white-space:pre-line;margin:0}
 .post .wait{font-size:12.5px;color:var(--faint)}
+/* 질문 사진 */
+.qphotos{display:flex;gap:8px;flex-wrap:wrap}
+.qph{position:relative;width:96px;height:96px;padding:0;border:1px solid var(--rule);background:var(--sheet);overflow:hidden;display:block;flex:none}
+.qph img{width:100%;height:100%;object-fit:cover;display:block}
+.qph button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.66);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}
+button.qph{cursor:zoom-in}
+.post .qph{width:124px;height:124px}
+.ask-right{display:flex;gap:14px;align-items:center}
+.qadd{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.qadd[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.qfoot{display:flex;justify-content:flex-end;gap:10px;align-items:center;font-size:12.5px;color:var(--faint)}
+.qfoot .linkbtn{font-size:12.5px}
+.qrep-n{font-size:12px;color:var(--bad);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:max(56px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom));cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;background:#fff}
+.lightbox button{position:absolute;top:max(10px,env(safe-area-inset-top));right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:22px;cursor:pointer}
 .ans-box{display:flex;flex-direction:column;gap:8px}
 .ans-box .row3{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .linkbtn{background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);padding:2px}
@@ -286,7 +302,7 @@ button.row:hover{background:var(--hover)}
 body{overflow-x:clip}
 .brand{gap:0;padding-top:34px}
 .brand h1 .dot{display:inline-block;width:.15em;height:.15em;background:var(--cta);margin-left:.07em;vertical-align:baseline}
-.brand h1{font-family:var(--f-mast);font-weight:900;font-size:68px;letter-spacing:.015em;line-height:1;margin:0}
+.brand h1{font-family:var(--f-mast);font-weight:900;font-size:76px;letter-spacing:.015em;line-height:1;margin:0}
 .brand h1 .logo{display:block;height:.672em;width:auto;max-width:100%;margin:0 auto;color:var(--ink)}
 .brand .kick{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:12.5px;font-weight:700;letter-spacing:.04em;margin-top:10px}
 .brand .kick b{color:var(--omr)}
@@ -328,8 +344,8 @@ body{overflow-x:clip}
 .stu .nm,.deck b,.post .qt,.unitrow .h b{font-weight:700}
 .fc-front{font-weight:900;font-size:26px}
 .rows,.posts,.roster,.decks,.schedule-list,.form{border-top:2px solid var(--rule-strong)}
-@media (min-width:700px){.brand h1{font-size:84px}.trigger{font-size:24px}}
-@media (max-width:380px){.brand h1{font-size:56px}.tabs{gap:16px}.tabs button{font-size:15px}}
+@media (min-width:700px){.brand h1{font-size:94px}.trigger{font-size:24px}}
+@media (max-width:380px){.brand h1{font-size:62px}.tabs{gap:16px}.tabs button{font-size:15px}}
 
 /* 테마 고르기 */
 body{background:var(--paper)}
@@ -609,6 +625,38 @@ function loc(){
 }
 function saveLoc(){ try{ localStorage.setItem(LKEY, JSON.stringify(local)); }catch(e){} }
 
+/* ===== 질문 사진: 올리기 전 기기에서 줄이고, 원본(긴 변 1600px)과 미리보기(480px)를 따로 저장 ===== */
+const QBUCKET = 'qna-photos';
+const qPhoto = (p, thumb) => /^data:/.test(p) ? p : `${SUPA_URL}/storage/v1/object/public/${QBUCKET}/${thumb ? p.replace(/\.jpg$/, '-t.jpg') : p}`;
+const uuid4 = () => (window.crypto?.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x' ? r : (r&3|8)).toString(16); }));
+async function loadImg(file){
+  if(window.createImageBitmap){ try{ return await createImageBitmap(file, {imageOrientation:'from-image'}); }catch(e){} }
+  return await new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => res(im); im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('img')); }; im.src = u; });
+}
+async function shrinkImg(img, max, q, limit){
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height, k = Math.min(1, max / Math.max(w0, h0));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0*k)); c.height = Math.max(1, Math.round(h0*k));
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+  let b, qq = q;
+  for(;;){ b = await new Promise(r => c.toBlob(r, 'image/jpeg', qq)); if(!b) throw new Error('img'); if(b.size <= limit || qq <= 0.45) break; qq -= 0.1; }
+  return b;
+}
+async function preparePhoto(file){
+  const img = await loadImg(file);
+  const full = await shrinkImg(img, DEMO ? 1000 : 1600, 0.82, DEMO ? 160e3 : 420e3), thumb = await shrinkImg(img, 480, 0.72, 70e3);
+  return {full, thumb, url: URL.createObjectURL(thumb)};
+}
+const blobToData = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
+function openPhoto(src){
+  const d = document.createElement('div'); d.className = 'lightbox'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', '사진 크게 보기');
+  const im = document.createElement('img'); im.alt = '질문 사진'; im.src = src;
+  const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', '닫기'); x.textContent = '×';
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc1); };
+  const esc1 = e => { if(e.key === 'Escape') close(); };
+  d.onclick = close; document.addEventListener('keydown', esc1);
+  d.append(im, x); document.body.appendChild(d); x.focus();
+}
+
 /* ===== 데이터 계층: 데모(기기 저장) / 서버(Supabase) ===== */
 const sb = (!DEMO && window.supabase) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
 function demoDB(){
@@ -715,21 +763,46 @@ const API = {
   async qnaList(){
     if(DEMO){
       const db = demoDB();
-      return db.qna.slice().sort((a,b)=>b.created_at-a.created_at).map(q=>{const st=db.students[q.sid]||{nick:'?',grade:''};const c=SAMPLE_CARDS.find(x=>x.id===q.card_id);
-        return {id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, nick:st.nick, grade:st.grade, card_tag:c?.tag||null, card_unit:c?.unit||null, mine:q.sid===S.me?.id};});
+      const reps = db.qnaReports||{};
+      return db.qna.filter(q=>q.sid===S.me?.id || (reps[q.id]||[]).length<3).sort((a,b)=>b.created_at-a.created_at).map(q=>{const st=db.students[q.sid]||{nick:'?',grade:''};const c=SAMPLE_CARDS.find(x=>x.id===q.card_id);
+        return {id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, nick:st.nick, grade:st.grade, card_tag:c?.tag||null, card_unit:c?.unit||null, mine:q.sid===S.me?.id, photos:q.photos||[], reported:(reps[q.id]||[]).includes(S.me?.id)};});
     }
     const {data, error} = await sb.rpc('qna_list', {p_code: S.code, p_student: S.me.id});
     if(error) throw new Error('network');
-    return data.map(q=>({...q, created_at: Date.parse(q.created_at)}));
+    return data.map(q=>({...q, photos:q.photos||[], created_at: Date.parse(q.created_at)}));
   },
-  async qnaPost(body, cardId){
+  async qnaPost(body, cardId, photos){
+    photos = photos || [];
     if(DEMO){
       const db = demoDB(), mine = db.qna.filter(q=>q.sid===S.me.id && q.created_at>Date.now()-864e5).length;
       if(mine>=10) throw new Error('too_many');
-      db.qna.push({id: Date.now(), sid:S.me.id, card_id:cardId, body, answer:null, created_at:Date.now()}); saveLoc(); return;
+      const ph = []; for(const p of photos) ph.push(await blobToData(p.full));
+      db.qna.push({id: Date.now(), sid:S.me.id, card_id:cardId, body, answer:null, created_at:Date.now(), photos:ph}); saveLoc(); return;
     }
-    const {error} = await sb.rpc('qna_post', {p_code: S.code, p_student: S.me.id, p_body: body, p_card: cardId});
-    if(error) throw new Error(/too_many/.test(error.message) ? 'too_many' : 'network');
+    const paths = [];
+    if(photos.length){
+      const {data:dir, error:de} = await sb.rpc('qna_photo_dir', {p_code: S.code, p_student: S.me.id});
+      if(de || !dir) throw new Error('network');
+      const opt = {contentType:'image/jpeg', upsert:false, cacheControl:'31536000'};
+      for(const p of photos){
+        const base = `${dir}/${uuid4()}`;
+        let r = await sb.storage.from(QBUCKET).upload(base+'-t.jpg', p.thumb, opt); if(r.error) throw new Error('photo');
+        r = await sb.storage.from(QBUCKET).upload(base+'.jpg', p.full, opt); if(r.error) throw new Error('photo');
+        paths.push(base+'.jpg');
+      }
+    }
+    const {error} = await sb.rpc('qna_post', {p_code: S.code, p_student: S.me.id, p_body: body, p_card: cardId, p_photos: paths});
+    if(error) throw new Error(/too_many_photos/.test(error.message) ? 'photo' : /too_many/.test(error.message) ? 'too_many' : 'network');
+  },
+  async qnaReport(id){
+    if(DEMO){ const db = demoDB(); db.qnaReports = db.qnaReports||{}; const a = db.qnaReports[id] = db.qnaReports[id]||[]; if(!a.includes(S.me.id)) a.push(S.me.id); saveLoc(); return; }
+    const {error} = await sb.rpc('qna_report', {p_code: S.code, p_student: S.me.id, p_question: id});
+    if(error) throw new Error('network');
+  },
+  async qnaClearReports(id){
+    if(DEMO){ const db = demoDB(); if(db.qnaReports) delete db.qnaReports[id]; saveLoc(); return; }
+    const {error} = await sb.from('question_reports').delete().eq('question_id', id);
+    if(error) throw new Error('network');
   },
   async qnaAnswer(id, text){
     const answer = text.trim() || null, at = answer ? new Date().toISOString() : null;
@@ -738,28 +811,32 @@ const API = {
     if(error) throw new Error('network');
   },
   async qnaDelete(id){
-    if(DEMO){ const db = demoDB(); db.qna = db.qna.filter(x=>x.id!==id); saveLoc(); return; }
+    if(DEMO){ const db = demoDB(); db.qna = db.qna.filter(x=>x.id!==id); if(db.qnaReports) delete db.qnaReports[id]; saveLoc(); return; }
+    const q = S.admin?.qna.find(x=>x.id===id), files = (q?.photos||[]).flatMap(p=>[p, p.replace(/\.jpg$/, '-t.jpg')]);
+    if(files.length){ try{ await sb.storage.from(QBUCKET).remove(files); }catch(e){} }
     const {error} = await sb.from('questions').delete().eq('id', id);
     if(error) throw new Error('network');
   },
   async adminData(){
     if(DEMO){
       const db = demoDB();
-      const qna = db.qna.map(q=>({id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, card_id:q.card_id, student_id:q.sid}));
+      const qna = db.qna.map(q=>({id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, card_id:q.card_id, student_id:q.sid, photos:q.photos||[], reports:((db.qnaReports||{})[q.id]||[]).length}));
       return {students: Object.values(db.students).map(s=>({...s, approved:s.approved!==false})), cards: SAMPLE_CARDS, entryCode: DEMO_CODE, qna, teacherName: loc().demoTeacher||'김건'};
     }
     const {data:{user}} = await sb.auth.getUser(), aid = AID();
     if(!aid) throw new Error('not_teacher');
-    const [st, cd, se, qs] = await Promise.all([
+    const [st, cd, se, qs, qr] = await Promise.all([
       sb.from('students').select('*').eq('academy_id', aid),
       sb.from('cards').select('*').eq('academy_id', aid).order('sort'),
       sb.from('academies').select('code').eq('id', aid).maybeSingle(),
-      sb.from('questions').select('id,body,answer,created_at,card_id,student_id').eq('academy_id', aid).order('created_at', {ascending:false}).limit(300)
+      sb.from('questions').select('id,body,answer,created_at,card_id,student_id,photos').eq('academy_id', aid).order('created_at', {ascending:false}).limit(300),
+      sb.from('question_reports').select('question_id').eq('academy_id', aid)
     ]);
+    const repN = {}; (qr.data||[]).forEach(r=>{ repN[r.question_id]=(repN[r.question_id]||0)+1; });
     if(st.error || cd.error) throw new Error('network');
     if(!se.data) throw new Error('not_teacher');
     const tn = {data:{name:S.academy.name_me}};
-    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.code, qna: (qs.data||[]).map(q=>({...q, created_at: Date.parse(q.created_at)})), teacherName: tn.error?null:(tn.data?.name||null), email:user?.email||''};
+    return {students: st.data.map(fromRow), cards: cd.data, entryCode: se.data.code, qna: (qs.data||[]).map(q=>({...q, photos:q.photos||[], reports:repN[q.id]||0, created_at: Date.parse(q.created_at)})), teacherName: tn.error?null:(tn.data?.name||null), email:user?.email||''};
   }
 };
 
@@ -892,12 +969,14 @@ const ago = t => { const m = Math.round((Date.now()-t)/6e4); return m<1?'방금'
 function vQna(){
   const list = S.qna;
   const card = S.qnaCard ? CARDS.find(c=>c.id===S.qnaCard) : null;
-  const shown = list ? list.filter(q=>!S.qnaMine||q.mine) : null;
+  const shown = list ? list.filter(q=>!S.qnaMine||q.mine) : null, qPh = S.qPhotos||[];
   return `<section class="ask-box">
     <span class="label">질문하기 · 모든 학년이 함께 봐요</span>
-    <textarea id="qbody" maxlength="500" placeholder="모르는 문제나 개념을 물어보세요. 선생님이 답해 줄게요.">${esc(S.form.q)}</textarea>
+    <textarea id="qbody" maxlength="500" placeholder="모르는 문제나 개념을 물어보세요.">${esc(S.form.q)}</textarea>
+    ${qPh.length?`<div class="qphotos">${qPh.map((p,i)=>`<span class="qph"><img src="${p.url}" alt="첨부한 사진 ${i+1}"><button data-qphrm="${i}" aria-label="사진 ${i+1} 빼기">×</button></span>`).join('')}</div>`:''}
     <div class="ask-meta"><span>${card?`<span class="attach">${esc(card.tag)} · ${unitName(card.unit)}<button data-act="qnaDetach" aria-label="문제 첨부 빼기">×</button></span>`:`<span class="mono" id="qcount">${S.form.q.length}/500</span>`}</span>
-      <button class="btn sm" data-act="qnaPost" ${S.busy?'disabled':''}>${S.busy?'올리는 중…':'올리기'}</button></div>
+      <span class="ask-right"><label class="linkbtn qadd" aria-disabled="${qPh.length>=2||S.photoBusy||S.busy}">${S.photoBusy?'사진 줄이는 중…':`사진 추가 ${qPh.length}/2`}<input type="file" id="qphoto" accept="image/*" multiple hidden></label>
+      <button class="btn sm" data-act="qnaPost" ${S.busy||S.photoBusy?'disabled':''}>${S.busy?'올리는 중…':'올리기'}</button></span></div>
     ${S.qnaErr?`<p class="err">${esc(S.qnaErr)}</p>`:''}
     ${S.toast?`<p class="selnote" style="color:var(--good)">${esc(S.toast)}</p>`:''}
   </section>
@@ -906,9 +985,14 @@ function vQna(){
    shown.length?`<div class="posts">${shown.map(q=>`<article class="post">
       <div class="who"><span><b>${esc(q.nick)}</b>${esc(q.grade)}${q.mine?'<span class="me">내 질문</span>':''}</span><span>${ago(q.created_at)}</span></div>
       ${q.card_tag?`<span class="ref">${esc(q.card_tag)} · ${unitName(q.card_unit)}</span>`:''}
-      <p class="qt">${esc(q.body)}</p>
+      ${q.body?`<p class="qt">${esc(q.body)}</p>`:''}
+      ${qPhotoStrip(q)}
       ${q.answer?`<div class="a"><small>선생님 답변</small><p>${esc(q.answer)}</p></div>`:'<span class="wait">답변을 기다리는 중이에요</span>'}
+      ${q.mine?'':`<div class="qfoot">${q.reported?'신고했어요':S.confirmRep===q.id?`<span>이 질문을 신고할까요?</span><button class="linkbtn danger" data-qrep="${q.id}">신고</button><button class="linkbtn" data-act="cancelRep">취소</button>`:`<button class="linkbtn" data-askrep="${q.id}">신고</button>`}</div>`}
     </article>`).join('')}</div>`:`<p class="lede" style="padding:14px 0">${S.qnaMine?'아직 올린 질문이 없어요.':'아직 질문이 없어요. 첫 질문을 올려 보세요.'}</p>`}`;
+}
+function qPhotoStrip(q){
+  return (q.photos||[]).length ? `<div class="qphotos">${q.photos.map((p,i)=>`<button class="qph" data-qview="${q.id}:${i}" aria-label="사진 ${i+1} 크게 보기"><img src="${esc(qPhoto(p,true))}" alt="질문 사진 ${i+1}" loading="lazy"></button>`).join('')}</div>` : '';
 }
 async function loadQna(){
   S.qna = null; render();
@@ -923,7 +1007,9 @@ function vAdminQna(){
     return `<article class="post">
       <div class="who"><span><b>${esc(st.nick)}</b>${esc(st.grade)}</span><span>${ago(q.created_at)}</span></div>
       ${c?`<span class="ref">${esc(c.tag)} · ${unitName(c.unit)}</span>`:''}
-      <p class="qt">${esc(q.body)}</p>
+      ${q.reports?`<span class="qrep-n">신고 ${q.reports}건${q.reports>=3?' · 학생들에게 숨겨짐':''}<button class="linkbtn" data-qclear="${q.id}">신고 해제</button></span>`:''}
+      ${q.body?`<p class="qt">${esc(q.body)}</p>`:''}
+      ${qPhotoStrip(q)}
       ${editing||!q.answer?`<div class="ans-box"><textarea data-ans="${q.id}" maxlength="2000" placeholder="답변 쓰기">${esc(editing?S.ans[q.id]:(q.answer||''))}</textarea>
         <div class="row3">${S.confirmDel===q.id?`<span class="selnote">이 질문을 지울까요?</span><button class="linkbtn danger" data-del="${q.id}">지우기</button><button class="linkbtn" data-act="cancelDel">취소</button>`:`<button class="linkbtn danger" data-askdel="${q.id}">질문 지우기</button>`}
         ${editing&&q.answer?`<button class="linkbtn" data-cancelans="${q.id}">취소</button>`:''}<button class="btn sm" data-saveans="${q.id}">답변 저장</button></div></div>`
@@ -1158,6 +1244,29 @@ function bind(){
   app.querySelectorAll('[data-yr]').forEach(b=>b.onclick=()=>{S.grade=S.grade[0]+b.dataset.yr; render();});
   const qb = document.getElementById('qbody');
   if(qb) qb.oninput = () => { S.form.q = qb.value; const qc = document.getElementById('qcount'); if(qc) qc.textContent = qb.value.length+'/500'; };
+  const qp = document.getElementById('qphoto');
+  if(qp) qp.onchange = async () => {
+    S.qPhotos = S.qPhotos||[];
+    const files = [...qp.files].slice(0, 2-S.qPhotos.length); qp.value = '';
+    if(!files.length) return;
+    S.qnaErr=''; S.toast=''; S.photoBusy = true; render();
+    try{ for(const f of files) S.qPhotos.push(await preparePhoto(f)); }
+    catch(e){ S.qnaErr = '이 사진은 열 수 없어요. 다른 사진으로 해 주세요.'; }
+    S.photoBusy = false; render();
+  };
+  app.querySelectorAll('[data-qphrm]').forEach(b=>b.onclick=()=>{ const p=S.qPhotos.splice(+b.dataset.qphrm,1)[0]; if(p) URL.revokeObjectURL(p.url); render(); });
+  app.querySelectorAll('[data-qview]').forEach(b=>b.onclick=()=>{ const [id,i]=b.dataset.qview.split(':'), q=(S.qna||[]).concat(S.admin?.qna||[]).find(x=>String(x.id)===id); if(q&&q.photos[+i]) openPhoto(qPhoto(q.photos[+i])); });
+  app.querySelectorAll('[data-askrep]').forEach(b=>b.onclick=()=>{ S.confirmRep=+b.dataset.askrep; render(); });
+  app.querySelectorAll('[data-qrep]').forEach(b=>b.onclick=async()=>{
+    const id=+b.dataset.qrep; b.disabled=true;
+    try{ await API.qnaReport(id); const q=(S.qna||[]).find(x=>x.id===id); if(q) q.reported=true; S.confirmRep=null; }catch(e){ b.disabled=false; b.textContent='실패 · 다시'; return; }
+    render();
+  });
+  app.querySelectorAll('[data-qclear]').forEach(b=>b.onclick=async()=>{
+    const id=+b.dataset.qclear; b.disabled=true;
+    try{ await API.qnaClearReports(id); const q=S.admin.qna.find(x=>x.id===id); if(q) q.reports=0; }catch(e){ b.disabled=false; b.textContent='실패 · 다시'; return; }
+    render();
+  });
   app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; S.toast=''; if(S.tab==='qna') loadQna(); else render(); });
   app.querySelectorAll('[data-news]').forEach(b=>b.onclick=()=>{ S.news=b.dataset.news; S.toast=''; if(S.news==='qna') loadQna(); else render(); });
   app.querySelectorAll('[data-atab]').forEach(b=>b.onclick=()=>{ S.adminTab=b.dataset.atab; S.confirmDel=null; render(); });
@@ -1203,17 +1312,18 @@ function bind(){
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
     else if(a==='cancelDel'){ S.confirmDel=null; render(); }
+    else if(a==='cancelRep'){ S.confirmRep=null; render(); }
     else if(a==='askThis'){ S.qnaCard = c.id; S.tab='qna'; S.toast=''; go('home'); loadQna(); }
     else if(a==='qnaDetach'){ S.qnaCard=null; render(); }
     else if(a==='qnaAll'){ S.qnaMine=false; render(); }
     else if(a==='qnaMineOnly'){ S.qnaMine=true; render(); }
     else if(a==='qnaReload') loadQna();
     else if(a==='qnaPost'){
-      const body = S.form.q.trim();
-      if(body.length<2){ S.qnaErr='질문을 두 글자 이상 써 주세요.'; S.toast=''; return render(); }
+      const body = S.form.q.trim(), ph = S.qPhotos||[];
+      if(body.length<2 && !ph.length){ S.qnaErr='질문을 두 글자 이상 쓰거나 사진을 붙여 주세요.'; S.toast=''; return render(); }
       S.busy=true; S.qnaErr=''; render();
-      try{ await API.qnaPost(body, S.qnaCard); S.form.q=''; S.qnaCard=null; S.busy=false; S.toast='질문을 올렸어요.'; await loadQna(); }
-      catch(e){ S.busy=false; S.qnaErr = e.message==='too_many' ? '질문은 하루에 10개까지 올릴 수 있어요.' : '질문을 올리지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); }
+      try{ await API.qnaPost(body, S.qnaCard, ph); ph.forEach(p=>URL.revokeObjectURL(p.url)); S.qPhotos=[]; S.form.q=''; S.qnaCard=null; S.busy=false; S.toast='질문을 올렸어요.'; await loadQna(); }
+      catch(e){ S.busy=false; S.qnaErr = e.message==='too_many' ? '질문은 하루에 10개까지 올릴 수 있어요.' : e.message==='photo' ? '사진을 올리지 못했어요. 잠시 뒤 다시 해 주세요.' : '질문을 올리지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); }
     }
   });
 }
