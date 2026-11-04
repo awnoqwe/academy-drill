@@ -136,6 +136,8 @@ create table if not exists public.flash_states (
  ivl int not null default 0 check (ivl between 0 and 36500), ease int not null default 2500 check (ease between 1300 and 9999),
  reps int not null default 0, lapses int not null default 0, due timestamptz not null, updated_at timestamptz not null default now(),
  primary key (student_id, card_id));
+-- FSRS 기억 상태(안정도·난이도·마지막 복습). 비어 있으면 앱이 예전 간격·ease로 어림한다.
+alter table public.flash_states add column if not exists stability real, add column if not exists difficulty real, add column if not exists last_review timestamptz;
 create table if not exists public.flash_logs (
  id uuid primary key, student_id uuid not null references public.students on delete cascade, card_id uuid not null references public.flash_cards on delete cascade,
  rating smallint not null check (rating in (1,3,4)), kind text not null check (kind in ('new','learn','review','relearn')),
@@ -422,7 +424,8 @@ begin
    from public.flash_decks d where d.academy_id = aid and g = any (d.grades)), '[]'::jsonb),
   'cards', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'deck_id', c.deck_id, 'front', c.front, 'back', c.back, 'links', c.links) order by d.sort, c.sort, c.created_at)
    from public.flash_cards c join public.flash_decks d on d.id = c.deck_id where d.academy_id = aid and g = any (d.grades)), '[]'::jsonb),
-  'states', coalesce((select jsonb_agg(jsonb_build_object('card_id', f.card_id, 'queue', f.queue, 'step', f.step, 'ivl', f.ivl, 'ease', f.ease, 'reps', f.reps, 'lapses', f.lapses, 'due', f.due))
+  'states', coalesce((select jsonb_agg(jsonb_build_object('card_id', f.card_id, 'queue', f.queue, 'step', f.step, 'ivl', f.ivl, 'ease', f.ease, 'reps', f.reps, 'lapses', f.lapses, 'due', f.due,
+    'stability', f.stability, 'difficulty', f.difficulty, 'last_review', f.last_review))
    from public.flash_states f where f.student_id = sid), '[]'::jsonb),
   'new_today', coalesce((select jsonb_agg(l.card_id) from public.flash_logs l where l.student_id = sid and l.kind = 'new' and l.reviewed_at >= p_since), '[]'::jsonb));
 end $$;
@@ -438,10 +441,12 @@ begin
  values (p_log, sid, p_card, p_rating, p_kind, p_ivl_before, (p_state->>'log_ivl')::int, (p_state->>'ease')::int, least(greatest(coalesce(p_elapsed, 0), 0), 3600000))
  on conflict (id) do nothing;
  get diagnostics n = row_count; if n = 0 then return; end if;
- insert into public.flash_states (student_id, card_id, queue, step, ivl, ease, reps, lapses, due, updated_at)
- values (sid, p_card, p_state->>'queue', (p_state->>'step')::int, (p_state->>'ivl')::int, (p_state->>'ease')::int, (p_state->>'reps')::int, (p_state->>'lapses')::int, (p_state->>'due')::timestamptz, now())
+ insert into public.flash_states (student_id, card_id, queue, step, ivl, ease, reps, lapses, due, updated_at, stability, difficulty, last_review)
+ values (sid, p_card, p_state->>'queue', (p_state->>'step')::int, (p_state->>'ivl')::int, (p_state->>'ease')::int, (p_state->>'reps')::int, (p_state->>'lapses')::int, (p_state->>'due')::timestamptz, now(),
+  (p_state->>'stability')::real, (p_state->>'difficulty')::real, (p_state->>'last_review')::timestamptz)
  on conflict (student_id, card_id) do update set queue = excluded.queue, step = excluded.step, ivl = excluded.ivl, ease = excluded.ease,
-  reps = excluded.reps, lapses = excluded.lapses, due = excluded.due, updated_at = now();
+  reps = excluded.reps, lapses = excluded.lapses, due = excluded.due, updated_at = now(),
+  stability = excluded.stability, difficulty = excluded.difficulty, last_review = excluded.last_review;
  update public.students set last_seen = now() where id = sid;
 end $$;
 
@@ -674,7 +679,8 @@ begin
  insert into public.drill_event_recipients (event_id, student_id, read_at) select event_id, b.id, read_at from public.drill_event_recipients where student_id = a.id on conflict do nothing;
  delete from public.drill_student_sessions where student_id = a.id;
  update public.drill_push_subscriptions set student_id = b.id where student_id = a.id;
- insert into public.flash_states select b.id, card_id, queue, step, ivl, ease, reps, lapses, due, updated_at from public.flash_states where student_id = a.id on conflict do nothing;
+ insert into public.flash_states (student_id, card_id, queue, step, ivl, ease, reps, lapses, due, updated_at, stability, difficulty, last_review)
+  select b.id, card_id, queue, step, ivl, ease, reps, lapses, due, updated_at, stability, difficulty, last_review from public.flash_states where student_id = a.id on conflict do nothing;
  update public.flash_logs set student_id = b.id where student_id = a.id;
  insert into public.drill_homework_recipients (homework_id, student_id, done_at, academy_id) select homework_id, b.id, done_at, academy_id from public.drill_homework_recipients where student_id = a.id
  on conflict (homework_id, student_id) do update set done_at = coalesce(drill_homework_recipients.done_at, excluded.done_at);

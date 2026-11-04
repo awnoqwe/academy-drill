@@ -452,7 +452,7 @@ body{background:var(--paper)}
 .stu[aria-pressed="true"] .pk{background:var(--cta);border-color:var(--cta)}
 .stu[aria-pressed="true"] .pk::after{content:"";width:5px;height:9px;border:solid var(--cta-ink);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
 .fc-file{display:block;text-align:center;cursor:pointer}
-#fcFileNote:empty{display:none}
+#fcFileNote:empty,#fdFileNote:empty{display:none}
 /* 학부모 */
 .kid-seg button{display:flex;flex-direction:column;align-items:center;gap:0;padding-block:7px;line-height:1.3}
 .kid-seg small{font-size:11px;opacity:.75}
@@ -1427,41 +1427,69 @@ const bindBeforePush=bindSchedule;bindSchedule=function(){bindBeforePush();if(DE
 };
 if(new URLSearchParams(location.search).get('view')==='notifications')S.tab='notice';
 
-/* ===== 플래시카드 (안키 방식 · 버튼 3개: 다시 / 알맞음 / 쉬움) =====
-   간격 규칙은 안키 기본 설정과 같다: 학습 단계 1분·10분, 졸업 1일, 쉬움 졸업 4일,
-   시작 난이도 250%, 복습에서 다시 −20%(최저 130%) 후 10분 재학습·1일, 쉬움 +15%·×1.3, 7일 이상은 간격을 조금 흔든다.
-   '어려움'은 학생용으로 뺐다. 하루는 새벽 4시에 바뀐다.
-   모든 답은 flash_logs에 안키 번호(1·3·4)로 남겨 두어 나중에 FSRS로 옮길 수 있다. */
-const FL = {steps:[60,600], relearn:[600], grad:1, easy:4, ease0:2500, easeMin:1300, easyBonus:1.3, maxIvl:36500, aheadSec:1200, rollover:4};
+/* ===== 플래시카드 (FSRS-6 · 버튼 3개: 다시 / 알맞음 / 쉬움) =====
+   기억 모델은 FSRS-6 기본 파라미터(안정도 S·난이도 D·기억 확률 R)로, 목표 기억률 90%가 되는 날에 복습을 잡는다.
+   FSRS는 공개된 알고리즘을 여기서 직접 구현했다(안키 코드는 쓰지 않음). 처음 배우는 카드는 안키처럼 1분·10분 단계를 거치고,
+   복습에서 틀리면 10분 재학습 뒤 FSRS 간격으로 돌아간다. 하루는 새벽 4시에 바뀌고, 3일 이상 간격은 조금 흔든다.
+   예전(SM-2) 기록은 다음 복습 때 간격·난이도(ease)로 S·D를 어림해 이어 간다.
+   모든 답은 flash_logs에 번호(1·3·4)와 시각으로 남아, 나중에 학생 기록으로 파라미터를 최적화할 수 있다. */
+const FL = {steps:[60,600], relearn:[600], maxIvl:36500, aheadSec:1200, rollover:4, retention:0.9};
+const FSRS_W = [0.212,1.2931,2.3065,8.2956,6.4133,0.8334,3.0194,0.001,1.8722,0.1666,0.796,1.4835,0.0614,0.2629,1.6483,0.6014,1.8729,0.5425,0.0912,0.0658,0.1542];
 const DAY = 864e5;
 function flDayStart(t=Date.now()){const d=new Date(t);d.setHours(FL.rollover,0,0,0);if(d.getTime()>t)d.setDate(d.getDate()-1);return d.getTime();}
 function flDayAt(days,now){const d=new Date(flDayStart(now));d.setDate(d.getDate()+days);return d.getTime();}
 function flFuzz(ivl){if(ivl<3)return ivl;const f=ivl<7?1:ivl<30?Math.max(2,Math.round(ivl*.15)):Math.max(4,Math.round(ivl*.05));return ivl-f+Math.floor(Math.random()*(2*f+1));}
 const flCap = i => Math.min(FL.maxIvl, Math.max(1, Math.round(i)));
+// FSRS-6 식
+const fsW = FSRS_W, fsDecay = -fsW[20], fsFactor = Math.pow(0.9, 1/fsDecay) - 1;
+const fsClampD = d => Math.min(10, Math.max(1, d));
+const fsClampS = v => Math.min(FL.maxIvl, Math.max(0.001, v));
+const fsR = (t, st) => Math.pow(1 + fsFactor*t/st, fsDecay);                       // t일 지난 뒤 기억 확률
+const fsIvl = st => flCap(st/fsFactor*(Math.pow(FL.retention, 1/fsDecay) - 1));    // 기억률이 목표까지 떨어지는 날
+const fsD0raw = g => fsW[4] - Math.exp(fsW[5]*(g-1)) + 1;
+const fsS0 = g => fsClampS(fsW[g-1]);
+const fsNextD = (d, g) => { const dp = d + (-fsW[6]*(g-3))*(10-d)/9; return fsClampD(fsW[7]*fsD0raw(4) + (1-fsW[7])*dp); };
+const fsRecallS = (st, d, r, g) => fsClampS(st*(1 + Math.exp(fsW[8])*(11-d)*Math.pow(st,-fsW[9])*(Math.exp(fsW[10]*(1-r))-1)*(g===4?fsW[16]:1)));
+const fsForgetS = (st, d, r) => fsClampS(Math.min(fsW[11]*Math.pow(d,-fsW[12])*(Math.pow(st+1,fsW[13])-1)*Math.exp(fsW[14]*(1-r)), st/Math.exp(fsW[17]*fsW[18])));
+const fsShortS = (st, g) => { let k = Math.exp(fsW[17]*(g-3+fsW[18]))*Math.pow(st,-fsW[19]); if(g>=3) k = Math.max(k,1); return fsClampS(st*k); };
+// 예전 SM-2 상태에서 S·D 어림: 90% 목표에서 간격 ≈ S, ease 250% ≈ D 5, 130% ≈ D 10
+function fsFromLegacy(s){
+  if(s.stab>0 && s.diff>0) return;
+  s.diff = fsClampD(5 + (2500-(s.ease||2500))/1000*4.17);
+  s.stab = s.queue==='learn' ? fsS0(3) : fsClampS(Math.max(1, s.ivl||1));
+  if(!s.last) s.last = s.queue==='review' ? s.due - (s.ivl||1)*DAY : s.due;
+}
+// 이 답 뒤의 기억 상태(S·D)
+function fsMemory(s, g, now){
+  if(!(s.stab>0)){ s.stab = fsS0(g); s.diff = fsClampD(fsD0raw(g)); s.last = now; return; }
+  const t = Math.max(0, Math.round((flDayStart(now)-flDayStart(s.last||now))/DAY));
+  const st = s.stab, d = s.diff;
+  if(t===0) s.stab = fsShortS(st, g);
+  else { const r = fsR(t, st); s.stab = g===1 ? fsForgetS(st, d, r) : fsRecallS(st, d, r, g); }
+  s.diff = fsNextD(d, g); s.last = now;
+}
 // st: 지금 상태(없으면 새 카드) · rating: 1 다시, 3 알맞음, 4 쉬움 · fuzz=false는 버튼에 보여 줄 간격 계산용
 function flNext(st, rating, now, fuzz=true){
-  const s = st ? {...st} : {queue:'new', step:0, ivl:0, ease:FL.ease0, reps:0, lapses:0, due:now};
+  const s = st ? {...st} : {queue:'new', step:0, ivl:0, ease:2500, reps:0, lapses:0, due:now};
   const kind = s.queue;
   const before = kind==='review' ? s.ivl : kind==='new' ? 0 : -((kind==='relearn'?FL.relearn:FL.steps)[s.step]||0);
+  if(kind!=='new') fsFromLegacy(s);
+  // 쉬움 간격이 알맞음보다 길도록, 알맞음을 눌렀을 때의 간격을 먼저 구해 둔다
+  const goodIvl = (()=>{ if(rating!==4) return 0; const t={...s}; fsMemory(t, 3, now); return fsIvl(t.stab); })();
+  fsMemory(s, rating, now);
   s.reps++;
+  const fz = ivl => fuzz ? flFuzz(ivl) : ivl;
   const learn = (q, steps, step) => { s.queue=q; s.step=step; s.due=now+steps[step]*1000; };
-  const review = ivl => { s.queue='review'; s.step=0; s.ivl=Math.min(FL.maxIvl,ivl); s.due=flDayAt(s.ivl,now); };
-  if(kind==='new' || kind==='learn'){
-    if(rating===1) learn('learn', FL.steps, 0);
-    else if(rating===4) review(FL.easy);
-    else { const n=s.step+1; n<FL.steps.length ? learn('learn', FL.steps, n) : review(FL.grad); }
-  } else if(kind==='relearn'){
-    if(rating===1) learn('relearn', FL.relearn, 0);
-    else if(rating===4) review(s.ivl+1);
-    else { const n=s.step+1; n<FL.relearn.length ? learn('relearn', FL.relearn, n) : review(s.ivl); }
+  const review = ivl => { s.queue='review'; s.step=0; s.ivl=Math.min(FL.maxIvl, Math.max(1, ivl)); s.due=flDayAt(s.ivl,now); };
+  const ivlFor = () => rating===4 ? Math.max(fsIvl(s.stab), goodIvl+1) : fsIvl(s.stab);
+  if(kind==='new' || kind==='learn' || kind==='relearn'){
+    const steps = kind==='relearn' ? FL.relearn : FL.steps, q = kind==='relearn' ? 'relearn' : 'learn';
+    if(rating===1) learn(q, steps, 0);
+    else if(rating===4) review(fz(ivlFor()));
+    else { const n=(kind==='new'?0:s.step)+1; n<steps.length ? learn(q, steps, n) : review(fz(ivlFor())); }
   } else {
-    const late = Math.max(0, Math.round((flDayStart(now)-flDayStart(st.due))/DAY));
-    if(rating===1){ s.lapses++; s.ease=Math.max(FL.easeMin, s.ease-200); s.ivl=1; learn('relearn', FL.relearn, 0); }
-    else {
-      const good = Math.max(s.ivl+1, flCap((s.ivl+late/2)*s.ease/1000));
-      if(rating===3) review(fuzz ? Math.max(s.ivl+1, flFuzz(good)) : good);
-      else { const easy=Math.max(good+1, flCap((s.ivl+late)*s.ease/1000*FL.easyBonus)); s.ease+=150; review(fuzz ? Math.max(good+1, flFuzz(easy)) : easy); }
-    }
+    if(rating===1){ s.lapses++; s.ivl=fsIvl(s.stab); learn('relearn', FL.relearn, 0); }
+    else review(rating===4 ? Math.max(fz(ivlFor()), goodIvl+1) : fz(ivlFor()));
   }
   return {state:s, kind, before, logIvl: s.queue==='review' ? s.ivl : -Math.round((s.due-now)/1000)};
 }
@@ -1529,7 +1557,7 @@ Object.assign(API, {
     if(!S.scheduleToken) throw {message:'session_expired'};
     const {data,error} = await sb.rpc('flash_student_load', {p_token:S.scheduleToken, p_since:new Date(since).toISOString()});
     if(error) throw error;
-    const states={}; (data.states||[]).forEach(x=>{states[x.card_id]={queue:x.queue,step:x.step,ivl:x.ivl,ease:x.ease,reps:x.reps,lapses:x.lapses,due:flMs(x.due)};});
+    const states={}; (data.states||[]).forEach(x=>{states[x.card_id]={queue:x.queue,step:x.step,ivl:x.ivl,ease:x.ease,reps:x.reps,lapses:x.lapses,due:flMs(x.due),stab:x.stability||0,diff:x.difficulty||0,last:x.last_review?flMs(x.last_review):0};});
     return {decks:data.decks||[], cards:(data.cards||[]).map(c=>({...c,links:c.links||[]})), states, newToday:new Set(data.new_today||[])};
   },
   async flashReview(p){
@@ -1537,7 +1565,7 @@ Object.assign(API, {
       const db=flDemo(), sid=p.sid; if(db.flash.logs.some(l=>l.id===p.log)) return;
       const {log_ivl, ...state}=p.state;
       db.flash.logs.push({id:p.log,student_id:sid,card_id:p.card,rating:p.rating,kind:p.kind,ivl_before:p.before,ivl_after:log_ivl,ease_after:state.ease,elapsed_ms:p.elapsed,reviewed_at:p.at});
-      (db.flash.states[sid] ||= {})[p.card] = {...state, due:flMs(state.due)}; saveLoc(); return;
+      const {stability, difficulty, last_review, ...rest}=state; (db.flash.states[sid] ||= {})[p.card] = {...rest, due:flMs(state.due), stab:stability||0, diff:difficulty||0, last:last_review?flMs(last_review):0}; saveLoc(); return;
     }
     const {error} = await sb.rpc('flash_review', {p_token:S.scheduleToken, p_log:p.log, p_card:p.card, p_rating:p.rating, p_kind:p.kind, p_ivl_before:p.before, p_elapsed:p.elapsed, p_state:p.state});
     if(error) throw error;
@@ -1631,7 +1659,8 @@ function flAnswer(rating){
   FC.states[c.id]=r.state; f.done++;
   if(r.kind==='new'){ FC.newToday.add(c.id); const p=flPri(); if(p.delete(c.id)) flSetPri(p); }
   flPending().push({log:flUuid(), card:c.id, rating, kind:r.kind, before:r.before, elapsed:Math.min(now-f.t0,3600000), at:now,
-    state:{queue:r.state.queue, step:r.state.step, ivl:r.state.ivl, ease:r.state.ease, reps:r.state.reps, lapses:r.state.lapses, due:new Date(r.state.due).toISOString(), log_ivl:r.logIvl}});
+    state:{queue:r.state.queue, step:r.state.step, ivl:r.state.ivl, ease:r.state.ease, reps:r.state.reps, lapses:r.state.lapses, due:new Date(r.state.due).toISOString(), log_ivl:r.logIvl,
+      stability:r.state.stab, difficulty:r.state.diff, last_review:new Date(r.state.last).toISOString()}});
   saveLoc(); flFlush();
   flShowNext(); render(); window.scrollTo(0,0);
 }
@@ -1678,9 +1707,10 @@ Object.assign(API, {
     return {decks:d.data, cards:c.data.map(x=>({...x,links:x.links||[]})), stats:s.data};
   },
   async flashDeckSave(v){
-    if(DEMO){ const f=flDemo().flash; if(v.id) Object.assign(f.decks.find(d=>d.id===v.id), v); else f.decks.push({...v, id:'dk-'+Date.now(), sort:f.decks.length+1}); saveLoc(); return; }
-    const {error} = v.id ? await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id) : await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:(S.fa?.decks.length||0)+1});
-    if(error) throw error;
+    if(DEMO){ const f=flDemo().flash; if(v.id){ Object.assign(f.decks.find(d=>d.id===v.id), v); saveLoc(); return v.id; } const id='dk-'+Date.now(); f.decks.push({...v, id, sort:f.decks.length+1}); saveLoc(); return id; }
+    if(v.id){ const {error} = await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id); if(error) throw error; return v.id; }
+    const {data, error} = await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:(S.fa?.decks.length||0)+1}).select('id').single();
+    if(error) throw error; return data.id;
   },
   async flashDeckDelete(id){
     if(DEMO){ const f=flDemo().flash, gone=new Set(f.cards.filter(c=>c.deck_id===id).map(c=>c.id)); f.decks=f.decks.filter(d=>d.id!==id); f.cards=f.cards.filter(c=>!gone.has(c.id)); f.logs=f.logs.filter(l=>!gone.has(l.card_id)); Object.values(f.states).forEach(s=>gone.forEach(g=>delete s[g])); saveLoc(); return; }
@@ -1730,6 +1760,9 @@ function vAdminFlash(){
     <label>덱 이름<input id="fdName" name="name" required maxlength="40" placeholder="예: 문학 개념어"></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
     <label>하루 새 카드 수<input id="fdNew" name="newPerDay" type="number" min="0" max="200" value="10"></label>
+    <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택)<input id="fdFile" type="file" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
+    <p class="note" id="fdFileNote" role="status">${esc(S.fdFile?.note||'')}</p>
+    <p class="note">안키처럼 메모장에 '앞면 | 뒷면'을 한 줄에 하나씩 쓴 파일을 고르면, 덱을 만들면서 카드도 한꺼번에 넣어요. 덱 이름을 비워 두면 파일 이름을 써요.</p>
     <button class="btn alt" type="submit">덱 만들기</button></form>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">최근 30일 자주 틀리는 카드 · 3번 이상 본 카드만</span>
     <div class="rows">${hard.map((y,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(y.c.front)}</span><span class="s">다시 ${Math.round(y.x.again/y.x.n*100)}%</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>`;
@@ -1808,9 +1841,25 @@ function bindFlash(){
   q('[data-fedit]').forEach(b=>b.onclick=()=>{ S.fedit=b.dataset.fedit; render(); document.getElementById('fCard')?.scrollIntoView({block:'start'}); });
   q('[data-faskc]').forEach(b=>b.onclick=()=>{ S.fdel=b.dataset.faskc; render(); });
   q('[data-fdelc]').forEach(b=>b.onclick=()=>{ const id=b.dataset.fdelc; S.fdel=null; done(()=>API.flashCardDelete(id),'카드를 지웠어요.'); });
-  const nd=document.getElementById('fDeckNew'); if(nd) nd.onsubmit=e=>{ e.preventDefault(); const name=nd.elements.namedItem('name').value.trim(), g=grades(nd), n=+nd.elements.namedItem('newPerDay').value;
-    if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
-    done(()=>API.flashDeckSave({name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))}), `'${name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`); };
+  const nd=document.getElementById('fDeckNew');
+  if(nd){
+    nd.elements.namedItem('name').required=false;
+    const fi=document.getElementById('fdFile'), note=document.getElementById('fdFileNote');
+    fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return;
+      try{ const r=ankiParse(await readTextFile(f)); S.fdFile={name:f.name.replace(/\.(txt|csv|tsv)$/i,'').slice(0,40), r,
+        note:`${f.name} · 카드 ${r.rows.length}장${r.bad.length?` · 모양이 맞지 않는 줄 ${r.bad.length}개(${r.bad.slice(0,5).join(', ')}${r.bad.length>5?' …':''}번째)`:''}`};
+        const nm=nd.elements.namedItem('name'); if(!nm.value.trim()) nm.value=S.fdFile.name; }
+      catch(err){ S.fdFile={note:'파일을 읽지 못했어요. 메모장에서 저장한 .txt 파일인지 확인해 주세요.'}; }
+      note.textContent=S.fdFile.note; fi.value=''; };
+    nd.onsubmit=e=>{ e.preventDefault(); const F=S.fdFile?.r?S.fdFile:null, name=nd.elements.namedItem('name').value.trim()||F?.name||'', g=grades(nd), n=+nd.elements.namedItem('newPerDay').value;
+      if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
+      if(F&&F.r.bad.length){ A.err=`파일의 ${F.r.bad.slice(0,10).join(', ')}${F.r.bad.length>10?` 외 ${F.r.bad.length-10}곳`:''}번째 줄이 '앞면 | 뒷면' 모양이 아니거나 너무 길어요. 파일을 고친 뒤 다시 골라 주세요.`; A.msg=''; return render(); }
+      const seen=new Set(), rows=F?F.r.rows.filter(x=>!seen.has(x.front)&&seen.add(x.front)):[], dup=F?F.r.rows.length-rows.length:0;
+      done(async()=>{ const id=await API.flashDeckSave({name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))});
+          if(rows.length) await API.flashCardsSave(rows.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]})));
+          S.fdFile=null; },
+        rows.length ? `'${name}' 덱을 만들고 카드 ${rows.length}장을 넣었어요.${dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:''}` : `'${name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`); };
+  }
   const ds=document.getElementById('fDeck'); if(ds) ds.onsubmit=e=>{ e.preventDefault(); const name=ds.elements.namedItem('name').value.trim(), g=grades(ds), n=+ds.elements.namedItem('newPerDay').value;
     if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
     done(()=>API.flashDeckSave({id:S.fdeck, name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))}), '덱 설정을 저장했어요.'); };
