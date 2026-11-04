@@ -1757,7 +1757,7 @@ function vAdminFlash(){
   return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">덱 · 학년별로 배정돼요</span>
     <div class="rows">${A.decks.map(d=>`<button class="row fc-deckrow" data-fdeck="${esc(d.id)}"><span class="mark">▸</span><span class="rq">${esc(d.name)} <small class="dim">${flGradesLabel(d.grades)} · 하루 새 ${d.new_per_day}장</small></span><span class="s">${A.cards.filter(c=>c.deck_id===d.id).length}장</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 덱이 없어요. 아래에서 첫 덱을 만들어 주세요.</p>'}</div></section>
   <form id="fDeckNew" class="schedule-form"><h2 class="schedule-head">새 덱 만들기</h2>
-    <label>덱 이름<input id="fdName" name="name" required maxlength="40" placeholder="예: 문학 개념어"></label>
+    <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어"></textarea></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
     <label>하루 새 카드 수<input id="fdNew" name="newPerDay" type="number" min="0" max="200" value="10"></label>
     <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택 · 여러 개 가능)<input id="fdFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
@@ -1845,7 +1845,7 @@ function bindFlash(){
   if(nd){
     nd.elements.namedItem('name').required=false;
     const fi=document.getElementById('fdFile'), note=document.getElementById('fdFileNote'), nm=nd.elements.namedItem('name');
-    const multi=()=>{ const F=S.fdFiles?.list||[]; nm.disabled=F.length>1; nm.placeholder=F.length>1?'파일마다 파일 이름으로 만들어요':'예: 문학 개념어'; };
+    const multi=()=>{ const F=S.fdFiles?.list||[]; nm.disabled=F.length>1; nm.placeholder=F.length>1?'파일마다 파일 이름으로 만들어요':'예: 문학 개념어\n비문학 어휘\n문법 용어'; };
     multi();
     fi.onchange=async()=>{ const files=[...fi.files]; if(!files.length) return;
       const list=[];
@@ -1861,8 +1861,11 @@ function bindFlash(){
       const broken=F.filter(x=>x.err||x.r.bad.length);
       if(broken.length){ A.err=broken.map(x=>x.err?`${x.file}: 읽지 못했어요`:`${x.file}: ${x.r.bad.slice(0,10).join(', ')}${x.r.bad.length>10?` 외 ${x.r.bad.length-10}곳`:''}번째 줄`).join(' / ')+" — '앞면 | 뒷면' 모양이 아니거나 너무 길어요. 파일을 고친 뒤 다시 골라 주세요."; A.msg=''; return render(); }
       // 만들 덱 목록: 파일이 없으면 이름 하나, 하나면 쓴 이름(없으면 파일 이름), 여럿이면 파일 이름마다
-      const jobs = !F.length ? [{name:nm.value.trim(), rows:[]}] : F.map(x=>({name:F.length===1?(nm.value.trim()||x.name):x.name, rows:x.r.rows}));
-      if(jobs.some(j=>!j.name)){ A.err='덱 이름을 써 주세요.'; A.msg=''; return render(); }
+      const names=[...new Set(nm.value.split('\n').map(x=>x.trim()).filter(Boolean))];
+      if(F.length===1&&names.length>1){ A.err='카드 파일이 하나일 때는 덱 이름도 하나만 써 주세요. 이름을 비워 두면 파일 이름을 써요.'; A.msg=''; return render(); }
+      if(!F.length&&!names.length){ A.err='덱 이름을 써 주세요.'; A.msg=''; return render(); }
+      const long=names.filter(x=>x.length>40); if(!(F.length>1)&&long.length){ A.err=`덱 이름은 40자까지예요: ${long.map(x=>x.slice(0,12)+'…').join(', ')}`; A.msg=''; return render(); }
+      const jobs = !F.length ? names.map(name=>({name, rows:[]})) : F.map(x=>({name:F.length===1?(names[0]||x.name):x.name, rows:x.r.rows}));
       // 이미 있는 덱이나 같이 만드는 덱과 이름이 겹치면 (2)를 붙인다
       const used=new Set(A.decks.map(d=>d.name));
       jobs.forEach(j=>{ let nmv=j.name, k=2; while(used.has(nmv)) nmv=`${j.name} (${k++})`.slice(0,40); used.add(nmv); j.name=nmv;
@@ -1872,7 +1875,7 @@ function bindFlash(){
           const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1});
           if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]}))); }
         S.fdFiles=null; },
-        (jobs.length>1 ? `덱 ${jobs.length}개(${jobs.map(j=>`'${j.name}'`).join(', ')})를 만들고 카드 ${total}장을 넣었어요.`
+        (jobs.length>1 ? `덱 ${jobs.length}개(${jobs.map(j=>`'${j.name}'`).join(', ')})를 만들었어요.${total?` 카드 ${total}장도 넣었어요.`:' 목록에서 눌러 카드를 넣어 주세요.'}`
           : total ? `'${jobs[0].name}' 덱을 만들고 카드 ${total}장을 넣었어요.` : `'${jobs[0].name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`)
         + (dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:'')); };
   }
