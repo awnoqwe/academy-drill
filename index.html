@@ -1109,8 +1109,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist" style="--n:6"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="groups" aria-selected="${S.adminTab==='groups'}">그룹</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
-  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='groups' ? vGroups() : S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist" style="--n:5"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
+  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
   ${waiting.length?`<section class="waiting"><span class="label">가입 대기 ${waiting.length}명 · 승인해야 시작할 수 있어요</span>
     <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${same.length?` <small class="err">같은 이름: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
       <span class="s wait-acts">${S.confirmReject===s.id?`<button class="linkbtn danger" data-reject="${esc(s.id)}">거절</button><button class="linkbtn" data-act="cancelReject">취소</button>`:`<button class="linkbtn danger" data-askreject="${esc(s.id)}">거절</button><button class="btn sm" data-approve="${esc(s.id)}">승인</button>`}</span></div>`; }).join('')}</div></section>`:''}
@@ -2702,7 +2702,7 @@ Object.assign(API, {
 });
 
 /* --- 원장 업무 화면 --- */
-const OTABS = [['stu','학생 정보'],['tt','시간표'],['fee','학원비'],['notice','알림장'],['acct','계정']];
+const OTABS = [['stu','학생 정보'],['groups','그룹'],['tt','시간표'],['fee','학원비'],['notice','알림장'],['acct','계정']];
 const isOwner = () => S.academy?.role==='owner';
 async function owLoad(){
   const month=S.owMonth||(S.owMonth=new Date().toISOString().slice(0,7));
@@ -2719,7 +2719,7 @@ function vOwner(){
   const tab=S.otab||'stu';
   const msg=`${O.msg?`<p class="schedule-success" role="status">${esc(O.msg)}</p>`:''}${O.err?`<p class="err" role="alert">${esc(O.err)}</p>`:''}`;
   return `<div class="tabs" role="tablist" style="--n:${OTABS.length}">${OTABS.map(([id,n])=>`<button role="tab" data-otab="${id}" aria-selected="${tab===id}">${n}</button>`).join('')}</div>
-  ${msg}${tab==='tt'?vOwnerTT():tab==='fee'?vOwnerFee():tab==='notice'?vOwnerNotice():tab==='acct'?vOwnerAcct():vOwnerStu()}`;
+  ${msg}${tab==='groups'?vGroups():tab==='tt'?vOwnerTT():tab==='fee'?vOwnerFee():tab==='notice'?vOwnerNotice():tab==='acct'?vOwnerAcct():vOwnerStu()}`;
 }
 // 학생 정보
 function vOwnerStu(){
