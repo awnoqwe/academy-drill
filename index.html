@@ -1707,9 +1707,9 @@ Object.assign(API, {
     return {decks:d.data, cards:c.data.map(x=>({...x,links:x.links||[]})), stats:s.data};
   },
   async flashDeckSave(v){
-    if(DEMO){ const f=flDemo().flash; if(v.id){ Object.assign(f.decks.find(d=>d.id===v.id), v); saveLoc(); return v.id; } const id='dk-'+Date.now(); f.decks.push({...v, id, sort:f.decks.length+1}); saveLoc(); return id; }
+    if(DEMO){ const f=flDemo().flash; if(v.id){ Object.assign(f.decks.find(d=>d.id===v.id), v); saveLoc(); return v.id; } const id='dk-'+Date.now()+'-'+Math.random().toString(36).slice(2,6); f.decks.push({...v, id, sort:v.sort||f.decks.length+1}); saveLoc(); return id; }
     if(v.id){ const {error} = await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id); if(error) throw error; return v.id; }
-    const {data, error} = await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:(S.fa?.decks.length||0)+1}).select('id').single();
+    const {data, error} = await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:v.sort||(S.fa?.decks.length||0)+1}).select('id').single();
     if(error) throw error; return data.id;
   },
   async flashDeckDelete(id){
@@ -1760,9 +1760,9 @@ function vAdminFlash(){
     <label>덱 이름<input id="fdName" name="name" required maxlength="40" placeholder="예: 문학 개념어"></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
     <label>하루 새 카드 수<input id="fdNew" name="newPerDay" type="number" min="0" max="200" value="10"></label>
-    <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택)<input id="fdFile" type="file" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
-    <p class="note" id="fdFileNote" role="status">${esc(S.fdFile?.note||'')}</p>
-    <p class="note">안키처럼 메모장에 '앞면 | 뒷면'을 한 줄에 하나씩 쓴 파일을 고르면, 덱을 만들면서 카드도 한꺼번에 넣어요. 덱 이름을 비워 두면 파일 이름을 써요.</p>
+    <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택 · 여러 개 가능)<input id="fdFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
+    <p class="note fd-files" id="fdFileNote" role="status">${S.fdFiles?.note||''}</p>
+    <p class="note">안키처럼 메모장에 '앞면 | 뒷면'을 한 줄에 하나씩 쓴 파일을 고르면, 덱을 만들면서 카드도 한꺼번에 넣어요. 파일을 여러 개 고르면 <b>파일마다 덱이 하나씩</b> 생기고 덱 이름은 파일 이름이 돼요(학년·하루 새 카드 수는 모두 같게). 파일이 하나면 위에 쓴 덱 이름을 쓰고, 비워 두면 파일 이름을 써요.</p>
     <button class="btn alt" type="submit">덱 만들기</button></form>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">최근 30일 자주 틀리는 카드 · 3번 이상 본 카드만</span>
     <div class="rows">${hard.map((y,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(y.c.front)}</span><span class="s">다시 ${Math.round(y.x.again/y.x.n*100)}%</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>`;
@@ -1844,22 +1844,39 @@ function bindFlash(){
   const nd=document.getElementById('fDeckNew');
   if(nd){
     nd.elements.namedItem('name').required=false;
-    const fi=document.getElementById('fdFile'), note=document.getElementById('fdFileNote');
-    fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return;
-      try{ const r=ankiParse(await readTextFile(f)); S.fdFile={name:f.name.replace(/\.(txt|csv|tsv)$/i,'').slice(0,40), r,
-        note:`${f.name} · 카드 ${r.rows.length}장${r.bad.length?` · 모양이 맞지 않는 줄 ${r.bad.length}개(${r.bad.slice(0,5).join(', ')}${r.bad.length>5?' …':''}번째)`:''}`};
-        const nm=nd.elements.namedItem('name'); if(!nm.value.trim()) nm.value=S.fdFile.name; }
-      catch(err){ S.fdFile={note:'파일을 읽지 못했어요. 메모장에서 저장한 .txt 파일인지 확인해 주세요.'}; }
-      note.textContent=S.fdFile.note; fi.value=''; };
-    nd.onsubmit=e=>{ e.preventDefault(); const F=S.fdFile?.r?S.fdFile:null, name=nd.elements.namedItem('name').value.trim()||F?.name||'', g=grades(nd), n=+nd.elements.namedItem('newPerDay').value;
-      if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
-      if(F&&F.r.bad.length){ A.err=`파일의 ${F.r.bad.slice(0,10).join(', ')}${F.r.bad.length>10?` 외 ${F.r.bad.length-10}곳`:''}번째 줄이 '앞면 | 뒷면' 모양이 아니거나 너무 길어요. 파일을 고친 뒤 다시 골라 주세요.`; A.msg=''; return render(); }
-      const seen=new Set(), rows=F?F.r.rows.filter(x=>!seen.has(x.front)&&seen.add(x.front)):[], dup=F?F.r.rows.length-rows.length:0;
-      done(async()=>{ const id=await API.flashDeckSave({name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))});
-          if(rows.length) await API.flashCardsSave(rows.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]})));
-          S.fdFile=null; },
-        rows.length ? `'${name}' 덱을 만들고 카드 ${rows.length}장을 넣었어요.${dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:''}` : `'${name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`); };
+    const fi=document.getElementById('fdFile'), note=document.getElementById('fdFileNote'), nm=nd.elements.namedItem('name');
+    const multi=()=>{ const F=S.fdFiles?.list||[]; nm.disabled=F.length>1; nm.placeholder=F.length>1?'파일마다 파일 이름으로 만들어요':'예: 문학 개념어'; };
+    multi();
+    fi.onchange=async()=>{ const files=[...fi.files]; if(!files.length) return;
+      const list=[];
+      for(const f of files){ const name=f.name.replace(/\.(txt|csv|tsv)$/i,'').trim().slice(0,40)||'새 덱';
+        try{ list.push({file:f.name, name, r:ankiParse(await readTextFile(f))}); }catch(err){ list.push({file:f.name, name, err:true}); } }
+      list.sort((a,b)=>a.name.localeCompare(b.name,'ko',{numeric:true}));
+      const line=x=>`${esc(x.file)} · ${x.err?'<b class="err">읽지 못함</b>':`카드 ${x.r.rows.length}장${x.r.bad.length?` · <b class="err">모양이 맞지 않는 줄 ${x.r.bad.length}개(${x.r.bad.slice(0,5).join(', ')}${x.r.bad.length>5?' …':''}번째)</b>`:''}`}`;
+      S.fdFiles={list, note:(list.length>1?`덱 ${list.length}개를 만들어요<br>`:'')+list.map(line).join('<br>')};
+      if(list.length===1&&!nm.value.trim()) nm.value=list[0].name;
+      note.innerHTML=S.fdFiles.note; fi.value=''; multi(); };
+    nd.onsubmit=e=>{ e.preventDefault(); const F=S.fdFiles?.list||[], g=grades(nd), n=Math.max(0,Math.min(200,+nd.elements.namedItem('newPerDay').value||0));
+      if(!g.length){ A.err='받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
+      const broken=F.filter(x=>x.err||x.r.bad.length);
+      if(broken.length){ A.err=broken.map(x=>x.err?`${x.file}: 읽지 못했어요`:`${x.file}: ${x.r.bad.slice(0,10).join(', ')}${x.r.bad.length>10?` 외 ${x.r.bad.length-10}곳`:''}번째 줄`).join(' / ')+" — '앞면 | 뒷면' 모양이 아니거나 너무 길어요. 파일을 고친 뒤 다시 골라 주세요."; A.msg=''; return render(); }
+      // 만들 덱 목록: 파일이 없으면 이름 하나, 하나면 쓴 이름(없으면 파일 이름), 여럿이면 파일 이름마다
+      const jobs = !F.length ? [{name:nm.value.trim(), rows:[]}] : F.map(x=>({name:F.length===1?(nm.value.trim()||x.name):x.name, rows:x.r.rows}));
+      if(jobs.some(j=>!j.name)){ A.err='덱 이름을 써 주세요.'; A.msg=''; return render(); }
+      // 이미 있는 덱이나 같이 만드는 덱과 이름이 겹치면 (2)를 붙인다
+      const used=new Set(A.decks.map(d=>d.name));
+      jobs.forEach(j=>{ let nmv=j.name, k=2; while(used.has(nmv)) nmv=`${j.name} (${k++})`.slice(0,40); used.add(nmv); j.name=nmv;
+        const seen=new Set(); j.uniq=j.rows.filter(x=>!seen.has(x.front)&&seen.add(x.front)); j.dup=j.rows.length-j.uniq.length; });
+      const total=jobs.reduce((a,j)=>a+j.uniq.length,0), dup=jobs.reduce((a,j)=>a+j.dup,0), base=A.decks.length;
+      done(async()=>{ for(let i=0;i<jobs.length;i++){ const j=jobs[i];
+          const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1});
+          if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]}))); }
+        S.fdFiles=null; },
+        (jobs.length>1 ? `덱 ${jobs.length}개(${jobs.map(j=>`'${j.name}'`).join(', ')})를 만들고 카드 ${total}장을 넣었어요.`
+          : total ? `'${jobs[0].name}' 덱을 만들고 카드 ${total}장을 넣었어요.` : `'${jobs[0].name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`)
+        + (dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:'')); };
   }
+
   const ds=document.getElementById('fDeck'); if(ds) ds.onsubmit=e=>{ e.preventDefault(); const name=ds.elements.namedItem('name').value.trim(), g=grades(ds), n=+ds.elements.namedItem('newPerDay').value;
     if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
     done(()=>API.flashDeckSave({id:S.fdeck, name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))}), '덱 설정을 저장했어요.'); };
