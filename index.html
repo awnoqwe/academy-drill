@@ -453,6 +453,10 @@ body{background:var(--paper)}
 .stu[aria-pressed="true"] .pk::after{content:"";width:5px;height:9px;border:solid var(--cta-ink);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
 .fc-file{display:block;text-align:center;cursor:pointer}
 #fcFileNote:empty,#fdFileNote:empty{display:none}
+.fi-row{grid-template-columns:22px minmax(0,1fr)}
+.fi-row .rq{white-space:normal}
+.fi-row .fi-sel{grid-column:2;font:inherit;font-size:14px;padding:8px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%;border-radius:0}
+.fi-row .mark.o{color:var(--good)}
 /* 학부모 */
 .kid-seg button{display:flex;flex-direction:column;align-items:center;gap:0;padding-block:7px;line-height:1.3}
 .kid-seg small{font-size:11px;opacity:.75}
@@ -1756,6 +1760,7 @@ function vAdminFlash(){
   const hard=(A.stats?.cards||[]).map(x=>({x,c:A.cards.find(c=>c.id===x.card_id)})).filter(y=>y.c).slice(0,5);
   return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">덱 · 학년별로 배정돼요</span>
     <div class="rows">${A.decks.map(d=>`<button class="row fc-deckrow" data-fdeck="${esc(d.id)}"><span class="mark">▸</span><span class="rq">${esc(d.name)} <small class="dim">${flGradesLabel(d.grades)} · 하루 새 ${d.new_per_day}장</small></span><span class="s">${A.cards.filter(c=>c.deck_id===d.id).length}장</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 덱이 없어요. 아래에서 첫 덱을 만들어 주세요.</p>'}</div></section>
+  ${A.decks.length?flImportView(A):''}
   <form id="fDeckNew" class="schedule-form"><h2 class="schedule-head">새 덱 만들기</h2>
     <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어"></textarea></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
@@ -1825,7 +1830,7 @@ function bindFlash(){
     flStart('cram', null, linked.map(c=>c.id), 'drill');
   });
   // 선생님
-  const A=S.fa, done=async(job,ok)=>{ A.err=''; try{ await job(); const keep={msg:ok}; const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:'',...keep}; }catch(e){ A.err='저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'; A.msg=''; } render(); };
+  const A=S.fa, done=async(job,ok)=>{ A.err=''; try{ await job(); const keep={msg:typeof ok==='function'?ok():ok}; const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:'',...keep}; }catch(e){ A.err='저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'; A.msg=''; } render(); };
   const grades=f=>Array.from(f.querySelectorAll('[name=grade]:checked')).map(x=>x.value);
   q('[data-fa]').forEach(b=>b.onclick=()=>{
     const a=b.dataset.fa;
@@ -1836,6 +1841,32 @@ function bindFlash(){
     else if(a==='askDelDeck'){ S.fdel='deck'; render(); }
     else if(a==='cancelDel'){ S.fdel=null; render(); }
     else if(a==='delDeck'){ const id=S.fdeck; S.fdeck=null; S.fdel=null; done(()=>API.flashDeckDelete(id),'덱을 지웠어요.'); }
+  });
+  const fiIn=document.getElementById('fiFile');
+  if(fiIn) fiIn.onchange=async()=>{ const files=[...fiIn.files]; if(!files.length) return; const items=[];
+    for(const f of files){ try{ const r=ankiParse(await readTextFile(f)); items.push({file:f.name, r, deck:flMatchDeck(f.name, A.decks)}); }catch(e){ items.push({file:f.name, err:true, deck:''}); } }
+    items.sort((a,b)=>a.file.localeCompare(b.file,'ko',{numeric:true})); S.fimp={items}; A.msg=''; A.err=''; render(); };
+  q('[data-fi]').forEach(sel=>sel.onchange=()=>{ const sec=sel.closest('.fc-imp'); if(sec&&S.fimp&&sec.querySelector('[name=grade]')) S.fimp.grades=Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value); S.fimp.items[+sel.dataset.fi].deck=sel.value; render(); });
+  q('[data-fi-act]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.fiAct==='cancel'){ S.fimp=null; return render(); }
+    const sec=b.closest('.fc-imp'), I=S.fimp, g=sec?Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value):[];
+    const jobs=I.items.filter(x=>x.deck&&!x.err&&!x.r.bad.length);
+    if(jobs.some(x=>x.deck==='__new')&&!g.length){ A.err='새로 만들 덱의 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
+    // 같은 덱에 여러 파일이 가면 합쳐서 넣는다. 덱에 이미 있는 앞면·파일끼리 겹친 앞면은 건너뛴다.
+    let added=0, dup=0, made=0; const used=new Set(A.decks.map(d=>d.name));
+    b.disabled=true; b.textContent='넣는 중…';
+    done(async()=>{
+      const have={}; A.cards.forEach(c=>{ (have[c.deck_id] ||= new Set()).add(c.front.trim()); });
+      for(const x of jobs){
+        let id=x.deck;
+        if(id==='__new'){ const base=x.file.replace(/\.(txt|csv|tsv)$/i,'').trim().slice(0,40)||'새 덱'; let nm=base,k=2; while(used.has(nm)) nm=`${base} (${k++})`.slice(0,40); used.add(nm);
+          id=await API.flashDeckSave({name:nm, grades:g, new_per_day:10, sort:A.decks.length+(++made)}); }
+        const set=(have[id] ||= new Set()), rows=[];
+        x.r.rows.forEach(c=>{ if(set.has(c.front)){ dup++; return; } set.add(c.front); rows.push({deck_id:id, front:c.front, back:c.back, links:[]}); });
+        if(rows.length){ await API.flashCardsSave(rows); added+=rows.length; if(S.fa) S.fa.cards.push(...rows.map(r=>({...r}))); }
+      }
+      S.fimp=null;
+    }, ()=>`파일 ${jobs.length}개에서 카드 ${added}장을 넣었어요.${made?` 새 덱 ${made}개도 만들었어요.`:''}${dup?` 이미 있는 앞면 ${dup}장은 건너뛰었어요.`:''}`);
   });
   q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
   q('[data-fedit]').forEach(b=>b.onclick=()=>{ S.fedit=b.dataset.fedit; render(); document.getElementById('fCard')?.scrollIntoView({block:'start'}); });
@@ -1935,6 +1966,29 @@ function ankiParse(text){
   recs.forEach(r=>{ const front=clean(r.f[0]), back=r.f.slice(1).map(clean).filter(Boolean).join('\n');
     front&&back&&front.length<=2000&&back.length<=4000 ? rows.push({front, back}) : bad.push(r.line); });
   return {rows, bad, sep};
+}
+/* 파일 여러 개 → 이미 있는 덱에 한꺼번에 넣기. 파일 이름과 덱 이름을 맞춰 자동 연결한다.
+   비교할 때는 맨 앞 알파벳 한 글자(B·C…), 숫자, 띄어쓰기·문장 부호를 빼고 본다. 예: 'C 음운 변동1 - 교체' = '음운 변동 - 교체' */
+const flKey = s => String(s||'').replace(/\.(txt|csv|tsv)$/i,'').replace(/^[A-Za-z]\s+/,'').replace(/[0-9ⅠⅡⅢⅣⅤ]/g,'').replace(/[^\p{L}]/gu,'').toLowerCase();
+function flMatchDeck(name, decks){
+  const k=flKey(name); if(!k) return '';
+  const hit=decks.find(d=>flKey(d.name)===k) || decks.find(d=>{ const dk=flKey(d.name); return dk.length>=2 && (k.includes(dk)||dk.includes(k)); });
+  return hit?hit.id:'';
+}
+function flImportView(A){
+  const I=S.fimp;
+  const head=`<section class="schedule-form fc-imp"><h2 class="schedule-head">파일로 카드 한꺼번에 넣기</h2>
+    <p class="note">덱마다 들어갈 txt 파일을 한꺼번에 고르면 파일 이름과 덱 이름을 맞춰 자동으로 연결해요(앞 알파벳·숫자·문장 부호는 무시). 연결이 틀리면 아래에서 바꾸고, 덱에 이미 있는 앞면은 건너뛰어요.</p>`;
+  if(!I) return head+`<label class="btn alt fc-file">카드 파일 여러 개 고르기 (.txt)<input id="fiFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label></section>`;
+  const opts=v=>`<option value="">건너뛰기</option>${A.decks.map(d=>`<option value="${esc(d.id)}" ${v===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}<option value="__new" ${v==='__new'?'selected':''}>새 덱으로 만들기</option>`;
+  const anyNew=I.items.some(x=>x.deck==='__new'), go=I.items.filter(x=>x.deck&&!x.err&&!x.r.bad.length);
+  const gsel=I.grades||[...new Set(A.decks.flatMap(d=>d.grades))];
+  return head+`<div class="rows">${I.items.map((x,i)=>{ const have=x.deck&&x.deck!=='__new'?A.cards.filter(c=>c.deck_id===x.deck).length:0;
+      return `<div class="row fi-row"><span class="mark ${x.err||x.r.bad.length?'x':x.deck?'o':''}">${x.err||x.r.bad.length?'!':x.deck?'✓':'–'}</span>
+      <span class="rq"><b>${esc(x.file)}</b><small class="dim"> · ${x.err?'읽지 못함':`카드 ${x.r.rows.length}장`}${have?` · 덱에 이미 ${have}장`:''}</small>${x.r?.bad.length?`<small class="err"> · ${x.r.bad.slice(0,5).join(', ')}번째 줄 모양이 맞지 않아 넣지 않아요</small>`:''}</span>
+      <select class="fi-sel" data-fi="${i}" aria-label="${esc(x.file)}를 넣을 덱">${opts(x.deck)}</select></div>`; }).join('')}</div>
+    ${anyNew?`<span class="label">새로 만들 덱의 학년</span>${flGradeChecks(gsel)}`:''}
+    <div class="schedule-btns"><button class="btn sm" type="button" data-fi-act="go" ${go.length?'':'disabled'}>${go.length}개 파일 넣기</button><button class="linkbtn" type="button" data-fi-act="cancel">취소</button></div></section>`;
 }
 async function readTextFile(file){
   const buf=new Uint8Array(await file.arrayBuffer());
