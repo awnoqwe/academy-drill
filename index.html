@@ -1903,15 +1903,17 @@ function bindFlash(){
   // 덱이 없는 파일: 넣지 않기 / 새 덱 / 기존 덱
   const fiGrades=()=>{ const sec=app.querySelector('.fc-imp'); if(sec&&S.fimp&&sec.querySelector('[name=grade]')) S.fimp.grades=Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value); };
   q('[data-fi-name]').forEach(inp=>inp.oninput=()=>{ S.fimp.ask[+inp.dataset.fiName].name=inp.value; });
-  q('[data-fi-ask]').forEach(sel=>sel.onchange=()=>{ fiGrades(); S.fimp.ask[+sel.dataset.fiAsk].choice=sel.value; render(); if(sel.value==='__new') app.querySelector(`[data-fi-name="${sel.dataset.fiAsk}"]`)?.focus(); });
+  q('[data-fi-ask]').forEach(sel=>sel.onchange=()=>{ fiGrades(); S.fimp.ask[+sel.dataset.fiAsk].choice=sel.value; S.fimp.err=''; render(); if(sel.value==='__new') app.querySelector(`[data-fi-name="${sel.dataset.fiAsk}"]`)?.focus(); });
   q('[data-fi-act]').forEach(b=>b.onclick=async()=>{
     const I=S.fimp, a=b.dataset.fiAct;
     if(a==='close'){ S.fimp=null; return render(); }
+    if(a==='allnew'){ fiGrades(); I.ask.forEach(x=>{ x.choice='__new'; if(!x.name) x.name=flBase(x.file).slice(0,40); }); I.err=''; return render(); }
     if(a!=='ask') return;
     fiGrades(); const g=I.grades||[...new Set(A.decks.flatMap(d=>d.grades))], jobs=I.ask.filter(x=>x.choice);
-    if(jobs.some(x=>x.choice==='__new'&&!x.name.trim())){ A.err='새 덱 이름을 써 주세요.'; A.msg=''; return render(); }
-    if(jobs.some(x=>x.choice==='__new')&&!g.length){ A.err='새 덱의 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
-    const used=new Set(A.decks.map(d=>d.name)); A.err='';
+    if(!jobs.length){ I.err="모두 '넣지 않기'로 되어 있어요. 파일마다 칸을 눌러 '새 덱을 만들어 넣기'나 넣을 덱을 골라 주세요."; A.msg=''; render(); app.querySelector('[data-fi-ask]')?.focus(); return; }
+    if(jobs.some(x=>x.choice==='__new'&&!x.name.trim())){ I.err='새 덱 이름을 써 주세요.'; return render(); }
+    if(jobs.some(x=>x.choice==='__new')&&!g.length){ I.err='새 덱의 학년을 하나 이상 골라 주세요.'; return render(); }
+    const used=new Set(A.decks.map(d=>d.name)); I.err=''; A.err='';
     for(const [n,x] of jobs.entries()){
       I.busy=`넣는 중… ${n+1}/${jobs.length} · ${x.file}`; render();
       try{
@@ -2065,7 +2067,9 @@ function flImportView(A){
     ${I.done.length?`<span class="label">들어간 파일 ${I.done.length}개</span><div class="rows">${doneRows}</div>`:''}
     ${I.ask.length?`<span class="label">${I.ask.every(x=>x.undone)?`다시 넣을 파일 ${I.ask.length}개 · 어디에 넣을까요?`:`덱이 없는 파일 ${I.ask.length}개 · 새 덱을 만들까요?`}</span><div class="rows">${askRows}</div>
       ${anyNew?`<span class="label">새 덱의 학년</span>${flGradeChecks(gsel)}`:''}
-      <div class="schedule-btns"><button class="btn sm" type="button" data-fi-act="ask" ${I.ask.some(x=>x.choice)?'':'disabled'}>선택한 대로 넣기</button></div>`:''}
+      <p class="note">파일마다 아래 칸을 눌러 '새 덱을 만들어 넣기'나 넣을 덱을 고른 뒤 '선택한 대로 넣기'를 누르세요.</p>
+      ${I.err?`<p class="err" role="alert">${esc(I.err)}</p>`:''}
+      <div class="schedule-btns"><button class="btn sm alt" type="button" data-fi-act="allnew">모두 새 덱으로 만들기</button><button class="btn sm" type="button" data-fi-act="ask">선택한 대로 넣기</button></div>`:''}
     ${I.fail.length?`<span class="label">넣지 못한 파일 ${I.fail.length}개</span><div class="rows">${I.fail.map(x=>`<div class="row fi-row"><span class="mark x">!</span><span class="rq"><b>${esc(x.file)}</b><small class="err"> · ${esc(x.why)}</small></span></div>`).join('')}</div>
       <p class="note">파일을 고친 뒤 다시 고르면 돼요. 이미 들어간 카드는 건너뛰어요.</p>`:''}
     <div class="schedule-btns"><button class="linkbtn" type="button" data-fi-act="close">결과 닫기</button></div></section>`;
