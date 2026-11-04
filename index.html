@@ -2027,6 +2027,28 @@ async function reconnect(){
 }
 window.addEventListener('online', reconnect);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && navigator.onLine) reconnect(); });
+// 화살표 자동 변환: ->, <-, <->, <=> 뒤에 스페이스를 치면 화살표로 바꾼다. 긴 것부터 검사해야 <-> 가 <- 로 먼저 잡히지 않는다.
+(()=>{
+  const ARROWS = [['<=>','⇔'],['<->','↔'],['->','→'],['<-','←']];
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(e.inputType!=='insertText' || e.data!==' ' || e.isComposing) return;
+    const ok = t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && (t.type==='text' || t.type==='search'));
+    if(!ok) return;
+    const p = t.selectionStart;
+    if(p==null || p!==t.selectionEnd || p<3) return;
+    const before = t.value.slice(0, p-1);
+    for(const [k,a] of ARROWS){
+      if(!before.endsWith(k)) continue;
+      const s = p-1-k.length;
+      t.setRangeText(a, s, p-1);
+      const c = s + a.length + 1;
+      t.setSelectionRange(c, c);
+      t.dispatchEvent(new Event('input', {bubbles:true}));
+      return;
+    }
+  });
+})();
 const persistOnline = persist;
 persist = function(){ persistOnline(); snapSave(); };
 // 카드도 마지막 상태를 기기에 남긴다
