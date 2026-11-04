@@ -457,6 +457,8 @@ body{background:var(--paper)}
 .fi-row .rq{white-space:normal}
 .fi-row .fi-sel{grid-column:2;font:inherit;font-size:14px;padding:8px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%;border-radius:0}
 .fi-row .mark.o{color:var(--good)}
+.fi-row .mark.m{color:var(--mid)}
+.fc-imp .check{flex-direction:row;align-items:flex-start;gap:8px}
 /* 학부모 */
 .kid-seg button{display:flex;flex-direction:column;align-items:center;gap:0;padding-block:7px;line-height:1.3}
 .kid-seg small{font-size:11px;opacity:.75}
@@ -1844,29 +1846,36 @@ function bindFlash(){
   });
   const fiIn=document.getElementById('fiFile');
   if(fiIn) fiIn.onchange=async()=>{ const files=[...fiIn.files]; if(!files.length) return; const items=[];
-    for(const f of files){ try{ const r=ankiParse(await readTextFile(f)); items.push({file:f.name, r, deck:flMatchDeck(f.name, A.decks)}); }catch(e){ items.push({file:f.name, err:true, deck:''}); } }
+    for(const f of files){ try{ const r=ankiParse(await readTextFile(f)); const m=flMatchDeck(f.name, A.decks); items.push({file:f.name, r, deck:m.id, how:m.how}); }catch(e){ items.push({file:f.name, err:true, deck:''}); } }
     items.sort((a,b)=>a.file.localeCompare(b.file,'ko',{numeric:true})); S.fimp={items}; A.msg=''; A.err=''; render(); };
-  q('[data-fi]').forEach(sel=>sel.onchange=()=>{ const sec=sel.closest('.fc-imp'); if(sec&&S.fimp&&sec.querySelector('[name=grade]')) S.fimp.grades=Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value); S.fimp.items[+sel.dataset.fi].deck=sel.value; render(); });
+  q('[data-fi]').forEach(sel=>sel.onchange=()=>{ const sec=sel.closest('.fc-imp'); if(sec&&S.fimp&&sec.querySelector('[name=grade]')) S.fimp.grades=Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value); const it=S.fimp.items[+sel.dataset.fi]; it.deck=sel.value; it.how='manual'; S.fimp.over=!!document.getElementById('fiOver')?.checked; render(); });
+  const fo=document.getElementById('fiOver'); if(fo) fo.onchange=()=>{ if(S.fimp) S.fimp.over=fo.checked; };
   q('[data-fi-act]').forEach(b=>b.onclick=()=>{
     if(b.dataset.fiAct==='cancel'){ S.fimp=null; return render(); }
     const sec=b.closest('.fc-imp'), I=S.fimp, g=sec?Array.from(sec.querySelectorAll('[name=grade]:checked')).map(x=>x.value):[];
     const jobs=I.items.filter(x=>x.deck&&!x.err&&!x.r.bad.length);
     if(jobs.some(x=>x.deck==='__new')&&!g.length){ A.err='새로 만들 덱의 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
-    // 같은 덱에 여러 파일이 가면 합쳐서 넣는다. 덱에 이미 있는 앞면·파일끼리 겹친 앞면은 건너뛴다.
-    let added=0, dup=0, made=0; const used=new Set(A.decks.map(d=>d.name));
+    // 같은 덱에 여러 파일이 가면 합쳐서 넣는다. 파일끼리 겹친 앞면은 처음 것만. 덱에 이미 있는 앞면은 건너뛰거나(기본) 뒷면을 바꾼다.
+    const over=!!sec?.querySelector('#fiOver')?.checked;
+    let added=0, dup=0, upd=0, made=0; const used=new Set(A.decks.map(d=>d.name));
     b.disabled=true; b.textContent='넣는 중…';
     done(async()=>{
-      const have={}; A.cards.forEach(c=>{ (have[c.deck_id] ||= new Set()).add(c.front.trim()); });
+      const have={}; A.cards.forEach(c=>{ (have[c.deck_id] ||= new Map()).set(c.front.trim(), c); });
       for(const x of jobs){
         let id=x.deck;
-        if(id==='__new'){ const base=x.file.replace(/\.(txt|csv|tsv)$/i,'').trim().slice(0,40)||'새 덱'; let nm=base,k=2; while(used.has(nm)) nm=`${base} (${k++})`.slice(0,40); used.add(nm);
+        if(id==='__new'){ const base=flBase(x.file).slice(0,40)||'새 덱'; let nm=base,k=2; while(used.has(nm)) nm=`${base} (${k++})`.slice(0,40); used.add(nm);
           id=await API.flashDeckSave({name:nm, grades:g, new_per_day:10, sort:A.decks.length+(++made)}); }
-        const set=(have[id] ||= new Set()), rows=[];
-        x.r.rows.forEach(c=>{ if(set.has(c.front)){ dup++; return; } set.add(c.front); rows.push({deck_id:id, front:c.front, back:c.back, links:[]}); });
+        const map=(have[id] ||= new Map()), rows=[], fixes=[], seen=new Set();
+        x.r.rows.forEach(c=>{ if(seen.has(c.front)) return; seen.add(c.front);
+          const old=map.get(c.front);
+          if(!old){ const row={deck_id:id, front:c.front, back:c.back, links:[]}; map.set(c.front,row); rows.push(row); }
+          else if(over && old.id && old.back!==c.back){ fixes.push({id:old.id, deck_id:id, front:old.front, back:c.back, links:old.links||[]}); old.back=c.back; }
+          else dup++; });
         if(rows.length){ await API.flashCardsSave(rows); added+=rows.length; if(S.fa) S.fa.cards.push(...rows.map(r=>({...r}))); }
+        if(fixes.length){ await API.flashCardsSave(fixes); upd+=fixes.length; }
       }
       S.fimp=null;
-    }, ()=>`파일 ${jobs.length}개에서 카드 ${added}장을 넣었어요.${made?` 새 덱 ${made}개도 만들었어요.`:''}${dup?` 이미 있는 앞면 ${dup}장은 건너뛰었어요.`:''}`);
+    }, ()=>`파일 ${jobs.length}개에서 카드 ${added}장을 넣었어요.${made?` 새 덱 ${made}개도 만들었어요.`:''}${upd?` 뒷면 ${upd}장을 새 내용으로 바꿨어요.`:''}${dup?` 이미 있는 앞면 ${dup}장은 ${over?'내용이 같아 ':''}건너뛰었어요.`:''}`);
   });
   q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
   q('[data-fedit]').forEach(b=>b.onclick=()=>{ S.fedit=b.dataset.fedit; render(); document.getElementById('fCard')?.scrollIntoView({block:'start'}); });
@@ -1968,26 +1977,40 @@ function ankiParse(text){
   return {rows, bad, sep};
 }
 /* 파일 여러 개 → 이미 있는 덱에 한꺼번에 넣기. 파일 이름과 덱 이름을 맞춰 자동 연결한다.
-   비교할 때는 맨 앞 알파벳 한 글자(B·C…), 숫자, 띄어쓰기·문장 부호를 빼고 본다. 예: 'C 음운 변동1 - 교체' = '음운 변동 - 교체' */
-const flKey = s => String(s||'').replace(/\.(txt|csv|tsv)$/i,'').replace(/^[A-Za-z]\s+/,'').replace(/[0-9ⅠⅡⅢⅣⅤ]/g,'').replace(/[^\p{L}]/gu,'').toLowerCase();
+   비교: 맨 앞 알파벳 한 글자(B·C…)와 띄어쓰기·문장 부호는 빼고 글자만 본다.
+   숫자는 양쪽 모두 있을 때만 같아야 한다('어휘 1강' ≠ '어휘 2강', 'C 음운 변동1 - 교체' = '음운 변동 - 교체').
+   글자가 완전히 같으면 '확실'(✓), 한쪽 이름이 다른 쪽에 통째로 들어 있으면 '확인 필요'(?)로 표시한다.
+   맞는 덱이 없으면 기본값은 '새 덱으로 만들기'. */
+const flBase = s => String(s||'').replace(/\.(txt|csv|tsv)$/i,'').trim().replace(/^[A-Za-z]\s+/,'');
+const flKey = s => flBase(s).replace(/[0-9ⅠⅡⅢⅣⅤ]/g,'').replace(/[^\p{L}]/gu,'').toLowerCase();
+const flNum = s => (flBase(s).match(/[0-9]+|[ⅠⅡⅢⅣⅤ]/g)||[]).map(x=>({'Ⅰ':'1','Ⅱ':'2','Ⅲ':'3','Ⅳ':'4','Ⅴ':'5'}[x]||String(+x))).join(',');
 function flMatchDeck(name, decks){
-  const k=flKey(name); if(!k) return '';
-  const hit=decks.find(d=>flKey(d.name)===k) || decks.find(d=>{ const dk=flKey(d.name); return dk.length>=2 && (k.includes(dk)||dk.includes(k)); });
-  return hit?hit.id:'';
+  const k=flKey(name), n=flNum(name); if(!k) return {id:'__new', how:'new'};
+  const numOk = d => { const m=flNum(d.name); return !n || !m || n===m; };
+  const exact = decks.filter(d=>flKey(d.name)===k && numOk(d));
+  if(exact.length){ const best=exact.find(d=>flNum(d.name)===n)||exact[0]; return {id:best.id, how:exact.length>1&&!exact.some(d=>flNum(d.name)===n)?'part':'exact'}; }
+  const part = decks.filter(d=>{ const dk=flKey(d.name); return dk.length>=2 && (k.includes(dk)||dk.includes(k)) && numOk(d); });
+  if(part.length) return {id:part.sort((a,b)=>Math.abs(flKey(a.name).length-k.length)-Math.abs(flKey(b.name).length-k.length))[0].id, how:'part'};
+  return {id:'__new', how:'new'};
 }
 function flImportView(A){
   const I=S.fimp;
   const head=`<section class="schedule-form fc-imp"><h2 class="schedule-head">파일로 카드 한꺼번에 넣기</h2>
-    <p class="note">덱마다 들어갈 txt 파일을 한꺼번에 고르면 파일 이름과 덱 이름을 맞춰 자동으로 연결해요(앞 알파벳·숫자·문장 부호는 무시). 연결이 틀리면 아래에서 바꾸고, 덱에 이미 있는 앞면은 건너뛰어요.</p>`;
+    <p class="note">덱마다 들어갈 txt 파일을 한꺼번에 고르면 파일 이름과 덱 이름을 맞춰 자동으로 연결해요. 띄어쓰기·문장 부호·앞 알파벳은 무시하고, 숫자는 양쪽에 다 있으면 같아야 해요. 맞는 덱이 없는 파일은 파일 이름으로 새 덱을 만들어요.</p>`;
   if(!I) return head+`<label class="btn alt fc-file">카드 파일 여러 개 고르기 (.txt)<input id="fiFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label></section>`;
-  const opts=v=>`<option value="">건너뛰기</option>${A.decks.map(d=>`<option value="${esc(d.id)}" ${v===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}<option value="__new" ${v==='__new'?'selected':''}>새 덱으로 만들기</option>`;
-  const anyNew=I.items.some(x=>x.deck==='__new'), go=I.items.filter(x=>x.deck&&!x.err&&!x.r.bad.length);
+  const opts=v=>`<option value="__new" ${v==='__new'?'selected':''}>새 덱으로 만들기</option>${A.decks.map(d=>`<option value="${esc(d.id)}" ${v===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}<option value="" ${v===''?'selected':''}>건너뛰기</option>`;
+  const bad=x=>x.err||x.r.bad.length, cnt={}; I.items.forEach(x=>{ if(x.deck&&x.deck!=='__new'&&!bad(x)) cnt[x.deck]=(cnt[x.deck]||0)+1; });
+  const anyNew=I.items.some(x=>x.deck==='__new'&&!bad(x)), go=I.items.filter(x=>x.deck&&!bad(x)), unsure=go.filter(x=>x.how==='part').length, crowd=Object.values(cnt).some(v=>v>1);
   const gsel=I.grades||[...new Set(A.decks.flatMap(d=>d.grades))];
-  return head+`<div class="rows">${I.items.map((x,i)=>{ const have=x.deck&&x.deck!=='__new'?A.cards.filter(c=>c.deck_id===x.deck).length:0;
-      return `<div class="row fi-row"><span class="mark ${x.err||x.r.bad.length?'x':x.deck?'o':''}">${x.err||x.r.bad.length?'!':x.deck?'✓':'–'}</span>
-      <span class="rq"><b>${esc(x.file)}</b><small class="dim"> · ${x.err?'읽지 못함':`카드 ${x.r.rows.length}장`}${have?` · 덱에 이미 ${have}장`:''}</small>${x.r?.bad.length?`<small class="err"> · ${x.r.bad.slice(0,5).join(', ')}번째 줄 모양이 맞지 않아 넣지 않아요</small>`:''}</span>
+  const mark=x=>bad(x)?['x','!']:!x.deck?['','–']:x.deck==='__new'?['m','+']:x.how==='part'?['m','?']:['o','✓'];
+  return head+`<div class="rows">${I.items.map((x,i)=>{ const have=x.deck&&x.deck!=='__new'?A.cards.filter(c=>c.deck_id===x.deck).length:0, [mc,mt]=mark(x);
+      return `<div class="row fi-row"><span class="mark ${mc}">${mt}</span>
+      <span class="rq"><b>${esc(x.file)}</b><small class="dim"> · ${x.err?'읽지 못함':`카드 ${x.r.rows.length}장`}${have?` · 덱에 이미 ${have}장`:''}${x.deck==='__new'&&!bad(x)?` · 새 덱 '${esc(flBase(x.file).slice(0,40)||'새 덱')}'`:''}</small>
+      ${x.r?.bad.length?`<small class="err"> · ${x.r.bad.slice(0,5).join(', ')}번째 줄 모양이 맞지 않아 넣지 않아요</small>`:''}${x.how==='part'&&x.deck&&x.deck!=='__new'?`<small class="err"> · 이름이 일부만 맞아요. 덱이 맞는지 확인해 주세요</small>`:''}${cnt[x.deck]>1?`<small class="err"> · 이 덱에 파일 ${cnt[x.deck]}개가 같이 들어가요</small>`:''}</span>
       <select class="fi-sel" data-fi="${i}" aria-label="${esc(x.file)}를 넣을 덱">${opts(x.deck)}</select></div>`; }).join('')}</div>
     ${anyNew?`<span class="label">새로 만들 덱의 학년</span>${flGradeChecks(gsel)}`:''}
+    <label class="check"><input type="checkbox" id="fiOver" ${I.over?'checked':''}> 앞면이 같은 카드는 뒷면을 파일 내용으로 바꾸기 (학생 복습 기록은 그대로)</label>
+    ${unsure||crowd?`<p class="err">${[unsure?`'?' 표시 ${unsure}개는 이름이 일부만 맞은 연결이에요.`:'',crowd?'한 덱에 파일 여러 개가 몰린 곳이 있어요.':''].filter(Boolean).join(' ')} 확인한 뒤 넣어 주세요.</p>`:''}
     <div class="schedule-btns"><button class="btn sm" type="button" data-fi-act="go" ${go.length?'':'disabled'}>${go.length}개 파일 넣기</button><button class="linkbtn" type="button" data-fi-act="cancel">취소</button></div></section>`;
 }
 async function readTextFile(file){
