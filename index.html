@@ -1710,7 +1710,9 @@ function flShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.ra
 Object.assign(API, {
   async flashAdmin(){
     if(DEMO){ const f=flDemo().flash; return {decks:f.decks.slice().sort((a,b)=>a.sort-b.sort), cards:f.cards.slice().sort((a,b)=>a.sort-b.sort), stats:flStatsDemo()}; }
-    const [d,c,s] = await Promise.all([sb.from('flash_decks').select('*').eq('academy_id',AID()).order('sort').order('created_at'), sb.from('flash_cards').select('*').eq('academy_id',AID()).order('sort').order('created_at'), sb.rpc('flash_admin_stats',{p_academy:AID()})]);
+    // 카드는 1000장씩 나눠 끝까지 받는다(Supabase는 한 번에 최대 1000줄만 돌려준다)
+    const allCards=async()=>{ const out=[]; for(let k=0;;k+=1000){ const r=await sb.from('flash_cards').select('*').eq('academy_id',AID()).order('sort').order('created_at').order('id').range(k,k+999); if(r.error) return r; out.push(...r.data); if(r.data.length<1000) return {data:out}; } };
+    const [d,c,s] = await Promise.all([sb.from('flash_decks').select('*').eq('academy_id',AID()).order('sort').order('created_at'), allCards(), sb.rpc('flash_admin_stats',{p_academy:AID()})]);
     const e=d.error||c.error||s.error; if(e) throw e;
     return {decks:d.data, cards:c.data.map(x=>({...x,links:x.links||[]})), stats:s.data};
   },
@@ -1776,7 +1778,7 @@ function vAdminFlash(){
     <div class="rows">${A.decks.map(d=>`<button class="row fc-deckrow" data-fdeck="${esc(d.id)}"><span class="mark">▸</span><span class="rq">${esc(d.name)} <small class="dim">${flGradesLabel(d.grades)} · 하루 새 ${d.new_per_day}장</small></span><span class="s">${A.cards.filter(c=>c.deck_id===d.id).length}장</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 덱이 없어요. 아래에서 첫 덱을 만들어 주세요.</p>'}</div></section>
   ${A.decks.length?flImportView(A):''}
   <form id="fDeckNew" class="schedule-form"><h2 class="schedule-head">새 덱 만들기</h2>
-    <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어"></textarea></label>
+    <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어">${esc(S.fdNames||'')}</textarea></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
     <label>하루 새 카드 수<input id="fdNew" name="newPerDay" type="number" min="0" max="200" value="10"></label>
     <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택 · 여러 개 가능)<input id="fdFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
@@ -1844,12 +1846,12 @@ function bindFlash(){
     flStart('cram', null, linked.map(c=>c.id), 'drill');
   });
   // 선생님
-  const A=S.fa, done=async(job,ok)=>{ A.err=''; try{ await job(); const keep={msg:typeof ok==='function'?ok():ok}; const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:'',...keep}; }catch(e){ A.err='저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'; A.msg=''; } render(); };
+  const A=S.fa, done=async(job,ok)=>{ A.err=''; try{ await job(); const keep={msg:typeof ok==='function'?ok():ok}; const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:'',...keep}; }catch(e){ A.err=e?.userMsg||'저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'; A.msg=''; if(e?.userMsg){ try{ const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:A.err,msg:''}; }catch(_){} } } render(); };
   const grades=f=>Array.from(f.querySelectorAll('[name=grade]:checked')).map(x=>x.value);
   q('[data-fa]').forEach(b=>b.onclick=()=>{
     const a=b.dataset.fa;
     if(a==='reload') flAdminLoad();
-    else if(a==='decks'){ S.fdeck=null; S.fedit=null; S.fdel=null; A.msg=''; A.err=''; render(); }
+    else if(a==='decks'){ S.fdeck=null; S.fedit=null; S.fdel=null; S.fbulk=''; S.fbulkNote=''; A.msg=''; A.err=''; render(); }
     else if(a==='newCard'){ S.fedit='new'; render(); }
     else if(a==='cancelEdit'){ S.fedit=null; render(); }
     else if(a==='askDelDeck'){ S.fdel='deck'; render(); }
@@ -1888,12 +1890,12 @@ function bindFlash(){
     I.busy=null; await fiRefresh();
   };
   // 덱이 틀렸을 때: 옮기기 / 취소
-  q('[data-fi-move]').forEach(sel=>sel.onchange=async()=>{ const I=S.fimp, x=I.done[+sel.dataset.fiMove], to=sel.value; if(!to) return;
+  q('[data-fi-move]').forEach(sel=>sel.onchange=async()=>{ const I=S.fimp, x=I.done[+sel.dataset.fiMove], to=sel.value; if(!to||to===x.deck) return;
     I.busy='바꾸는 중…'; render();
     try{
       if(to==='__undo'){ await API.flashCardsDelete(x.ids); I.done.splice(+sel.dataset.fiMove,1); I.ask.push({file:x.file, r:x.r, choice:'', name:flBase(x.file).slice(0,40), undone:true}); I.busy=null; return fiRefresh(`'${x.file}'에서 넣은 카드 ${x.ids.length}장을 취소했어요. 아래에서 넣을 덱을 다시 고를 수 있어요.`); }
       // 옮길 덱에 이미 같은 앞면이 있으면 그 카드는 옮기지 않고 지운다(방금 넣은 카드라 학생 기록이 없다)
-      const have=new Set(S.fa.cards.filter(c=>c.deck_id===to).map(c=>c.front.trim())), mine=S.fa.cards.filter(c=>x.ids.includes(c.id));
+      const own=new Set(x.ids), have=new Set(S.fa.cards.filter(c=>c.deck_id===to&&!own.has(c.id)).map(c=>c.front.trim())), mine=S.fa.cards.filter(c=>own.has(c.id));
       const dupIds=mine.filter(c=>have.has(c.front.trim())).map(c=>c.id), moveIds=x.ids.filter(id=>!dupIds.includes(id));
       if(moveIds.length) await API.flashCardsMove(moveIds, to); if(dupIds.length) await API.flashCardsDelete(dupIds);
       Object.assign(x, {deck:to, how:'manual', ids:moveIds, dup:(x.dup||0)+dupIds.length}); I.busy=null;
@@ -1920,14 +1922,14 @@ function bindFlash(){
       I.busy=`넣는 중… ${n+1}/${jobs.length} · ${x.file}`; render();
       try{
         let deck=x.choice, made=false;
-        if(deck==='__new'){ const base=x.name.trim().slice(0,40); let nm=base,k=2; while(used.has(nm)) nm=`${base} (${k++})`.slice(0,40); used.add(nm);
+        if(deck==='__new'){ const nm=flUniqueName(x.name, used);
           deck=await API.flashDeckSave({name:nm, grades:g, new_per_day:10, sort:A.decks.length+n+1}); made=true; A.decks.push({id:deck, name:nm, grades:g, new_per_day:10}); }
         const res=await fiPut(x.r, deck, !!S.fiOver); I.done.push({file:x.file, r:x.r, deck, how:'manual', made, ...res}); I.ask.splice(I.ask.indexOf(x),1);
       }catch(e){ I.fail.push({file:x.file, why:'저장하지 못했어요(인터넷 연결 확인)'}); I.ask.splice(I.ask.indexOf(x),1); }
     }
     I.busy=null; fiRefresh();
   });
-  q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
+  q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; S.fbulk=''; S.fbulkNote=''; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
   q('[data-fedit]').forEach(b=>b.onclick=()=>{ S.fedit=b.dataset.fedit; render(); document.getElementById('fCard')?.scrollIntoView({block:'start'}); });
   q('[data-faskc]').forEach(b=>b.onclick=()=>{ S.fdel=b.dataset.faskc; render(); });
   q('[data-fdelc]').forEach(b=>b.onclick=()=>{ const id=b.dataset.fdelc; S.fdel=null; done(()=>API.flashCardDelete(id),'카드를 지웠어요.'); });
@@ -1958,13 +1960,22 @@ function bindFlash(){
       const jobs = !F.length ? names.map(name=>({name, rows:[]})) : F.map(x=>({name:F.length===1?(names[0]||x.name):x.name, rows:x.r.rows}));
       // 이미 있는 덱이나 같이 만드는 덱과 이름이 겹치면 (2)를 붙인다
       const used=new Set(A.decks.map(d=>d.name));
-      jobs.forEach(j=>{ let nmv=j.name, k=2; while(used.has(nmv)) nmv=`${j.name} (${k++})`.slice(0,40); used.add(nmv); j.name=nmv;
+      jobs.forEach(j=>{ j.name=flUniqueName(j.name, used);
         const seen=new Set(); j.uniq=j.rows.filter(x=>!seen.has(x.front)&&seen.add(x.front)); j.dup=j.rows.length-j.uniq.length; });
       const total=jobs.reduce((a,j)=>a+j.uniq.length,0), dup=jobs.reduce((a,j)=>a+j.dup,0), base=A.decks.length;
-      done(async()=>{ for(let i=0;i<jobs.length;i++){ const j=jobs[i];
-          const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1});
-          if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]}))); }
-        S.fdFiles=null; },
+      done(async()=>{ const madeNames=[];
+        try{ for(let i=0;i<jobs.length;i++){ const j=jobs[i];
+            const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1});
+            madeNames.push(j.name); j.made=true;
+            if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]}))); } }
+        catch(err){
+          if(madeNames.length){
+            // 남은 것만 다시 시도하게: 파일은 남은 파일만, 이름은 남은 이름만 칸에 남긴다
+            if(F.length) S.fdFiles={...S.fdFiles, list:F.filter((x,k)=>!jobs[k].made), note:''}; else S.fdNames=jobs.filter(j=>!j.made).map(j=>j.name).join('\n');
+            err.userMsg=`중간에 저장이 끊겼어요. 만든 덱: ${madeNames.map(x=>`'${x}'`).join(', ')}${jobs.some(j=>j.made&&j.uniq.length)?' (마지막 덱은 카드가 덜 들어갔을 수 있어요. 덱을 열어 확인하거나 아래 \'파일로 카드 한꺼번에 넣기\'로 다시 넣으면 빠진 카드만 들어가요)':''}. 남은 것만 다시 '덱 만들기'를 눌러 주세요.`;
+          }
+          throw err; }
+        S.fdFiles=null; S.fdNames=''; },
         (jobs.length>1 ? `덱 ${jobs.length}개(${jobs.map(j=>`'${j.name}'`).join(', ')})를 만들었어요.${total?` 카드 ${total}장도 넣었어요.`:' 목록에서 눌러 카드를 넣어 주세요.'}`
           : total ? `'${jobs[0].name}' 덱을 만들고 카드 ${total}장을 넣었어요.` : `'${jobs[0].name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`)
         + (dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:'')); };
@@ -2008,21 +2019,24 @@ function ankiParse(text){
     if(k==='separator') sep={tab:'\t',pipe:'|',semicolon:';',comma:',',space:' ',colon:':'}[v.toLowerCase()]||v[0]||null;
     if(k==='html') html=v.toLowerCase()!=='false'; }
   if(!sep){ const data=text.split('\n').filter(l=>l.trim()&&!l.startsWith('#')); sep=['\t','|',';'].find(c=>data.length&&data.filter(l=>l.includes(c)).length>=data.length/2)||'|'; }
-  const recs=[]; let rec=[], fld='', inQ=false, line=1, recLine=1;
+  // 따옴표가 닫히지 않은 채 파일이 끝나면, 따옴표를 연 줄을 '모양이 맞지 않는 줄'로 알린다(뒤 카드가 한 칸에 몰래 빨려 들어가지 않게)
+  const recs=[]; let rec=[], fld='', inQ=false, line=1, recLine=1, qLine=0, broken=0;
   for(let j=0;j<=text.length;j++){
     const ch=j<text.length?text[j]:'\n';
-    if(inQ){ if(j===text.length){ inQ=false; j--; continue; } if(ch==='"'){ if(text[j+1]==='"'){ fld+='"'; j++; } else inQ=false; } else { if(ch==='\n') line++; fld+=ch; } continue; }
-    if(ch==='"'&&!fld.trim()){ inQ=true; fld=''; continue; }
+    if(inQ){ if(j===text.length){ inQ=false; broken=qLine; j--; continue; } if(ch==='"'){ if(text[j+1]==='"'){ fld+='"'; j++; } else inQ=false; } else { if(ch==='\n') line++; fld+=ch; } continue; }
+    if(ch==='"'&&!fld.trim()){ inQ=true; qLine=line; fld=''; continue; }
     if(ch===sep){ rec.push(fld); fld=''; continue; }
-    if(ch==='\n'){ rec.push(fld); if(rec.some(x=>x.trim())&&!(rec.length===1&&rec[0].trimStart().startsWith('#'))&&!rec[0].startsWith('#')) recs.push({line:recLine,f:rec}); rec=[]; fld=''; line++; recLine=line; continue; }
+    if(ch==='\n'){ rec.push(fld); if(rec.some(x=>x.trim())&&!(rec.length===1&&rec[0].trimStart().startsWith('#'))&&!rec[0].startsWith('#')) recs.push({line:broken||recLine,f:rec,broken:!!broken}); rec=[]; fld=''; line++; recLine=line; continue; }
     fld+=ch;
   }
-  const ent={nbsp:' ',amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",'#39':"'"};
+  // 안키가 쓰는 HTML 태그만 지운다. '<보기>', 'x<y, z>w' 같은 글자는 그대로 둔다.
+  const ent={nbsp:' ',amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",'#39':"'"}, TAG='br|div|p|li|ul|ol|span|b|i|u|s|strong|em|font|sup|sub|a|img|hr|code|pre|table|tr|td|th|tbody|thead|h[1-6]|blockquote';
+  const tagRe=new RegExp(`<\\/?(?:${TAG})(?:\\s[^<>]*)?\\/?>`,'gi');
   const clean=v=>{ v=String(v);
-    if(html&&/<\/?[a-z][^>]*>|&[a-z#0-9]+;/i.test(v)) v=v.replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li)>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&(nbsp|amp|lt|gt|quot|apos|#39);/gi,(m,k)=>ent[k.toLowerCase()]);
+    if(html) v=v.replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li|tr|h[1-6])>/gi,'\n').replace(tagRe,'').replace(/&(nbsp|amp|lt|gt|quot|apos|#39);/gi,(m,k)=>ent[k.toLowerCase()]);
     return v.replace(/\\n/g,'\n').split('\n').map(x=>x.trimEnd()).join('\n').trim(); };
   const rows=[], bad=[];
-  recs.forEach(r=>{ const front=clean(r.f[0]), back=r.f.slice(1).map(clean).filter(Boolean).join('\n');
+  recs.forEach(r=>{ if(r.broken){ bad.push(r.line); return; } const front=clean(r.f[0]), back=r.f.slice(1).map(clean).filter(Boolean).join('\n');
     front&&back&&front.length<=2000&&back.length<=4000 ? rows.push({front, back}) : bad.push(r.line); });
   return {rows, bad, sep};
 }
@@ -2031,6 +2045,8 @@ function ankiParse(text){
    숫자는 양쪽 모두 있을 때만 같아야 한다('어휘 1강' ≠ '어휘 2강', 'C 음운 변동1 - 교체' = '음운 변동 - 교체').
    글자가 완전히 같으면 '확실'(✓), 한쪽 이름이 다른 쪽에 통째로 들어 있으면 '확인 필요'(?)로 표시한다.
    맞는 덱이 없으면 기본값은 '새 덱으로 만들기'. */
+// 이미 쓰는 이름이면 ' (2)', ' (3)'…을 붙인다. 덱 이름 40자 제한 안에서 뒤 번호가 잘리지 않게 앞을 줄인다.
+function flUniqueName(base, used){ base=String(base||'').trim().slice(0,40)||'새 덱'; let nm=base, k=2; while(used.has(nm)){ const suf=` (${k++})`; nm=base.slice(0,40-suf.length).trimEnd()+suf; } used.add(nm); return nm; }
 const flBase = s => String(s||'').replace(/\.(txt|csv|tsv)$/i,'').trim().replace(/^[A-Za-z]\s+/,'');
 const flKey = s => flBase(s).replace(/[0-9ⅠⅡⅢⅣⅤ]/g,'').replace(/[^\p{L}]/gu,'').toLowerCase();
 const flNum = s => (flBase(s).match(/[0-9]+|[ⅠⅡⅢⅣⅤ]/g)||[]).map(x=>({'Ⅰ':'1','Ⅱ':'2','Ⅲ':'3','Ⅳ':'4','Ⅴ':'5'}[x]||String(+x))).join(',');
@@ -2039,8 +2055,8 @@ function flMatchDeck(name, decks){
   const numOk = d => { const m=flNum(d.name); return !n || !m || n===m; };
   const exact = decks.filter(d=>flKey(d.name)===k && numOk(d));
   if(exact.length){ const best=exact.find(d=>flNum(d.name)===n)||exact[0]; return {id:best.id, how:exact.length>1&&!exact.some(d=>flNum(d.name)===n)?'part':'exact'}; }
-  const part = decks.filter(d=>{ const dk=flKey(d.name); return dk.length>=2 && (k.includes(dk)||dk.includes(k)) && numOk(d); });
-  if(part.length) return {id:part.sort((a,b)=>Math.abs(flKey(a.name).length-k.length)-Math.abs(flKey(b.name).length-k.length))[0].id, how:'part'};
+  const part = k.length>=2 ? decks.filter(d=>{ const dk=flKey(d.name); return dk.length>=2 && (k.includes(dk)||dk.includes(k)) && numOk(d); }) : [];
+  if(part.length===1) return {id:part[0].id, how:'part'};
   return {id:'__new', how:'new'};
 }
 /* 흐름: 파일을 고르면 덱이 맞는 파일은 바로 넣고 결과 창을 보여 준다.
@@ -2058,7 +2074,7 @@ function flImportView(A){
   const doneRows=I.done.map((x,i)=>{ const sum=[x.ids.length?`${x.ids.length}장 넣음`:'새로 넣은 카드 없음', x.upd?`뒷면 ${x.upd}장 바꿈`:'', x.dup?`이미 있는 ${x.dup}장 건너뜀`:''].filter(Boolean).join(' · ');
     return `<div class="row fi-row"><span class="mark ${x.how==='part'?'m':'o'}">${x.how==='part'?'?':'✓'}</span>
       <span class="rq"><b>${esc(x.file)}</b> → <b>${esc(deckName(x.deck))}</b>${x.made?' <small class="schedule-new">새 덱</small>':''}<small class="dim"> · ${sum}</small>${x.how==='part'?'<small class="err"> · 이름이 일부만 맞아서 넣었어요. 덱이 맞는지 확인해 주세요</small>':''}</span>
-      ${x.ids.length?`<select class="fi-sel" data-fi-move="${i}" aria-label="${esc(x.file)} 카드 옮기기">${opt('',`<option value="" selected>덱이 틀렸으면: 다른 덱으로 옮기기…</option><option value="__undo">넣은 카드 ${x.ids.length}장 취소하기</option>`)}</select>`:''}</div>`; }).join('');
+      ${x.ids.length?`<select class="fi-sel" data-fi-move="${i}" aria-label="${esc(x.file)} 카드 옮기기"><option value="" selected>덱이 틀렸으면: 다른 덱으로 옮기기…</option><option value="__undo">넣은 카드 ${x.ids.length}장 취소하기</option>${A.decks.filter(d=>d.id!==x.deck).map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select>`:''}</div>`; }).join('');
   const gsel=I.grades||[...new Set(A.decks.flatMap(d=>d.grades))];
   const askRows=I.ask.map((x,i)=>`<div class="row fi-row"><span class="mark m">+</span>
       <span class="rq"><b>${esc(x.file)}</b><small class="dim"> · 카드 ${x.r.rows.length}장 · ${x.undone?'넣은 것을 취소했어요':'이름이 맞는 덱이 없어요'}</small></span>
