@@ -458,6 +458,9 @@ body{background:var(--paper)}
 .fi-row .fi-sel{grid-column:2;font:inherit;font-size:14px;padding:8px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%;border-radius:0}
 .fi-row .mark.o{color:var(--good)}
 .fi-row .mark.m{color:var(--mid)}
+.dr-unit summary,.dr-prev summary{cursor:pointer;padding:10px 0;font-size:15px}
+.dr-unit summary b{font-family:var(--f-serif)}
+.dr-unit .rq{white-space:normal}
 .fc-imp .check{flex-direction:row;align-items:flex-start;gap:8px}
 .fi-row .fi-name{grid-column:2;font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);width:100%;border-radius:0}
 .fi-row .rq b+b{color:var(--omr)}
@@ -605,6 +608,14 @@ const SAMPLE_CARDS = [
   explain:'<보기>가 감상의 기준이다. 기준을 먼저 세운 뒤, 선지가 작품 장면과 기준 모두에 맞는지 확인한다.'}
 ];
 let CARDS = DEMO ? SAMPLE_CARDS : [];
+// 데모 모드에서 선생님이 넣거나 지운 드릴 문제를 예시 문제 목록에 반영한다(이 브라우저에만 저장)
+let demoDrillDone=false;
+function demoCards(){
+  if(!demoDrillDone){ demoDrillDone=true; const db=demoDB(), del=new Set(db.drillDel||[]);
+    for(let i=SAMPLE_CARDS.length-1;i>=0;i--) if(del.has(SAMPLE_CARDS[i].id)) SAMPLE_CARDS.splice(i,1);
+    (db.drill||[]).forEach(c=>{ if(!del.has(c.id)&&!SAMPLE_CARDS.some(x=>x.id===c.id)) SAMPLE_CARDS.push(c); }); }
+  return SAMPLE_CARDS;
+}
 
 /* ===== 공통 계산 ===== */
 const gradeCards = g => CARDS.filter(c => (Array.isArray(c.grades) ? c.grades : [c.grades]).includes(g));
@@ -725,7 +736,7 @@ const API = {
       if(!st) return {status:'new', otherGrades: all.filter(s=>s.nick===nick&&phoneDigits(s.phone)===ph&&s.approved!==false).map(s=>s.grade)};
       if(st.approved===false) return {status:'pending'};
       st.lastSeen = Date.now(); saveLoc();
-      return {status:'ok', student: st, cards: SAMPLE_CARDS};
+      return {status:'ok', student: st, cards: demoCards()};
     }
     if(!sb) throw new Error('lib');
     let res;
@@ -839,7 +850,7 @@ const API = {
     if(DEMO){
       const db = demoDB();
       const qna = db.qna.map(q=>({id:q.id, body:q.body, answer:q.answer, created_at:q.created_at, card_id:q.card_id, student_id:q.sid, photos:q.photos||[], reports:((db.qnaReports||{})[q.id]||[]).length}));
-      return {students: Object.values(db.students).map(s=>({...s, approved:s.approved!==false})), cards: SAMPLE_CARDS, entryCode: DEMO_CODE, qna, teacherName: loc().demoTeacher||'김건'};
+      return {students: Object.values(db.students).map(s=>({...s, approved:s.approved!==false})), cards: demoCards(), entryCode: DEMO_CODE, qna, teacherName: loc().demoTeacher||'김건'};
     }
     const {data:{user}} = await sb.auth.getUser(), aid = AID();
     if(!aid) throw new Error('not_teacher');
@@ -1119,8 +1130,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist" style="--n:5"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
-  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist" style="--n:6"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="drill" aria-selected="${S.adminTab==='drill'}">드릴</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
+  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='drill' ? vAdminDrill() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
   ${waiting.length?`<section class="waiting"><span class="label">가입 대기 ${waiting.length}명 · 승인해야 시작할 수 있어요</span>
     <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${same.length?` <small class="err">같은 이름: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
       <span class="s wait-acts">${S.confirmReject===s.id?`<button class="linkbtn danger" data-reject="${esc(s.id)}">거절</button><button class="linkbtn" data-act="cancelReject">취소</button>`:`<button class="linkbtn danger" data-askreject="${esc(s.id)}">거절</button><button class="btn sm" data-approve="${esc(s.id)}">승인</button>`}</span></div>`; }).join('')}</div></section>`:''}
@@ -2554,7 +2565,7 @@ function demoKid(db, sid){
   const hw=(db.hw||[]).filter(h=>sid in h.rec).map(h=>({title:h.title, due:h.due, done_at:h.rec[sid]}));
   const ev=sched.events.filter(e=>e.recipients.includes(sid)||e.targets.includes('all')).map(e=>({type:e.type,title:e.title,date:e.date,memo:e.memo}));
   const cards = s.example && !s.cards._days ? {...s.cards, _days:[0,1,2,4,6,8].map(i=>dayKey(Date.now()-i*DAY)), _act:Object.fromEntries([0,1,2,4,6,8].map((i,j)=>[dayKey(Date.now()-i*DAY), 3+j*2]))} : s.cards;
-  return {id:sid, nick:s.nick, grade:s.grade, last_seen:s.lastSeen, cards, units:SAMPLE_CARDS.filter(c=>c.grades.includes(s.grade)).map(c=>({id:c.id,unit:c.unit})),
+  return {id:sid, nick:s.nick, grade:s.grade, last_seen:s.lastSeen, cards, units:demoCards().filter(c=>c.grades.includes(s.grade)).map(c=>({id:c.id,unit:c.unit})),
     flash_days:Object.entries(fd).map(([day,n])=>({day,n})), homework:hw, events:ev, comment:db.parents.comments[sid]||''};
 }
 Object.assign(API, {
@@ -3279,6 +3290,164 @@ function bindParent2(){
       for(const c of parentCodes()){ try{ await sb.rpc('parent_push_subscribe',{p_code:c, p_subscription:sub.toJSON()}); }catch(e){} } swPost(reg,{type:'PARENT_CODES', codes:parentCodes()}); }).catch(()=>{});
   }
 }
+/* ===== 선생님: 드릴 문제 관리 =====
+   드릴 문제(cards 표)를 단원별로 보고 지우고, 메모장 파일로 한꺼번에 넣는다.
+   파일 양식: 문제마다 '단원:·학년:·태그:·문제:·지문:(또는 시:)·선택지:·해설:' 칸을 쓰고, 문제 사이는 '---' 한 줄로 나눈다.
+   선택지는 한 줄에 하나, 정답 앞에 '*'. 파일 맨 위 '#단원:', '#학년:', '#태그:'는 그 파일 모든 문제의 기본값. */
+const DRILL_UNIT = {'문법':'gram','문학':'lit','독해':'read','비문학':'read','비문학독해':'read','독서':'read','gram':'gram','lit':'lit','read':'read'};
+const DRILL_LABEL = /^(단원|학년|태그|유형|문제|발문|지문|시|선택지|정답|해설)\s*[:：]\s?(.*)$/;
+function drillGrades(v){
+  v=String(v||'').replace(/\s/g,''); if(!v) return [];
+  if(/^(전체|공통|모두|전학년)$/.test(v)) return [...GRADES];
+  const out=new Set();
+  v.split(/[,，、/]/).filter(Boolean).forEach(t=>{
+    const m=t.match(/^(중|고)?([1-3])(?:학년)?[~∼\-–](중|고)?([1-3])(?:학년)?$/);
+    if(m){ const a=GRADES.indexOf((m[1]||m[3]||'')+m[2]), b=GRADES.indexOf((m[3]||m[1]||'')+m[4]); if(a>=0&&b>=a) GRADES.slice(a,b+1).forEach(g=>out.add(g)); else out.add('?'+t); return; }
+    const g=t.replace(/학년$/,''); GRADES.includes(g)?out.add(g):(g==='중학교'||g==='중등')?GRADES.slice(0,3).forEach(x=>out.add(x)):(g==='고등학교'||g==='고등')?GRADES.slice(3).forEach(x=>out.add(x)):out.add('?'+t);
+  });
+  return [...out];
+}
+function drillParse(text){
+  text=String(text||'').replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  const def={}, blocks=[]; let cur=[], start=1;
+  text.split('\n').forEach((l,i)=>{
+    const h=l.match(/^#\s*(단원|학년|태그|유형)\s*[:：]\s*(.*)$/); if(h){ def[h[1]==='유형'?'태그':h[1]]=h[2].trim(); return; }
+    if(/^#/.test(l)) return;
+    if(/^\s*(-{3,}|={3,})\s*$/.test(l)){ if(cur.some(x=>x.trim())) blocks.push({line:start, lines:cur}); cur=[]; start=i+2; return; }
+    if(!cur.length&&!l.trim()){ start=i+2; return; }
+    cur.push(l);
+  });
+  if(cur.some(x=>x.trim())) blocks.push({line:start, lines:cur});
+  const qs=[], bad=[];
+  blocks.forEach((b,n)=>{
+    const f={}; let key=null;
+    b.lines.forEach(l=>{ const m=l.match(DRILL_LABEL);
+      if(m){ key={'유형':'태그','발문':'문제'}[m[1]]||m[1]; if(key==='시'){ f.poem=true; key='지문'; } f[key]=(f[key]?f[key]+'\n':'')+m[2]; }
+      else if(key) f[key]=(f[key]??'')+'\n'+l; });
+    const trim=v=>String(v||'').split('\n').map(x=>x.trimEnd()).join('\n').trim();
+    const head=trim(f['문제']).split('\n')[0].slice(0,24)||trim(b.lines.find(x=>x.trim())).slice(0,24);
+    const why=[], unitTxt=trim(f['단원']||def['단원']).replace(/\s/g,''), unit=DRILL_UNIT[unitTxt];
+    if(!unitTxt) why.push('단원이 없어요'); else if(!unit) why.push(`단원 '${unitTxt}' → 문법·문학·독해 중 하나로 써 주세요`);
+    const gs=drillGrades(trim(f['학년']||def['학년'])), badG=gs.filter(g=>g.startsWith('?'));
+    if(!gs.length) why.push('학년이 없어요'); else if(badG.length) why.push(`학년 '${badG.map(x=>x.slice(1)).join(', ')}' → 중1~고3으로 써 주세요`);
+    const stem=trim(f['문제']); if(!stem) why.push('문제(발문)가 없어요');
+    const opts=[], ans=[];
+    trim(f['선택지']).split('\n').map(x=>x.trim()).filter(Boolean).forEach(o=>{
+      let t=o, ok=false;
+      if(/^\*/.test(t)){ ok=true; t=t.replace(/^\*\s*/,''); }
+      t=t.replace(/^(\(?\d{1,2}[.)]|[①-⑩]|[-•·])\s*/,'');
+      if(/^\*/.test(t)){ ok=true; t=t.replace(/^\*\s*/,''); }
+      if(/\s*\*$/.test(t)){ ok=true; t=t.replace(/\s*\*$/,''); }
+      if(/\s*\(정답\)$/.test(t)){ ok=true; t=t.replace(/\s*\(정답\)$/,''); }
+      if(t){ if(ok) ans.push(opts.length); opts.push(t); } });
+    const aTxt=trim(f['정답']); let aBad=false;
+    if(aTxt){ const nums=[...aTxt.matchAll(/[①-⑩]|\d+/g)].map(m=>/\d/.test(m[0])?+m[0]-1:'①②③④⑤⑥⑦⑧⑨⑩'.indexOf(m[0]));
+      if(!nums.length||nums.some(k=>k<0||k>=opts.length)) { aBad=true; why.push(`정답 '${aTxt}' → 선택지 번호(1~${opts.length})로 써 주세요`); } else nums.forEach(k=>{ if(!ans.includes(k)) ans.push(k); }); }
+    if(opts.length<2) why.push('선택지가 2개 이상 있어야 해요');
+    if(opts.length>=2&&!ans.length&&!aBad) why.push("정답이 없어요(정답 선택지 앞에 * 를 붙이거나 '정답: 1' 줄을 써요)");
+    if(stem.length>1000||trim(f['지문']).length>6000||opts.some(o=>o.length>300)) why.push('글이 너무 길어요');
+    if(why.length){ bad.push({n:n+1, line:b.line, head, why:why.join(' · ')}); return; }
+    qs.push({unit, grades:gs, tag:trim(f['태그']||def['태그'])||unitName(unit), stem, passage:trim(f['지문']), poem:!!f.poem, opts, ans:ans.sort((x,y)=>x-y), explain:trim(f['해설'])});
+  });
+  return {qs, bad};
+}
+const DRILL_TEMPLATE = `# 아페라 드릴 문제 양식 (메모장에서 고쳐 쓰고 '드릴' 탭에서 불러오세요)
+# - 문제와 문제 사이는 --- 한 줄로 나눠요.
+# - '#'으로 시작하는 줄은 설명이라 읽지 않아요.
+# - 맨 위에 '#단원: 문법', '#학년: 고1~고3'처럼 쓰면 이 파일의 모든 문제에 적용돼요. 문제 안에 다시 쓰면 그게 우선이에요.
+# - 단원: 문법 · 문학 · 독해 중 하나
+# - 학년: 중1 ~ 고3. 여러 개는 쉼표(중3, 고1), 범위(고1~고3), '전체'도 돼요.
+# - 선택지: 한 줄에 하나. 정답 앞에 * 를 붙여요(정답 여러 개 가능). 또는 '정답: 1, 2' 줄을 써도 돼요.
+# - 지문이 시라서 줄을 살려야 하면 '지문:' 대신 '시:'라고 써요. 지문이 없으면 빼도 돼요.
+# - 칸 내용이 여러 줄이면 다음 칸 이름(예: '선택지:')이 나올 때까지 그대로 이어 쓰면 돼요.
+
+단원: 문법
+학년: 중3, 고1
+태그: 음운 변동
+문제: '국물'이 [궁물]로 발음되는 까닭을 설명하시오.
+선택지:
+* 음운 변동의 종류(교체·탈락·첨가·축약) 구분하기
+* 비음화 조건(받침 ㄱ·ㄷ·ㅂ 뒤에 ㄴ·ㅁ) 확인하기
+사잇소리 현상 떠올리기
+품사 분류 기준 적용하기
+해설: 받침 ㄱ이 비음 ㅁ 앞에서 비음 ㅇ으로 바뀌는 교체, 곧 비음화다.
+---
+단원: 문학
+학년: 고1~고3
+태그: 화자의 정서
+문제: 윗글의 화자의 정서와 태도로 가장 적절한 것은?
+시:
+불 꺼진 교실 창가에
+누군가 두고 간 우산 하나
+선택지:
+1) 시적 상황(누가, 어디서, 무슨 일) 정리하기
+2) 정서가 드러난 시어·행 찾기
+3) 운율을 이루는 요소 세기
+정답: 1, 2
+해설: 시적 상황을 먼저 잡고, 정서가 드러난 시어에서 머뭇거림과 쓸쓸함을 읽는다.
+`;
+Object.assign(API, {
+  async drillSave(rows){
+    if(DEMO){ const db=demoDB(); db.drill ||= []; const list=demoCards(); rows.forEach(r=>{ db.drill.push(r); list.push(r); }); saveLoc(); return; }
+    for(let k=0;k<rows.length;k+=200){ const {error}=await sb.from('cards').insert(rows.slice(k,k+200).map(r=>({...r, academy_id:AID()}))); if(error) throw error; }
+  },
+  async drillDelete(ids){
+    if(DEMO){ const db=demoDB(), set=new Set(ids), list=demoCards(); db.drillDel=[...new Set([...(db.drillDel||[]), ...ids])]; db.drill=(db.drill||[]).filter(c=>!set.has(c.id)); for(let i=list.length-1;i>=0;i--) if(set.has(list[i].id)) list.splice(i,1); saveLoc(); return; }
+    for(let k=0;k<ids.length;k+=200){ const {error}=await sb.from('cards').delete().in('id', ids.slice(k,k+200)); if(error) throw error; }
+  }
+});
+const drillKey = c => (c.stem+'\n'+(c.passage||'')).replace(/\s+/g,' ').trim();
+function vAdminDrill(){
+  const D=S.dr||{}, all=CARDS, I=D.imp;
+  const msg=`${D.msg?`<p class="schedule-success" role="status">${esc(D.msg)}</p>`:''}${D.err?`<p class="err" role="alert">${esc(D.err)}</p>`:''}`;
+  const pick=`<label class="btn alt fc-file">문제 파일 고르기 (.txt · 여러 개 가능)<input id="drFile" type="file" multiple accept=".txt,text/plain" hidden></label>`;
+  let imp;
+  if(D.busy) imp=`<p class="lede">${esc(D.busy)}</p>`;
+  else if(!I) imp=`<p class="note">메모장에 문제마다 '단원:·학년:·태그:·문제:·지문:·선택지:·해설:'을 쓰고, 문제 사이는 '---'로 나눠요. 정답 선택지 앞에는 * 를 붙여요. 먼저 양식을 받아 보세요.</p>
+    <div class="schedule-btns"><button class="btn sm alt" type="button" data-dr="tpl">양식 내려받기</button></div>${pick}`;
+  else { const by=u=>I.qs.filter(q=>q.unit===u).length;
+    imp=`<p class="lede">${I.files.map(esc).join(', ')} · 넣을 문제 <b>${I.qs.length}개</b>${I.qs.length?` (${UNITS.filter(u=>by(u.id)).map(u=>`${u.name} ${by(u.id)}`).join(' · ')})`:''}${I.dup?` · 이미 있는 문제 ${I.dup}개는 건너뛰어요`:''}</p>
+    ${I.bad.length?`<span class="label">넣지 못하는 문제 ${I.bad.length}개 · 고친 뒤 다시 고르세요</span><div class="rows">${I.bad.map(x=>`<div class="row fi-row"><span class="mark x">!</span><span class="rq"><b>${esc(x.file)} · ${x.n}번째 문제</b><small class="dim"> (${x.line}번째 줄 · ${esc(x.head)})</small><small class="err"> · ${esc(x.why)}</small></span></div>`).join('')}</div>`:''}
+    ${I.qs.length?`<details class="dr-prev"><summary>넣을 문제 미리 보기</summary><div class="rows">${I.qs.slice(0,50).map(q=>`<div class="row fi-row"><span class="mark o">✓</span><span class="rq"><b>${esc(unitName(q.unit))} · ${esc(q.tag)}</b> <small class="dim">${q.grades.join('·')}</small><br>${esc(q.stem)}<small class="dim"> · 선택지 ${q.opts.length}개 · 정답 ${q.ans.map(a=>a+1).join(', ')}번</small></span></div>`).join('')}${I.qs.length>50?`<p class="note">… 외 ${I.qs.length-50}개</p>`:''}</div></details>`:''}
+    <div class="schedule-btns">${I.qs.length?`<button class="btn sm" type="button" data-dr="go">${I.qs.length}문제 넣기</button>`:''}<button class="linkbtn" type="button" data-dr="cancel">${I.qs.length?'취소':'닫기'}</button></div>`; }
+  const list=UNITS.map(u=>{ const qs=all.filter(c=>c.unit===u.id); if(!qs.length) return '';
+    return `<details class="dr-unit" ${D.open===u.id?'open':''} data-dr-unit="${u.id}"><summary><b>${u.name}</b> <span class="dim">${qs.length}문제</span></summary><div class="rows">${qs.map(c=>`<div class="row fi-row"><span class="mark">·</span>
+      <span class="rq"><b>${esc(c.tag)}</b> <small class="dim">${(Array.isArray(c.grades)?c.grades:[c.grades]).join('·')}</small><br>${esc(c.stem)}</span>
+      <span class="schedule-btns" style="grid-column:2;justify-content:flex-end">${D.del===c.id?`<span class="selnote">이 문제를 지울까요? 학생 풀이 기록도 함께 빠져요</span><button class="linkbtn danger" data-dr-delgo="${esc(c.id)}">지우기</button><button class="linkbtn" data-dr="nodel">취소</button>`:`<button class="linkbtn danger" data-dr-del="${esc(c.id)}">지우기</button>`}</span></div>`).join('')}</div></details>`; }).join('');
+  return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">드릴 문제 · ${all.length}개</span>${list||'<p class="lede" style="padding:12px 0">아직 드릴 문제가 없어요. 아래에서 파일로 넣어 주세요.</p>'}</section>
+  <section class="schedule-form fc-imp"><h2 class="schedule-head">파일로 문제 한꺼번에 넣기</h2>${imp}</section>`;
+}
+function bindDrill(){
+  if(!(S.screen==='admin'&&S.adminTab==='drill')) return;
+  const D=(S.dr ||= {}), q=sel=>app.querySelectorAll(sel);
+  const reload=async(m)=>{ try{ S.admin=await API.adminData(); CARDS=S.admin.cards; D.msg=m||''; D.err=''; }catch(e){ D.err='목록을 새로 불러오지 못했어요. 새로고침해 주세요.'; } D.busy=null; render(); };
+  q('[data-dr-unit]').forEach(d=>d.ontoggle=()=>{ if(d.open) D.open=d.dataset.drUnit; else if(D.open===d.dataset.drUnit) D.open=null; });
+  q('[data-dr-del]').forEach(b=>b.onclick=()=>{ D.del=b.dataset.drDel; D.open=CARDS.find(c=>c.id===D.del)?.unit||D.open; render(); });
+  q('[data-dr-delgo]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.drDelgo; D.del=null; D.busy='지우는 중…'; render();
+    try{ await API.drillDelete([id]); reload('문제를 지웠어요.'); }catch(e){ D.busy=null; D.err='지우지 못했어요. 인터넷 연결을 확인해 주세요.'; render(); } });
+  const fi=document.getElementById('drFile');
+  if(fi) fi.onchange=async()=>{ const files=[...fi.files]; if(!files.length) return; fi.value='';
+    const qs=[], bad=[], names=[], have=new Set(CARDS.map(drillKey)); let dup=0;
+    for(const f of files){ names.push(f.name);
+      try{ const r=drillParse(await readTextFile(f)); r.bad.forEach(x=>bad.push({...x, file:f.name}));
+        r.qs.forEach(x=>{ const k=drillKey(x); if(have.has(k)){ dup++; return; } have.add(k); qs.push(x); }); }
+      catch(e){ bad.push({file:f.name, n:0, line:0, head:'', why:'파일을 읽지 못했어요'}); } }
+    D.imp={files:names, qs, bad, dup}; D.msg=''; D.err=''; render(); };
+  q('[data-dr]').forEach(b=>b.onclick=async()=>{ const a=b.dataset.dr;
+    if(a==='tpl'){ const url=URL.createObjectURL(new Blob(['﻿'+DRILL_TEMPLATE.replace(/\n/g,'\r\n')],{type:'text/plain;charset=utf-8'})), el=document.createElement('a'); el.href=url; el.download='아페라 드릴 양식.txt'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); return; }
+    if(a==='cancel'){ D.imp=null; return render(); }
+    if(a==='nodel'){ D.del=null; return render(); }
+    if(a==='go'){ const I=D.imp, base=CARDS.reduce((m,c)=>Math.max(m,c.sort||0),0);
+      const rows=I.qs.map((x,k)=>({id:'q-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)), ...x, sort:base+k+1}));
+      D.busy=`넣는 중… ${rows.length}문제`; render();
+      try{ await API.drillSave(rows); D.imp=null; D.open=null; reload(`문제 ${rows.length}개를 넣었어요.${I.dup?` 이미 있던 ${I.dup}개는 건너뛰었어요.`:''}${I.bad.length?` 양식이 맞지 않는 ${I.bad.length}개는 빠졌어요.`:''}`); }
+      catch(e){ // 일부만 들어갔을 수 있으니 목록을 다시 받아 이미 들어간 문제는 빼 둔다
+        try{ S.admin=await API.adminData(); CARDS=S.admin.cards; const have=new Set(CARDS.map(drillKey)), left=I.qs.filter(x=>!have.has(drillKey(x))); I.dup+=I.qs.length-left.length; I.qs=left; }catch(_){}
+        D.busy=null; D.err=`넣다가 끊겼어요. 인터넷 연결을 확인하고 남은 ${I.qs.length}문제를 다시 넣어 주세요.`; render(); } }
+  });
+}
+const bindBeforeDrill = bindFlash;
+bindFlash = function(){ bindBeforeDrill(); bindDrill(); };
 const bindBeforeParent2 = bindFlash;
 bindFlash = function(){ bindBeforeParent2(); bindParent2(); };
 // 알림에서 열기: 시간표 → 일정 탭, 학부모 알림 → 학부모 화면
