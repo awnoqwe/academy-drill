@@ -1750,7 +1750,7 @@ function flAnswer(rating){
     flShowNext(); render(); window.scrollTo(0,0); return;
   }
   const now=Date.now(), r=flNext(FC.states[c.id], rating, now);
-  FC.states[c.id]=r.state; f.done++;
+  FC.states[c.id]=r.state; f.done++; (f.cards ||= new Set()).add(c.id);
   if(r.kind==='new'){ FC.newToday.add(c.id); const p=flPri(); if(p.delete(c.id)) flSetPri(p); }
   flPending().push({log:flUuid(), card:c.id, rating, kind:r.kind, before:r.before, elapsed:Math.min(now-f.t0,3600000), at:now,
     state:{queue:r.state.queue, step:r.state.step, ivl:r.state.ivl, ease:r.state.ease, reps:r.state.reps, lapses:r.state.lapses, due:new Date(r.state.due).toISOString(), log_ivl:r.logIvl,
@@ -1764,7 +1764,8 @@ function vFlash(){
   if(!c){
     const later = f.mode==='cram' ? 0 : flLaterLearn(f.decks);
     return `<div class="top"><button class="quit" data-fl="quit">${backLabel}</button><span class="label">${f.mode==='cram'?'몰아보기':'카드 공부'}</span></div>
-    <div class="score"><b>${f.done}</b><span>장 ${f.mode==='cram'?'다 봤어요':'공부했어요'}</span></div>
+    <div class="score"><b>${f.mode==='cram'?f.done:(f.cards?.size||0)}</b><span>장 ${f.mode==='cram'?'다 봤어요':'공부했어요'}</span></div>
+    ${f.mode!=='cram'&&f.done>(f.cards?.size||0)?`<p class="selnote">답한 횟수 ${f.done}번 · 새 카드와 틀린 카드는 10분 뒤에 한 번 더 확인해서 횟수가 더 많아요</p>`:''}
     <p class="lede">${f.mode==='cram'?(f.again?'다시 본 카드 '+f.again+'번. ':'')+'몰아보기는 복습 일정에 영향을 주지 않아요.':later?'방금 틀린 카드가 '+later+'분 뒤에 다시 나와요. 그때 다시 와 주세요.':'오늘 할 카드를 모두 끝냈어요. 다음 복습은 정해진 날에 다시 나와요.'}</p>
     <div class="actions"><button class="btn" data-fl="quit">${f.back==='drill'?'문제로 돌아가기':'처음으로'}</button></div>`;
   }
