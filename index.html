@@ -465,6 +465,30 @@ body{background:var(--paper)}
 .dr-unit summary,.dr-prev summary{cursor:pointer;padding:10px 0;font-size:15px}
 .dr-unit summary b{font-family:var(--f-serif)}
 .dr-unit .rq{white-space:normal}
+.dr-new{font-size:17px;padding:16px}
+.dr-adv>summary{cursor:pointer;padding:12px 0;color:var(--muted);font-size:14px}
+.dr-form{gap:18px}
+.dr-step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+.dr-step>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.dr-step b{font-size:16px;color:var(--ink)}
+.dr-n{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:13px;font-weight:700;margin-top:1px}
+.dr-form textarea,.dr-form input:not([type=checkbox]){background:var(--sheet);border:1px solid var(--rule);color:var(--ink);padding:12px;width:100%;font:inherit;font-size:16px;line-height:1.6;min-width:0;border-radius:0}
+.dr-form textarea:focus,.dr-form input:focus{outline:none;border-color:var(--ink)}
+.dr-form label{display:flex;flex-direction:column;gap:6px}
+.dr-form .check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--ink)}
+.dr-form .seg.full button{padding-block:12px;font-size:15px}
+.dr-opts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.dr-opts li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:stretch}
+.dr-ok{border:1px solid var(--rule);background:var(--paper);color:var(--muted);font-size:13px;font-weight:700;padding:0 10px;min-width:64px;cursor:pointer}
+.dr-opts li.ok .dr-ok{background:var(--good);border-color:var(--good);color:#fff}
+.dr-opts li.ok input{border-color:var(--good)}
+.dr-x{border:0;background:none;color:var(--faint);font-size:16px;width:36px;cursor:pointer}
+.dr-e{margin:0}
+.dr-preview{border:1px solid var(--rule);padding:0 14px}
+.dr-preview>summary{cursor:pointer;padding:12px 0;font-weight:700}
+.dr-preview .sheet{padding-bottom:14px}
+.dr-preview .opt{cursor:default}
+.dr-save{display:flex;flex-direction:column;gap:10px}
 .fc-imp .check{flex-direction:row;align-items:flex-start;gap:8px}
 .fi-row .fi-name{grid-column:2;font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);width:100%;border-radius:0}
 .fi-row .rq b+b{color:var(--omr)}
@@ -619,7 +643,7 @@ let demoDrillDone=false;
 function demoCards(){
   if(!demoDrillDone){ demoDrillDone=true; const db=demoDB(), del=new Set(db.drillDel||[]);
     for(let i=SAMPLE_CARDS.length-1;i>=0;i--) if(del.has(SAMPLE_CARDS[i].id)) SAMPLE_CARDS.splice(i,1);
-    (db.drill||[]).forEach(c=>{ if(!del.has(c.id)&&!SAMPLE_CARDS.some(x=>x.id===c.id)) SAMPLE_CARDS.push(c); }); }
+    (db.drill||[]).forEach(c=>{ if(del.has(c.id)) return; const i=SAMPLE_CARDS.findIndex(x=>x.id===c.id); i>=0?SAMPLE_CARDS.splice(i,1,c):SAMPLE_CARDS.push(c); }); }
   return SAMPLE_CARDS;
 }
 
@@ -3417,12 +3441,69 @@ Object.assign(API, {
     if(DEMO){ const db=demoDB(); db.drill ||= []; const list=demoCards(); rows.forEach(r=>{ db.drill.push(r); list.push(r); }); saveLoc(); return; }
     for(let k=0;k<rows.length;k+=200){ const {error}=await sb.from('cards').insert(rows.slice(k,k+200).map(r=>({...r, academy_id:AID()}))); if(error) throw error; }
   },
+  async drillUpdate(row){
+    if(DEMO){ const db=demoDB(), list=demoCards(); db.drill ||= []; const i=db.drill.findIndex(c=>c.id===row.id); i>=0?db.drill.splice(i,1,row):db.drill.push(row); const j=list.findIndex(c=>c.id===row.id); if(j>=0) list.splice(j,1,row); saveLoc(); return; }
+    const {id, ...v}=row; const {error}=await sb.from('cards').update(v).eq('id', id); if(error) throw error;
+  },
   async drillDelete(ids){
     if(DEMO){ const db=demoDB(), set=new Set(ids), list=demoCards(); db.drillDel=[...new Set([...(db.drillDel||[]), ...ids])]; db.drill=(db.drill||[]).filter(c=>!set.has(c.id)); for(let i=list.length-1;i>=0;i--) if(set.has(list[i].id)) list.splice(i,1); saveLoc(); return; }
     for(let k=0;k<ids.length;k+=200){ const {error}=await sb.from('cards').delete().in('id', ids.slice(k,k+200)); if(error) throw error; }
   }
 });
 const drillKey = c => (c.stem+'\n'+(c.passage||'')).replace(/\s+/g,' ').trim();
+/* 문제 만들기·고치기 화면. 처음 쓰는 사람도 알 수 있게: 버튼으로 고르고, 칸마다 설명을 붙이고, 학생 화면 미리 보기를 바로 보여 준다.
+   입력하는 동안에는 화면을 다시 그리지 않고(커서 유지) S.dr.form에만 적어 둔다. */
+const drillBlank = keep => ({id:null, unit:keep?.unit||'', grades:keep?.grades?[...keep.grades]:[], tag:keep?.tag||'', stem:'', passage:'', poem:false, opts:[{t:'',ok:false},{t:'',ok:false},{t:'',ok:false},{t:'',ok:false}], explain:''});
+function drillFormCheck(F){
+  const e={};
+  if(!F.unit) e.unit='단원을 하나 골라 주세요.';
+  if(!F.grades.length) e.grades='이 문제를 풀 학년을 하나 이상 골라 주세요.';
+  if(!F.stem.trim()) e.stem='문제(발문)를 써 주세요.';
+  const filled=F.opts.filter(o=>o.t.trim());
+  if(filled.length<2) e.opts='선택지를 2개 이상 써 주세요.';
+  else if(!filled.some(o=>o.ok)) e.opts="정답인 선택지 왼쪽의 '정답' 칸을 눌러 표시해 주세요.";
+  else if(F.opts.some(o=>o.ok&&!o.t.trim())) e.opts='정답으로 표시한 칸이 비어 있어요.';
+  if(!e.stem){ const k=drillKey({stem:F.stem.trim(), passage:F.passage.trim()}); if(CARDS.some(c=>c.id!==F.id&&drillKey(c)===k)) e.stem='똑같은 문제(발문·지문)가 이미 있어요.'; }
+  return e;
+}
+function drillPreview(F){
+  const prevOpts=F.opts.filter(o=>o.t.trim());
+  return `<article class="sheet"><div class="meta"><span class="unit">${F.unit?esc(unitName(F.unit)):'단원'}</span><span>${esc(F.tag||'')}</span></div>
+      <p class="trigger">${F.stem.trim()?mtx(F.stem):'<span class="dim">(문제를 쓰면 여기에 나와요)</span>'}</p>
+      ${F.passage.trim()?`<div class="passage ${F.poem?'poem':''}">${mtx(F.passage)}</div>`:''}
+      <ul class="opts">${prevOpts.map((o,i)=>`<li class="option-row"><div class="opt ${o.ok?'right':''}"><span class="bub">${i+1}</span><span>${mtx(o.t)}</span></div></li>`).join('')}</ul>
+      ${F.explain.trim()?`<div class="verdict"><h3>해설</h3><p>${mtx(F.explain)}</p></div>`:''}</article>`;
+}
+function vDrillForm(F, err){
+  const E=err||{}, hint=k=>E[k]?`<p class="err dr-e">${esc(E[k])}</p>`:'';
+  return `<section class="schedule-form dr-form" aria-label="${F.id?'문제 고치기':'새 문제 만들기'}">
+    <div class="ask-meta"><h2 class="schedule-head">${F.id?'문제 고치기':'새 문제 만들기'}</h2><button class="linkbtn" type="button" data-dr="formclose">닫기</button></div>
+    <div class="dr-step"><span class="dr-n">1</span><div><b>단원</b>
+      <div class="seg full" style="--n:3">${UNITS.map(u=>`<button type="button" data-drf-unit="${u.id}" aria-pressed="${F.unit===u.id}">${u.name}</button>`).join('')}</div>${hint('unit')}</div></div>
+    <div class="dr-step"><span class="dr-n">2</span><div><b>학년</b> <small class="dim">여러 개 고를 수 있어요</small>
+      <div class="seg full" style="--n:6">${GRADES.map(g=>`<button type="button" data-drf-grade="${g}" aria-pressed="${F.grades.includes(g)}">${g}</button>`).join('')}</div>${hint('grades')}</div></div>
+    <div class="dr-step"><span class="dr-n">3</span><div><label><b>문제(발문)</b> <small class="dim">학생이 맨 위에서 보는 질문</small>
+      <textarea data-drf="stem" rows="2" maxlength="1000" placeholder="예: '국물'이 [궁물]로 발음되는 까닭을 설명하시오.">${esc(F.stem)}</textarea></label>${hint('stem')}</div></div>
+    <div class="dr-step"><span class="dr-n">4</span><div><label><b>지문</b> <small class="dim">없으면 비워 두세요</small>
+      <textarea data-drf="passage" rows="4" maxlength="6000" placeholder="예문·지문·시를 붙여 넣으세요">${esc(F.passage)}</textarea></label>
+      <label class="check"><input type="checkbox" data-drf-poem ${F.poem?'checked':''}> 시처럼 줄을 그대로 살려 보여 주기</label></div></div>
+    <div class="dr-step"><span class="dr-n">5</span><div><b>선택지</b> <small class="dim">학생이 고를 '떠올려야 할 것'. 맞는 것은 모두 '정답'을 눌러 주세요</small>
+      <ol class="dr-opts">${F.opts.map((o,i)=>`<li class="${o.ok?'ok':''}">
+        <button type="button" class="dr-ok" data-drf-ok="${i}" aria-pressed="${o.ok}" aria-label="${i+1}번 정답 표시">${o.ok?'✓ 정답':'정답'}</button>
+        <input data-drf-opt="${i}" maxlength="300" value="${esc(o.t)}" placeholder="${i+1}번 선택지" aria-label="${i+1}번 선택지">
+        ${F.opts.length>2?`<button type="button" class="dr-x" data-drf-del="${i}" aria-label="${i+1}번 선택지 지우기">✕</button>`:''}</li>`).join('')}</ol>
+      ${F.opts.length<8?`<button type="button" class="linkbtn" data-dr="optadd">+ 선택지 하나 더</button>`:''}${hint('opts')}</div></div>
+    <div class="dr-step"><span class="dr-n">6</span><div><label><b>해설</b> <small class="dim">답을 고른 뒤 학생에게 보여 줘요 (선택)</small>
+      <textarea data-drf="explain" rows="3" maxlength="2000" placeholder="왜 그것을 떠올려야 하는지 짧게">${esc(F.explain)}</textarea></label>
+      <label><b>유형 이름</b> <small class="dim">목록에서 문제를 구분하는 짧은 이름 (선택)</small><input data-drf="tag" maxlength="30" value="${esc(F.tag)}" placeholder="${F.unit?`예: 음운 변동 (비워 두면 '${esc(unitName(F.unit))}')`:'예: 음운 변동'}"></label></div></div>
+    <p class="note">수식은 $x^2$처럼 $로 감싸면 보기 좋게 나와요.</p>
+    <details class="dr-preview" ${S.dr.prev?'open':''}><summary>학생 화면 미리 보기</summary>
+      ${drillPreview(F)}</details>
+    ${E._?`<p class="err" role="alert">${esc(E._)}</p>`:''}
+    <div class="dr-save">${F.id?`<button class="btn" type="button" data-dr="save">고친 내용 저장</button>`:`<button class="btn" type="button" data-dr="savenext">저장하고 다음 문제 쓰기</button><button class="btn alt" type="button" data-dr="save">저장하고 닫기</button>`}</div>
+  </section>`;
+}
+
 function vAdminDrill(){
   const D=S.dr||{}, all=CARDS, I=D.imp;
   const msg=`${D.msg?`<p class="schedule-success" role="status">${esc(D.msg)}</p>`:''}${D.err?`<p class="err" role="alert">${esc(D.err)}</p>`:''}`;
@@ -3439,9 +3520,11 @@ function vAdminDrill(){
   const list=UNITS.map(u=>{ const qs=all.filter(c=>c.unit===u.id); if(!qs.length) return '';
     return `<details class="dr-unit" ${D.open===u.id?'open':''} data-dr-unit="${u.id}"><summary><b>${u.name}</b> <span class="dim">${qs.length}문제</span></summary><div class="rows">${qs.map(c=>`<div class="row fi-row"><span class="mark">·</span>
       <span class="rq"><b>${esc(c.tag)}</b> <small class="dim">${(Array.isArray(c.grades)?c.grades:[c.grades]).join('·')}</small><br>${mtx(c.stem)}</span>
-      <span class="schedule-btns" style="grid-column:2;justify-content:flex-end">${D.del===c.id?`<span class="selnote">이 문제를 지울까요? 학생 풀이 기록도 함께 빠져요</span><button class="linkbtn danger" data-dr-delgo="${esc(c.id)}">지우기</button><button class="linkbtn" data-dr="nodel">취소</button>`:`<button class="linkbtn danger" data-dr-del="${esc(c.id)}">지우기</button>`}</span></div>`).join('')}</div></details>`; }).join('');
-  return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">드릴 문제 · ${all.length}개</span>${list||'<p class="lede" style="padding:12px 0">아직 드릴 문제가 없어요. 아래에서 파일로 넣어 주세요.</p>'}</section>
-  <section class="schedule-form fc-imp"><h2 class="schedule-head">파일로 문제 한꺼번에 넣기</h2>${imp}</section>`;
+      <span class="schedule-btns" style="grid-column:2;justify-content:flex-end">${D.del===c.id?`<span class="selnote">이 문제를 지울까요? 학생 풀이 기록도 함께 빠져요</span><button class="linkbtn danger" data-dr-delgo="${esc(c.id)}">지우기</button><button class="linkbtn" data-dr="nodel">취소</button>`:`<button class="linkbtn" data-dr-edit="${esc(c.id)}">고치기</button><button class="linkbtn danger" data-dr-del="${esc(c.id)}">지우기</button>`}</span></div>`).join('')}</div></details>`; }).join('');
+  if(D.form) return msg+vDrillForm(D.form, D.ferr);
+  return `${msg}<button class="btn dr-new" type="button" data-dr="new">+ 새 문제 만들기</button>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">드릴 문제 · ${all.length}개 · 단원을 눌러 펼쳐요</span>${list||'<p class="lede" style="padding:12px 0">아직 드릴 문제가 없어요. 위의 \'새 문제 만들기\'를 눌러 첫 문제를 만들어 보세요.</p>'}</section>
+  <details class="dr-adv" ${I||D.busy?'open':''}><summary>여러 문제를 파일로 한꺼번에 넣기 (고급)</summary><section class="schedule-form fc-imp">${imp}</section></details>`;
 }
 function bindDrill(){
   if(!(S.screen==='admin'&&S.adminTab==='drill')) return;
@@ -3459,7 +3542,44 @@ function bindDrill(){
         r.qs.forEach(x=>{ const k=drillKey(x); if(have.has(k)){ dup++; return; } have.add(k); qs.push(x); }); }
       catch(e){ bad.push({file:f.name, n:0, line:0, head:'', why:'파일을 읽지 못했어요'}); } }
     D.imp={files:names, qs, bad, dup}; D.msg=''; D.err=''; render(); };
+  // 문제 만들기·고치기
+  const F=D.form;
+  q('[data-dr-edit]').forEach(b=>b.onclick=()=>{ const c=CARDS.find(x=>x.id===b.dataset.drEdit); if(!c) return;
+    D.form={id:c.id, unit:c.unit, grades:[...(Array.isArray(c.grades)?c.grades:[c.grades])], tag:c.tag||'', stem:c.stem||'', passage:c.passage||'', poem:!!c.poem,
+      opts:(c.opts||[]).map((t,i)=>({t, ok:(c.ans||[]).includes(i)})), explain:c.explain||''}; D.ferr=null; D.msg=''; D.err=''; D.prev=true; render(); window.scrollTo(0,0); });
+  if(F){
+    // 쓰는 동안에는 미리 보기만 새로 그린다(커서가 튀지 않게)
+    let pvT=0; const pvNow=()=>{ clearTimeout(pvT); pvT=setTimeout(()=>{ const a=app.querySelector('.dr-preview .sheet'); if(a) a.outerHTML=drillPreview(F); },250); };
+    // 쓰기 시작하면 그 칸의 오류 문구는 바로 지운다
+    const clearErr=(el,key)=>{ if(D.ferr?.[key]){ delete D.ferr[key]; el.closest('.dr-step')?.querySelector('.dr-e')?.remove(); } };
+    q('[data-drf]').forEach(el=>el.oninput=()=>{ F[el.dataset.drf]=el.value; clearErr(el, el.dataset.drf); pvNow(); });
+    q('[data-drf-opt]').forEach(el=>el.oninput=()=>{ F.opts[+el.dataset.drfOpt].t=el.value; clearErr(el,'opts'); pvNow(); });
+    q('[data-drf-poem]').forEach(el=>el.onchange=()=>{ F.poem=el.checked; pvNow(); });
+    q('[data-drf-unit]').forEach(b=>b.onclick=()=>{ F.unit=b.dataset.drfUnit; if(D.ferr) delete D.ferr.unit; render(); });
+    q('[data-drf-grade]').forEach(b=>b.onclick=()=>{ const g=b.dataset.drfGrade; F.grades=F.grades.includes(g)?F.grades.filter(x=>x!==g):[...F.grades,g].sort((x,y)=>GRADES.indexOf(x)-GRADES.indexOf(y)); if(D.ferr) delete D.ferr.grades; render(); });
+    q('[data-drf-ok]').forEach(b=>b.onclick=()=>{ const o=F.opts[+b.dataset.drfOk]; o.ok=!o.ok; if(D.ferr) delete D.ferr.opts; render(); });
+    q('[data-drf-del]').forEach(b=>b.onclick=()=>{ F.opts.splice(+b.dataset.drfDel,1); render(); });
+    const pv=app.querySelector('.dr-preview'); if(pv) pv.ontoggle=()=>{ D.prev=pv.open; if(pv.open) pvNow(); };
+  }
   q('[data-dr]').forEach(b=>b.onclick=async()=>{ const a=b.dataset.dr;
+    if(a==='new'){ D.form=drillBlank(D.lastKeep); D.prev??=true; D.ferr=null; D.msg=''; D.err=''; render(); window.scrollTo(0,0); app.querySelector('[data-drf-unit]')?.focus(); return; }
+    if(a==='formclose'){ D.form=null; D.ferr=null; return render(); }
+    if(a==='optadd'){ F.opts.push({t:'',ok:false}); render(); app.querySelector(`[data-drf-opt="${F.opts.length-1}"]`)?.focus(); return; }
+    if(a==='save'||a==='savenext'){
+      const e=drillFormCheck(F); D.ferr=e;
+      if(Object.keys(e).length){ render(); app.querySelector('.dr-e')?.scrollIntoView({block:'center'}); return; }
+      const keep=F.opts.filter(o=>o.t.trim()), row={unit:F.unit, grades:F.grades, tag:F.tag.trim()||unitName(F.unit), stem:F.stem.trim(), passage:F.passage.trim(), poem:F.poem,
+        opts:keep.map(o=>o.t.trim()), ans:keep.map((o,i)=>o.ok?i:-1).filter(i=>i>=0), explain:F.explain.trim()};
+      b.disabled=true; b.textContent='저장하는 중…';
+      try{
+        if(F.id) await API.drillUpdate({id:F.id, ...row});
+        else await API.drillSave([{id:'q-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)), ...row, sort:CARDS.reduce((m,c)=>Math.max(m,c.sort||0),0)+1}]);
+        D.lastKeep={unit:F.unit, grades:F.grades, tag:F.tag}; D.open=F.unit;
+        const was=F.id; D.form = a==='savenext' ? drillBlank(D.lastKeep) : null; D.ferr=null;
+        await reload(was?'문제를 고쳤어요.':a==='savenext'?'저장했어요. 단원·학년·유형은 그대로 두었으니 다음 문제를 쓰세요.':'문제를 저장했어요.');
+        window.scrollTo(0,0); if(a==='savenext') app.querySelector('[data-drf="stem"]')?.focus();
+      }catch(err){ D.ferr={_:'저장하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. 쓴 내용은 그대로 있어요.'}; render(); }
+      return; }
     if(a==='tpl'){ const url=URL.createObjectURL(new Blob(['﻿'+DRILL_TEMPLATE.replace(/\n/g,'\r\n')],{type:'text/plain;charset=utf-8'})), el=document.createElement('a'); el.href=url; el.download='아페라 드릴 양식.txt'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); return; }
     if(a==='cancel'){ D.imp=null; return render(); }
     if(a==='nodel'){ D.del=null; return render(); }
