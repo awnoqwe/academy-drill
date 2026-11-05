@@ -467,6 +467,26 @@ body{background:var(--paper)}
 .dr-unit summary b{font-family:var(--f-serif)}
 .dr-unit .rq{white-space:normal}
 .subj-seg{margin-bottom:-6px}
+.study-line{margin:-8px 0 0;font-size:13.5px;color:var(--muted)}
+.study-line b{color:var(--ink)}
+.study-sec{display:flex;flex-direction:column;gap:10px}
+.weekbars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:420px}
+.weekbars span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.weekbars i{width:100%;max-width:36px;height:64px;display:flex;flex-direction:column-reverse;background:var(--sheet);border:1px solid var(--rule)}
+.weekbars em,.study-sec .lg{display:block;background:var(--ink)}
+.weekbars em.fl,.study-sec .lg.fl{background:var(--cta)}
+.study-sec .lg{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
+.fast-warn{margin:0;border-left:3px solid var(--bad);padding:4px 0 4px 12px;font-size:14px;color:var(--ink)}
+.fast-warn b,.study-sec p b{color:var(--bad)}
+.qz-h{font:900 22px/1.3 var(--f-serif);margin:8px 0}
+.qz-h small{font:500 13px var(--f-body);color:var(--muted);margin-left:8px}
+.qz-list{padding-left:22px;display:flex;flex-direction:column;gap:16px}
+.qz-front{font:700 17px/1.5 var(--f-serif);margin:0 0 6px;white-space:pre-line}
+.qz-opts{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;counter-reset:o}
+.qz-opts li{counter-increment:o;white-space:pre-line;font-size:14.5px}
+.qz-opts li::before{content:counter(o,decimal) ") ";color:var(--muted)}
+.qz-key{border-top:2px solid var(--rule-strong);margin-top:18px;padding-top:8px}
+@media print{body{background:#fff!important;color:#000!important}.wrap>*:not(.qz-print),.no-print{display:none!important}.qz-print{color:#000}.qz-key{break-before:page}.qz-list>li{break-inside:avoid}}
 .dr-subjbar{display:flex;gap:12px;align-items:center}
 .dr-subjbar .subj-seg{flex:1;margin:0}
 .dr-subjbar .linkbtn{white-space:nowrap}
@@ -1041,7 +1061,7 @@ function vHome(){
     <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>푼 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
     <div class="stat ${q?'alert':''}"><b>${q}</b><small>재출제</small></div>
-  </section>
+  </section>${studyLine()}
   ${subjs.length>1?`<div class="seg full subj-seg" role="tablist" aria-label="과목" style="--n:${Math.min(subjs.length,4)}">${subjs.map(x=>`<button data-subj="${esc(x)}" aria-pressed="${x===subj}">${esc(x)}</button>`).join('')}</div>`:''}
   ${tabUnits.length?`<div class="quick">
     <button class="q" data-q="weak"><i style="background:var(--bad)"></i>약한 단원</button>
@@ -1286,7 +1306,7 @@ function startSet(){
   st.queue = st.queue.filter(id=>!set.includes(id));
   const score = c => {const r=st.cards[c.id]; return r ? (r.last==='ok'?r.ok*2:0) + r.seen*0.1 : -1;};
   pool.filter(c=>!set.includes(c.id)).sort((a,b)=>score(a)-score(b)).forEach(c=>{ if(set.length<size) set.push(c.id); });
-  S.set = set; S.idx = 0; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); S.results=[]; S.combo=0; S.best=0;
+  S.set = set; S.idx = 0; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); S.results=[]; S.combo=0; S.best=0; S.qT0=Date.now();
   persist(); go('drill');
 }
 function record(out){
@@ -1413,7 +1433,7 @@ function bind(){
     else if(a==='unknown'){ S.phase='choose'; record('unknown'); }
     else if(a==='missing') record('missing');
     else if(a==='check'){ const ok = S.sel.size===c.ans.length && c.ans.every(i=>S.sel.has(i)); record(ok?'ok':'wrong'); }
-    else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.sel=new Set(); S.excluded=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
+    else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.qT0=Date.now(); S.sel=new Set(); S.excluded=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
     else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; go('entry'); }
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
@@ -1742,10 +1762,12 @@ function flStart(mode, deckIds, list, back='home'){
 function flShowNext(){
   const f=S.fl;
   f.cur = f.mode==='cram' ? (f.list.shift()||null) : (flPick(f.decks)?.id||null);
-  f.shown=false; f.t0=Date.now();
+  f.shown=false; f.t0=Date.now(); f.tShow=0;
+  if(!f.cur && f.uns){ f.uns=0; persist(); }
 }
 function flAnswer(rating){
   const f=S.fl, c=FC.cards.find(x=>x.id===f.cur); if(!c||!f.shown) return;
+  flTrack(f, rating);
   if(f.mode==='cram'){
     if(rating===1){ f.list.splice(Math.min(3,f.list.length),0,c.id); f.again++; } else f.done++;
     flShowNext(); render(); window.scrollTo(0,0); return;
@@ -1922,8 +1944,8 @@ function bindFlash(){
   q('[data-fl]').forEach(b=>b.onclick=()=>{
     const a=b.dataset.fl;
     if(a==='reload'){ FC.owner=''; flLoad(); }
-    else if(a==='show'){ S.fl.shown=true; render(); }
-    else if(a==='quit'){ if(S.fl.back==='drill') go('drill'); else { S.tab='flash'; go('home'); } }
+    else if(a==='show'){ S.fl.shown=true; S.fl.tShow=Date.now(); render(); }
+    else if(a==='quit'){ if(S.fl.uns){ S.fl.uns=0; persist(); } if(S.fl.back==='drill') go('drill'); else { S.tab='flash'; go('home'); } }
   });
   q('[data-fa1]').forEach(b=>b.onclick=()=>flAnswer(+b.dataset.fa1));
   q('[data-fstudy]').forEach(b=>b.onclick=()=>flStart('study', b.dataset.fstudy==='all'?null:[b.dataset.fstudy]));
@@ -2190,7 +2212,7 @@ async function readTextFile(file){
 document.addEventListener('keydown', e=>{
   if(S.screen!=='flash' || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
   const f=S.fl; if(!f?.cur) return;
-  if(!f.shown && (e.key===' '||e.key==='Enter')){ e.preventDefault(); f.shown=true; render(); return; }
+  if(!f.shown && (e.key===' '||e.key==='Enter')){ e.preventDefault(); f.shown=true; f.tShow=Date.now(); render(); return; }
   if(!f.shown) return;
   if(e.key===' '||e.key==='Enter'||e.key==='2'){ e.preventDefault(); flAnswer(3); }
   else if(e.key==='1') flAnswer(1);
@@ -2594,7 +2616,7 @@ function bindAccounts(){
   act('delStuCancel', ()=>{ S.manage={}; render(); });
   act('mergeGo', async()=>{ const from=S.view, into=S.manage.into; try{ await API.merge(from, into); S.manage={}; S.view=into; await reload(); }catch(e){ S.manage={into, msg:'합치지 못했어요. 숙제·카드 설정 SQL과 가입 설정 SQL을 실행했는지 확인해 주세요.'}; render(); } });
   act('delStuGo', async()=>{ try{ await API.removeStudent(S.view); S.manage={}; S.screen='admin'; await reload(); }catch(e){ S.manage={msg:'지우지 못했어요. 인터넷 연결을 확인해 주세요.'}; render(); } });
-  act('adminBack', ()=>{ S.manage={}; });
+  act('adminBack', ()=>{ S.manage={}; S.qz=null; });
   // 여러 명 선택 삭제
   q('[data-pick-act]').forEach(b=>b.onclick=async()=>{
     const a=b.dataset.pickAct, list=[...app.querySelectorAll('[data-stu]')].map(x=>x.dataset.stu);
@@ -2733,7 +2755,7 @@ function vParent(){
   <section class="lead">
     <span class="label">주간 아페라 · ${st.tw[0].key.slice(5).replace('-','/')}–${st.tw[6].key.slice(5).replace('-','/')}</span>
     <h2 class="lead-head">${esc(k.nick)} 학생의 이번 주</h2>
-    <p class="lead-deck">${st.days}일 공부 · 드릴 ${st.drill}문제 · 카드 ${st.flash}장</p>
+    <p class="lead-deck">${st.days}일 공부 · 드릴 ${st.drill}문제 · 카드 ${st.flash}장${(()=>{ const t=studySum(k.cards||{}, st.tw.map(x=>x.key)); return t.drill+t.flash?` · 공부 시간 ${fmtDur(t.drill+t.flash)}`:''; })()}</p>
     <div class="weekdots" role="img" aria-label="이번 주 공부한 날 ${st.days}일">${st.tw.map(x=>`<span class="${x.on?'on':''} ${x.future?'future':''} ${x.today?'today':''}"><i></i>${x.label}</span>`).join('')}</div>
     <p class="streak">${diff>0?`지난주보다 <b>${diff}일</b> 더 공부했어요.`:diff<0?`지난주에는 ${st.lastDays}일 공부했어요.`:st.days?`지난주와 같은 ${st.days}일 공부했어요.`:'이번 주에는 아직 기록이 없어요.'} 최근 접속 ${k.last_seen?fmtDate(k.last_seen):'없음'}</p>
   </section>
@@ -3697,6 +3719,117 @@ function bindDrill(){
         D.busy=null; D.err=e?.userMsg||`넣다가 끊겼어요. 인터넷 연결을 확인하고 남은 ${I.qs.length}문제를 다시 넣어 주세요.`; render(); } }
   });
 }
+/* ===== 공부 시간 · 카드 빠르게 넘김 =====
+   학생 기록(students.cards)에 날짜별로 쌓는다(35일치). 서버 설정 없이 학생·선생님·학부모 화면이 모두 읽는다.
+   _sec: {날짜: 드릴 초}  · 드릴은 문제가 나온 때부터 답할 때까지(한 문제 최대 3분)
+   _fl:  {날짜: [카드 답한 수, 빠르게 넘긴 수, 카드 초]} · 카드는 앞면이 나온 때부터 버튼을 누를 때까지(한 장 최대 2분)
+   빠르게 넘김: '알맞음·쉬움'을 눌렀는데 앞면을 1.2초도 안 보고 정답을 열었거나, 정답을 열고 0.7초 안에 누른 경우 */
+const studyMap=(cards,key)=>{ const m=cards&&cards[key]; return m&&typeof m==='object'&&!Array.isArray(m)?m:{}; };
+function studyAdd(key, upd){ if(!S.me) return; const m=studyMap(S.me.cards,key), d=dayKey(); m[d]=upd(m[d]); Object.keys(m).sort().slice(0,-35).forEach(k=>delete m[k]); S.me.cards[key]=m; }
+function studyDay(cards, d){ const sec=+studyMap(cards,'_sec')[d]||0, f=studyMap(cards,'_fl')[d]; const a=Array.isArray(f)?f:[0,0,0]; return {drill:sec, flash:+a[2]||0, n:+a[0]||0, fast:+a[1]||0}; }
+const studyDays=n=>Array.from({length:n},(_,i)=>dayKey(Date.now()-i*DAY));
+function studySum(cards, days){ return days.reduce((a,d)=>{ const x=studyDay(cards,d); a.drill+=x.drill; a.flash+=x.flash; a.n+=x.n; a.fast+=x.fast; return a; },{drill:0,flash:0,n:0,fast:0}); }
+const fmtDur=sec=>{ const m=Math.round(sec/60); return sec<=0?'0분':m<1?'1분 미만':m<60?`${m}분`:`${Math.floor(m/60)}시간${m%60?` ${m%60}분`:''}`; };
+function flTrack(f, rating){
+  const now=Date.now(), el=Math.min(120000, now-(f.t0||now)), front=f.tShow?f.tShow-f.t0:el, back=f.tShow?now-f.tShow:0;
+  const fast = rating>=3 && (front<1200 || back<700);
+  studyAdd('_fl', v=>{ const a=Array.isArray(v)?v:[0,0,0]; return [(+a[0]||0)+1, (+a[1]||0)+(fast?1:0), Math.round(((+a[2]||0)+el/1000)*10)/10]; });
+  f.uns=(f.uns||0)+1; if(f.uns>=5){ f.uns=0; persist(); }
+}
+const recordBeforeTime = record;
+record = function(out){ if(S.me&&S.qT0){ const sec=Math.min(180,(Date.now()-S.qT0)/1000); studyAdd('_sec', v=>Math.round(((+v||0)+sec)*10)/10); } S.qT0=null; recordBeforeTime(out); };
+// 학생 홈: 오늘·최근 7일 공부 시간
+function studyLine(){ if(!S.me) return ''; const t=studySum(S.me.cards,[dayKey()]), w=studySum(S.me.cards,studyDays(7)), tt=t.drill+t.flash, wt=w.drill+w.flash;
+  return wt?`<p class="study-line">오늘 <b>${fmtDur(tt)}</b> 공부 · 최근 7일 ${fmtDur(wt)}</p>`:''; }
+const vFlashHomeBeforeTime = vFlashHome;
+vFlashHome = () => studyLine() + vFlashHomeBeforeTime();
+// 선생님 학생 상세: 공부 시간 · 카드 넘김 · 쪽지 시험
+function studySection(s){
+  const c=s.cards||{}, d7=studyDays(7), t=studySum(c,[dayKey()]), w=studySum(c,d7), m=studySum(c,studyDays(30));
+  const per=d7.slice().reverse().map(d=>({d, x:studyDay(c,d)})), max=Math.max(60,...per.map(p=>p.x.drill+p.x.flash));
+  const pct=w.n?Math.round(w.fast/w.n*100):0, warn=w.n>=20&&pct>=30;
+  return `<section class="study-sec"><span class="label">공부 시간</span>
+    <section class="stats"><div class="stat"><b>${fmtDur(t.drill+t.flash)}</b><small>오늘</small></div><div class="stat"><b>${fmtDur(w.drill+w.flash)}</b><small>최근 7일</small></div><div class="stat"><b>${fmtDur(m.drill+m.flash)}</b><small>30일</small></div></section>
+    <div class="weekbars" role="img" aria-label="최근 7일 공부 시간">${per.map(p=>{ const a=p.x.drill, b=p.x.flash; return `<span title="${p.d} · 드릴 ${fmtDur(a)} · 카드 ${fmtDur(b)}"><i><em style="height:${(a/max*100).toFixed(1)}%"></em><em class="fl" style="height:${(b/max*100).toFixed(1)}%"></em></i>${'일월화수목금토'[new Date(p.d+'T12:00').getDay()]}</span>`; }).join('')}</div>
+    <p class="note"><i class="lg"></i>드릴 ${fmtDur(w.drill)} · <i class="lg fl"></i>카드 ${fmtDur(w.flash)} (최근 7일) · 문제가 나온 때부터 답할 때까지만 재요(한 번에 최대 2~3분)</p>
+    <span class="label">카드 빠르게 넘김 · 최근 7일</span>
+    <p class="${warn?'fast-warn':'note'}">${w.n?`답한 ${w.n}번 중 <b>${w.fast}번(${pct}%)</b>은 앞면을 거의 안 보고 정답을 열었거나, 정답을 보자마자 '알맞음·쉬움'을 눌렀어요.${warn?' 떠올리지 않고 넘기고 있을 수 있어요. 쪽지 시험으로 확인해 보세요.':''}`:'최근 7일 카드 기록이 없어요.'}</p>
+    <button class="btn alt" data-qz="start">쪽지 시험 · '익혔다'고 한 카드에서 10문제</button>
+  </section>`;
+}
+/* ===== 쪽지 시험 =====
+   학생이 '알맞음·쉬움'으로 넘겨 복습 단계에 올라간 카드(=익혔다고 한 카드)에서 무작위로 10장을 골라 4지선다로 낸다.
+   오답 선지는 같은 덱의 다른 카드 뒷면. 선생님 기기에서 학생이 바로 풀거나, 인쇄해서 종이로 낸다. */
+Object.assign(API, {
+  async flashStatesOf(sid){
+    if(DEMO){ const st=flDemo().flash.states[sid]||{}; return Object.entries(st).map(([card_id,v])=>({card_id, queue:v.queue, ivl:v.ivl})); }
+    const {data,error}=await sb.from('flash_states').select('card_id,queue,ivl').eq('student_id',sid); if(error) throw error; return data;
+  },
+  async noteAppend(sid, line){
+    if(DEMO){ const db=demoDB(); db.notes ||= {}; db.notes[sid]=[db.notes[sid],line].filter(Boolean).join('\n'); saveLoc(); return; }
+    const {data}=await sb.from('drill_student_notes').select('body').eq('student_id',sid).maybeSingle();
+    await API.noteSave(sid, [data?.body,line].filter(Boolean).join('\n').slice(-5000));
+  }
+});
+async function qzStart(s){
+  S.qz={sid:s.id, busy:true}; render();
+  try{
+    if(!S.fa||S.fa.status!=='ready') await flAdminLoad();
+    const cards=S.fa?.cards||[], byId=new Map(cards.map(c=>[c.id,c]));
+    const known=(await API.flashStatesOf(s.id)).filter(x=>x.queue==='review'&&byId.has(x.card_id)).map(x=>byId.get(x.card_id));
+    const pick=flShuffle(known.slice()).slice(0,10);
+    const items=pick.map(c=>{ const same=cards.filter(x=>x.deck_id===c.deck_id&&x.id!==c.id&&x.back.trim()!==c.back.trim()), other=cards.filter(x=>x.deck_id!==c.deck_id&&x.back.trim()!==c.back.trim());
+      const wrong=[...new Set(flShuffle(same.slice()).concat(flShuffle(other.slice())).map(x=>x.back))].slice(0,3);
+      const opts=flShuffle([c.back, ...wrong]); return {card:c, opts, ans:opts.indexOf(c.back), pick:null}; }).filter(x=>x.opts.length>=2);
+    S.qz={sid:s.id, nick:s.nick, items, i:0, known:known.length, mode:'menu'};
+  }catch(e){ S.qz={sid:s.id, err:'카드 기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'}; }
+  render();
+}
+function vQuiz(){
+  const Q=S.qz, back=`<div class="top"><button class="quit" data-qz="close">← 학생 정보</button><span class="combo mono">쪽지 시험</span></div>`;
+  if(Q.busy) return back+'<p class="lede">문제를 고르는 중…</p>';
+  if(Q.err) return back+`<p class="err">${esc(Q.err)}</p>`;
+  if(!Q.items.length) return back+`<p class="lede" style="padding:12px 0">${esc(Q.nick)} 학생이 '익혔다'고 한 카드가 아직 없어요. 카드를 공부해 복습 단계로 넘어간 카드가 생기면 낼 수 있어요.</p>`;
+  const N=Q.items.length;
+  if(Q.mode==='menu') return back+`<div><span class="label">${esc(Q.nick)}</span><h2 class="dr-title">쪽지 시험 ${N}문제</h2></div>
+    <p class="lede">'익혔다'고 넘긴 카드 ${Q.known}장 중 ${N}장을 골랐어요. 앞면을 보고 맞는 뒷면을 고르는 4지선다예요.</p>
+    <div class="dr-save"><button class="btn" data-qz="solve">이 기기에서 바로 풀게 하기</button><button class="btn alt" data-qz="print">인쇄하기 (정답지는 마지막 장)</button><button class="linkbtn" data-qz="again">다른 카드로 다시 고르기</button></div>`;
+  if(Q.mode==='print') return `<div class="qz-print"><div class="no-print">${back}<div class="dr-save"><button class="btn" data-qz="doprint">인쇄</button><button class="linkbtn" data-qz="menu">돌아가기</button></div></div>
+    <h2 class="qz-h">쪽지 시험 · ${esc(Q.nick)} <small>${fmtDate(Date.now())} · 이름 ________</small></h2>
+    <ol class="qz-list">${Q.items.map(x=>`<li><p class="qz-front">${mtx(x.card.front)}</p><ol class="qz-opts">${x.opts.map(o=>`<li>${mtx(o)}</li>`).join('')}</ol></li>`).join('')}</ol>
+    <div class="qz-key"><h3>정답</h3><p>${Q.items.map((x,k)=>`${k+1}번 → ${x.ans+1})`).join(' · ')}</p></div></div>`;
+  if(Q.mode==='solve'){ const x=Q.items[Q.i];
+    return `<div class="top"><button class="quit" data-qz="menu">← 그만두기</button><span class="combo mono">${Q.i+1} / ${N}</span></div>
+    <div class="track" aria-hidden="true"><div class="fill" style="width:${Q.i/N*100}%"></div></div>
+    <article class="sheet"><div class="meta"><span class="unit">쪽지 시험</span><span>${esc(Q.nick)}</span></div>
+      <p class="fc-front">${mtx(x.card.front)}</p>
+      <ul class="opts">${x.opts.map((o,k)=>`<li class="option-row"><button class="opt" data-qz-pick="${k}"><span class="bub">${k+1}</span><span>${mtx(o)}</span></button></li>`).join('')}</ul></article>`; }
+  // 결과
+  const ok=Q.items.filter(x=>x.pick===x.ans).length, wrong=Q.items.filter(x=>x.pick!==x.ans), pct=Math.round(ok/N*100);
+  return back+`<div class="score"><b>${ok}</b><span>/ ${N} 맞힘</span></div>
+    <p class="${pct<70?'fast-warn':'lede'}">'익혔다'고 넘긴 카드인데 ${pct}%를 맞혔어요.${pct<70?' 스스로 매긴 것보다 실제로는 덜 외운 상태예요.':''}</p>
+    ${wrong.length?`<span class="label">틀린 카드 ${wrong.length}장</span><div class="rows">${wrong.map(x=>`<div class="row fi-row"><span class="mark x">X</span><span class="rq"><b>${mtx(x.card.front)}</b><br><small class="dim">고른 답: ${mtx(x.opts[x.pick]??'')}</small><br>정답: ${mtx(x.card.back)}</span></div>`).join('')}</div>`:''}
+    <div class="dr-save">${Q.noted?`<p class="schedule-success">상담 노트에 남겼어요.</p>`:`<button class="btn alt" data-qz="note">상담 노트에 결과 남기기</button>`}<button class="linkbtn" data-qz="again">새 쪽지 시험</button></div>`;
+}
+const vAdminStudentBeforeQuiz = vAdminStudent;
+vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); if(S.qz&&S.qz.sid===S.view) return vQuiz(); return vAdminStudentBeforeQuiz() + (s?studySection(s):''); };
+function bindQuiz(){
+  if(S.screen!=='adminStudent') return;
+  const s=S.admin?.students.find(x=>x.id===S.view);
+  app.querySelectorAll('[data-qz]').forEach(b=>b.onclick=async()=>{ const a=b.dataset.qz, Q=S.qz;
+    if(a==='start'||a==='again'){ qzStart(s); window.scrollTo(0,0); return; }
+    if(a==='close'){ S.qz=null; return render(); }
+    if(a==='menu'){ Q.mode='menu'; return render(); }
+    if(a==='solve'){ Q.items.forEach(x=>x.pick=null); Q.i=0; Q.mode='solve'; Q.noted=false; render(); window.scrollTo(0,0); return; }
+    if(a==='print'){ Q.mode='print'; return render(); }
+    if(a==='doprint'){ window.print(); return; }
+    if(a==='note'){ const N=Q.items.length, ok=Q.items.filter(x=>x.pick===x.ans).length, wr=Q.items.filter(x=>x.pick!==x.ans).map(x=>x.card.front.split('\n')[0].slice(0,20));
+      b.disabled=true; try{ await API.noteAppend(Q.sid, `${fmtDate(Date.now())} 카드 쪽지 시험 ${ok}/${N}${wr.length?` · 틀림: ${wr.join(', ')}`:''}`); Q.noted=true; }catch(e){ b.disabled=false; b.textContent='저장 실패 · 다시'; return; } render(); }
+  });
+  app.querySelectorAll('[data-qz-pick]').forEach(b=>b.onclick=()=>{ const Q=S.qz; Q.items[Q.i].pick=+b.dataset.qzPick; if(Q.i+1<Q.items.length) Q.i++; else Q.mode='done'; render(); window.scrollTo(0,0); });
+}
+const bindBeforeQuiz = bindFlash;
+bindFlash = function(){ bindBeforeQuiz(); bindQuiz(); };
 const bindBeforeDrill = bindFlash;
 bindFlash = function(){ bindBeforeDrill(); bindDrill(); };
 const bindBeforeParent2 = bindFlash;
