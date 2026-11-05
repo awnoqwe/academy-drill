@@ -1,10 +1,10 @@
 'use strict';
 // 푸시 알림 + 앱 화면 저장(오프라인 실행).
 // 앱 화면(index.html)은 항상 인터넷에서 먼저 받고, 안 될 때만 저장본을 쓴다 → 업데이트는 바로 반영된다.
-// 서버(Supabase) 요청은 가로채지 않는다. 글꼴·서버 연결 프로그램만 저장본을 먼저 쓰고 뒤에서 새로 받는다.
+// 서버(Supabase) 요청은 가로채지 않는다. 글꼴·서버 연결 프로그램·수식(KaTeX)만 저장본을 먼저 쓰고 뒤에서 새로 받는다.
 const SHELL='apera-shell-v3';
 const SHELL_FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./apple-touch-icon.png','./favicon-32.png','./fonts/pretendard/pretendard.css'];
-const SHARED=/^https:\/\/(cdn\.jsdelivr\.net\/npm\/@supabase\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
+const SHARED=/^https:\/\/(cdn\.jsdelivr\.net\/npm\/@supabase\/|cdn\.jsdelivr\.net\/npm\/katex@|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
 const DB='trigger-push-device-v1';
 function deviceStore(mode,action){return new Promise((resolve,reject)=>{const open=indexedDB.open(DB,1);open.onupgradeneeded=()=>open.result.createObjectStore('settings');open.onerror=()=>reject(open.error);open.onsuccess=()=>{const db=open.result,tx=db.transaction('settings',mode),req=action(tx.objectStore('settings'));let value;req.onsuccess=()=>value=req.result;tx.oncomplete=()=>{db.close();resolve(value)};tx.onerror=()=>{db.close();reject(tx.error)}}})}
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(SHELL).then(c=>c.addAll(SHELL_FILES)).catch(()=>{}))});
