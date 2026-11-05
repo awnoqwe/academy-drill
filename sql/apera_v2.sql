@@ -89,10 +89,13 @@ create table if not exists public.students (
 );
 alter table public.students add column if not exists approved boolean not null default true;
 create table if not exists public.cards (
- id text primary key, grades text[] not null, unit text not null check (unit in ('read','lit','gram')), tag text not null,
+ id text primary key, grades text[] not null, unit text not null, tag text not null,
  stem text not null, passage text not null default '', poem boolean not null default false, opts jsonb not null, ans jsonb not null,
  explain text not null default '', sort int not null default 0, created_at timestamptz not null default now()
 );
+-- 단원: 예전 국어 3단원(read·lit·gram) 또는 '과목/단원' 이름 (sql/drill_units.sql과 같음)
+alter table public.cards drop constraint if exists cards_unit_check;
+alter table public.cards add constraint cards_unit_check check (unit in ('read', 'lit', 'gram') or unit ~ '^[^/]{1,40}/[^/]{1,40}$');
 create table if not exists public.questions (
  id bigint generated always as identity primary key,
  student_id uuid not null references public.students (id) on delete cascade,
