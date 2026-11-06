@@ -2,7 +2,7 @@
 // 푸시 알림 + 앱 화면 저장(오프라인 실행).
 // 앱 화면(index.html)은 항상 인터넷에서 먼저 받고, 안 될 때만 저장본을 쓴다 → 업데이트는 바로 반영된다.
 // 서버(Supabase) 요청은 가로채지 않는다. 글꼴·서버 연결 프로그램·수식(KaTeX)만 저장본을 먼저 쓰고 뒤에서 새로 받는다.
-const SHELL='apera-shell-v4';
+const SHELL='apera-shell-v5';
 const SHELL_FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./apple-touch-icon.png','./favicon-32.png','./favicon.svg','./icon-512.png','./fonts/pretendard/pretendard.css'];
 const SHARED=/^https:\/\/(cdn\.jsdelivr\.net\/npm\/@supabase\/|cdn\.jsdelivr\.net\/npm\/katex@|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
 const DB='trigger-push-device-v1';

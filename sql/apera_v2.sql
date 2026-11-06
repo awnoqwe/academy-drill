@@ -242,6 +242,39 @@ create table if not exists public.push_sent (
  status text not null check (status in ('sending','sent','failed','expired')), updated_at timestamptz not null default now(),
  primary key (message, sub_kind, sub_id));
 
+-- ④-2 개인정보 수집·이용 동의 ----------------------------------------------------
+-- 학생이 앱에서 동의한 판(consent_ver)·시각과, 만 14세 미만이면 원장·선생님이 종이 보호자 동의서를 받았다고 표시한 시각을 남긴다.
+-- 동의 기록(student_consents)은 언제 누가 무엇에 동의했는지 증명하는 용도. 학생을 지우면 함께 지워진다(파기).
+alter table public.students add column if not exists consent_ver int;
+alter table public.students add column if not exists consent_at timestamptz;
+alter table public.students add column if not exists under14 boolean;
+alter table public.students add column if not exists guardian_at timestamptz;
+alter table public.students add column if not exists guardian_by uuid;
+create table if not exists public.student_consents (
+ id bigint generated always as identity primary key,
+ student_id uuid not null references public.students on delete cascade,
+ academy_id uuid not null references public.academies on delete cascade,
+ kind text not null check (kind in ('student','guardian','guardian_cancel')),
+ version int, under14 boolean, by_user uuid, at timestamptz not null default now());
+create index if not exists student_consents_student on public.student_consents(student_id);
+-- 지금 받는 동의서 판. 문구를 바꾸면 숫자를 올리고 앱의 CONSENT_VER도 같이 올린다 → 모든 학생이 다시 동의.
+create or replace function public.apera_consent_ver() returns int language sql immutable as $f$ select 1 $f$;
+-- 선생님이 표를 직접 고쳐 동의 기록을 꾸밀 수 없게: 동의 칸은 서버 함수로만 바뀐다
+create or replace function public.students_consent_guard() returns trigger language plpgsql as $f$
+begin
+ if current_user in ('authenticated', 'anon') then
+  if tg_op = 'INSERT' then
+   new.consent_ver := null; new.consent_at := null; new.under14 := null; new.guardian_at := null; new.guardian_by := null;
+  elsif new.consent_ver is distinct from old.consent_ver or new.consent_at is distinct from old.consent_at or new.under14 is distinct from old.under14
+     or new.guardian_at is distinct from old.guardian_at or new.guardian_by is distinct from old.guardian_by then
+   raise exception 'consent_locked';
+  end if;
+ end if;
+ return new;
+end $f$;
+drop trigger if exists students_consent_guard on public.students;
+create trigger students_consent_guard before insert or update on public.students for each row execute function public.students_consent_guard();
+
 -- ⑤ 보안 규칙 -------------------------------------------------------------------
 do $$
 declare r record; t text;
@@ -250,13 +283,13 @@ begin
  for r in select tablename, policyname from pg_policies where schemaname = 'public' and tablename in
   ('settings','teachers','students','cards','questions','drill_groups','drill_events','flash_decks','flash_cards','flash_states','flash_logs',
    'drill_homework','drill_homework_recipients','drill_student_notes','parent_codes','parent_children','parent_comments',
-   'academies','academy_members','platform_admins','classes','student_contacts','timetables','fees','notices','notice_recipients') loop
+   'academies','academy_members','platform_admins','classes','student_contacts','timetables','fees','notices','notice_recipients','student_consents') loop
   execute format('drop policy %I on public.%I', r.policyname, r.tablename);
  end loop;
  foreach t in array array['academies','academy_members','platform_admins','admin_access_log','students','cards','questions','drill_groups','drill_group_members',
    'drill_events','drill_event_recipients','drill_student_sessions','drill_push_config','drill_push_subscriptions','flash_decks','flash_cards','flash_states','flash_logs',
    'drill_homework','drill_homework_recipients','drill_student_notes','parent_codes','parent_children','parent_comments','classes','student_contacts',
-   'timetables','fees','notices','notice_recipients','parent_push_subscriptions','push_sent'] loop
+   'timetables','fees','notices','notice_recipients','parent_push_subscriptions','push_sent','student_consents'] loop
   execute format('alter table public.%I enable row level security', t);
   execute format('revoke all on public.%I from anon, authenticated', t);
  end loop;
@@ -278,6 +311,8 @@ create policy "owner renames academy" on public.academies for update to authenti
 grant select on public.academy_members, public.platform_admins to authenticated;
 create policy "member reads members" on public.academy_members for select to authenticated using (user_id = auth.uid() or public.is_member(academy_id));
 create policy "admin reads self" on public.platform_admins for select to authenticated using (user_id = auth.uid());
+grant select on public.student_consents to authenticated;
+create policy "member reads consents" on public.student_consents for select to authenticated using (public.is_member(academy_id));
 grant select on public.flash_states, public.flash_logs to authenticated;
 create policy "member reads flash states" on public.flash_states for select to authenticated using (exists (select 1 from public.students s where s.id = student_id and public.is_member(s.academy_id)));
 create policy "member reads flash logs" on public.flash_logs for select to authenticated using (exists (select 1 from public.students s where s.id = student_id and public.is_member(s.academy_id)));
@@ -331,11 +366,17 @@ begin
   end if;
  end if;
  if s.id is null then
-  return json_build_object('status', 'new', 'other_grades',
+  return json_build_object('status', 'new', 'academy', (select json_build_object('name', name) from public.academies where id = aid), 'other_grades',
    coalesce((select json_agg(st.grade order by st.grade) from public.students st join public.student_contacts c on c.student_id = st.id
     where st.academy_id = aid and st.nick = btrim(p_nick) and st.approved and public.apera_phone_digits(c.student_phone) = ph), '[]'::json));
  end if;
  if not s.approved then return json_build_object('status', 'pending'); end if;
+ -- 개인정보 동의 전(예전 학생·동의서 판이 바뀐 경우)이면 동의 화면부터
+ if coalesce(s.consent_ver, 0) < public.apera_consent_ver() then
+  return json_build_object('status', 'consent', 'under14', s.under14, 'academy', (select json_build_object('name', name) from public.academies where id = aid));
+ end if;
+ -- 만 14세 미만: 보호자 동의서(종이)를 원장·선생님이 받았다고 표시해야 시작
+ if s.under14 and s.guardian_at is null then return json_build_object('status', 'guardian'); end if;
  update public.students set last_seen = now() where id = s.id returning * into s;
  delete from public.drill_student_sessions where student_id = s.id and expires_at < now();
  insert into public.drill_student_sessions (student_id) values (s.id) returning token into t;
@@ -346,18 +387,41 @@ begin
   'schedule_token', t);
 end $$;
 
-create or replace function public.student_signup(p_code text, p_nick text, p_grade text, p_phone text)
+drop function if exists public.student_signup(text, text, text, text);
+-- 가입 신청: 개인정보 수집·이용 동의(p_consent = 동의한 판)가 있어야 받는다. 중학생은 만 14세 미만인지도 함께 받는다.
+create or replace function public.student_signup(p_code text, p_nick text, p_grade text, p_phone text, p_consent int, p_under14 boolean)
 returns json language plpgsql security definer set search_path = public as $$
 declare aid uuid := public.academy_by_code(p_code); ph text := public.apera_phone_digits(p_phone); sid uuid;
+ u14 boolean := case when p_grade like '고%' then false else p_under14 end;
 begin
  if aid is null then raise exception 'bad_code'; end if;
  if length(ph) not between 10 and 11 then raise exception 'bad_phone'; end if;
+ if coalesce(p_consent, 0) < public.apera_consent_ver() or u14 is null then raise exception 'need_consent'; end if;
  if (select count(*) from public.students where academy_id = aid and not approved and created_at > now() - interval '1 hour') >= 30 then raise exception 'too_many'; end if;
  if not exists (select 1 from public.students st join public.student_contacts c on c.student_id = st.id
   where st.academy_id = aid and st.grade = p_grade and st.nick = btrim(p_nick) and public.apera_phone_digits(c.student_phone) = ph) then
   insert into public.students (academy_id, nick, grade, approved) values (aid, btrim(p_nick), p_grade, false) returning id into sid;
+  update public.students set consent_ver = p_consent, consent_at = now(), under14 = u14 where id = sid;
   insert into public.student_contacts (student_id, academy_id, student_phone) values (sid, aid, public.apera_phone_fmt(ph));
+  insert into public.student_consents (student_id, academy_id, kind, version, under14) values (sid, aid, 'student', p_consent, u14);
  end if;
+ return public.student_enter(p_code, p_nick, p_grade, p_phone);
+end $$;
+
+-- 이미 가입한 학생의 동의(예전 학생이거나 동의서 판이 바뀐 경우). 본인 확인은 입장과 같다(코드·이름·학년·전화번호).
+create or replace function public.student_consent(p_code text, p_nick text, p_grade text, p_phone text, p_consent int, p_under14 boolean)
+returns json language plpgsql security definer set search_path = public as $$
+declare aid uuid := public.academy_by_code(p_code); ph text := public.apera_phone_digits(p_phone); sid uuid;
+ u14 boolean := case when p_grade like '고%' then false else p_under14 end;
+begin
+ if aid is null then raise exception 'bad_code'; end if;
+ if coalesce(p_consent, 0) < public.apera_consent_ver() or u14 is null then raise exception 'need_consent'; end if;
+ select st.id into sid from public.students st join public.student_contacts c on c.student_id = st.id
+  where st.academy_id = aid and st.grade = p_grade and st.nick = btrim(p_nick) and public.apera_phone_digits(c.student_phone) = ph
+  order by st.approved desc, st.created_at limit 1;
+ if sid is null then raise exception 'not_found'; end if;
+ update public.students set consent_ver = p_consent, consent_at = now(), under14 = u14 where id = sid;
+ insert into public.student_consents (student_id, academy_id, kind, version, under14) values (sid, aid, 'student', p_consent, u14);
  return public.student_enter(p_code, p_nick, p_grade, p_phone);
 end $$;
 
@@ -643,6 +707,16 @@ begin
  else delete from public.students where id = p_id and not approved; end if;
 end $$;
 
+-- 보호자 동의서(종이)를 받았다고 표시 / 표시 취소. 만 14세 미만 학생은 이 표시가 있어야 시작할 수 있다.
+create or replace function public.student_guardian(p_id uuid, p_ok boolean)
+returns void language plpgsql security definer set search_path = public as $$
+declare aid uuid := (select academy_id from public.students where id = p_id);
+begin
+ if aid is null or not public.is_member(aid) then raise exception 'not_member'; end if;
+ update public.students set guardian_at = case when p_ok then now() end, guardian_by = case when p_ok then auth.uid() end where id = p_id;
+ insert into public.student_consents (student_id, academy_id, kind, by_user) values (p_id, aid, case when p_ok then 'guardian' else 'guardian_cancel' end, auth.uid());
+end $$;
+
 create or replace function public.student_merge(p_from uuid, p_into uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare a public.students; b public.students; merged jsonb; k text; v jsonb; w jsonb;
@@ -675,8 +749,12 @@ begin
  end loop;
  update public.students set cards = merged,
   queue = coalesce((select jsonb_agg(distinct x) from (select jsonb_array_elements(b.queue) x union select jsonb_array_elements(a.queue)) q), '[]'::jsonb),
-  last_seen = greatest(a.last_seen, b.last_seen), approved = true, class_id = coalesce(b.class_id, a.class_id), school = coalesce(b.school, a.school)
+  last_seen = greatest(a.last_seen, b.last_seen), approved = true, class_id = coalesce(b.class_id, a.class_id), school = coalesce(b.school, a.school),
+  consent_ver = coalesce(greatest(b.consent_ver, a.consent_ver), b.consent_ver, a.consent_ver),
+  consent_at = case when coalesce(b.consent_ver, 0) >= coalesce(a.consent_ver, 0) then coalesce(b.consent_at, a.consent_at) else a.consent_at end,
+  under14 = coalesce(b.under14, a.under14), guardian_at = coalesce(b.guardian_at, a.guardian_at), guardian_by = coalesce(b.guardian_by, a.guardian_by)
  where id = b.id;
+ update public.student_consents set student_id = b.id where student_id = a.id;
  update public.questions set student_id = b.id where student_id = a.id;
  insert into public.drill_group_members (group_id, student_id) select group_id, b.id from public.drill_group_members where student_id = a.id on conflict do nothing;
  insert into public.drill_event_recipients (event_id, student_id, read_at) select event_id, b.id, read_at from public.drill_event_recipients where student_id = a.id on conflict do nothing;
@@ -829,7 +907,7 @@ do $$
 declare f text;
 begin
  foreach f in array array[
-  'student_enter(text,text,text,text)','student_signup(text,text,text,text)','student_save(text,uuid,jsonb,jsonb)','qna_list(text,uuid)','qna_post(text,uuid,text,text)',
+  'student_enter(text,text,text,text)','student_signup(text,text,text,text,int,boolean)','student_consent(text,text,text,text,int,boolean)','student_save(text,uuid,jsonb,jsonb)','qna_list(text,uuid)','qna_post(text,uuid,text,text)',
   'drill_schedule_student(uuid)','drill_schedule_read(uuid,uuid[])','flash_student_load(uuid,timestamptz)','flash_review(uuid,uuid,uuid,int,text,int,int,jsonb)',
   'hw_student_list(uuid)','hw_student_done(uuid,uuid,boolean)','tt_student(uuid)','drill_push_public_key(uuid)','drill_push_subscribe(uuid,jsonb)','drill_push_unsubscribe(uuid,text)',
   'parent_view(text)','parent_push_public_key(text)','parent_push_subscribe(text,jsonb)','parent_push_unsubscribe(text,text)'] loop
@@ -838,7 +916,7 @@ begin
  end loop;
  foreach f in array array[
   'my_academies()','admin_open(uuid)','admin_create_academy(text,text,text)','member_add(uuid,text,text)','member_remove(uuid,uuid)','member_list(uuid)','member_set_me(uuid,text,text)',
-  'student_approve(uuid,boolean)','student_merge(uuid,uuid)','drill_schedule_admin(uuid)','drill_group_save(uuid,uuid,text,uuid[])',
+  'student_approve(uuid,boolean)','student_guardian(uuid,boolean)','student_merge(uuid,uuid)','drill_schedule_admin(uuid)','drill_group_save(uuid,uuid,text,uuid[])',
   'drill_schedule_publish(uuid,jsonb,text,uuid[],uuid[],boolean,jsonb)','flash_admin_stats(uuid)','hw_publish(uuid,text,date,text,jsonb,jsonb,uuid[])',
   'notice_publish(uuid,text,text,jsonb,uuid[])','fee_generate(uuid,text)'] loop
   execute format('revoke all on function public.%s from public', f);
