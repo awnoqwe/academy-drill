@@ -298,6 +298,74 @@ button.row:hover{background:var(--hover)}
 .fc-item .qt{font-weight:600}
 .fc-backline{margin:0;font-family:var(--f-serif);font-size:14px;color:var(--muted);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .fc-edit{border:1px solid var(--rule);padding:14px;background:var(--sheet)}
+/* 카드 구성(필드): 항목별로 그린 카드 */
+.fc-fields{display:flex;flex-direction:column;gap:6px;white-space:normal}
+.fc-front.fc-fields{align-items:center;text-align:center;padding:26px 0 10px}
+.fc-back.fc-fields{gap:12px;text-align:left}
+.fc-f{display:flex;flex-direction:column;gap:2px;white-space:pre-line;min-width:0;max-width:100%}
+.fc-h .fc-v{font-family:var(--f-serif);font-weight:900;font-size:26px;line-height:1.4;letter-spacing:-.01em;text-wrap:balance}
+.fc-t .fc-v{font-family:var(--f-serif);font-size:17px;line-height:1.8}
+.fc-s .fc-v{font-family:var(--f-serif);font-size:14.5px;line-height:1.7;color:var(--muted)}
+.fc-front .fc-t .fc-v{font-size:19px}
+.fc-lab{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--omr)}
+/* 카드 구성 편집 */
+.ff-rows{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.ff-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;grid-template-areas:"mv name side kind" "mv lab lab del";gap:6px 8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule)}
+.ff-row .ff-move{grid-area:mv;display:flex;flex-direction:column;gap:2px}
+.ff-row .ff-move button{width:30px;height:24px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;font-size:12px;padding:0}
+.ff-row .ff-move button:disabled{opacity:.3;cursor:default}
+.ff-row .ff-name{grid-area:name;font:inherit;font-size:15px;font-weight:600;padding:7px 10px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);min-width:0;width:100%;border-radius:0}
+.ff-row .ff-name:focus{outline:none;border-color:var(--ink)}
+.ff-row .ff-side{grid-area:side;width:auto}
+.ff-row .ff-side button{padding:6px 11px;font-size:13.5px}
+.ff-row select{grid-area:kind;font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:0}
+.ff-row .ff-lab{grid-area:lab;font-size:13px;color:var(--muted);gap:6px}
+.ff-row .ff-del{grid-area:del;justify-self:end}
+.ff-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.ff-head select{font:inherit;font-size:13.5px;padding:7px 8px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:0;max-width:100%}
+.fc-preview{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fc-preview>div{border:1px solid var(--rule);padding:10px 12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0;background:var(--paper)}
+.fc-preview .label{font-size:10.5px}
+.fc-preview .fc-front{padding:10px 0 4px}
+.fc-preview .fc-h .fc-v{font-size:20px}
+.fc-preview .fc-t .fc-v,.fc-preview .fc-front .fc-t .fc-v{font-size:14.5px}
+.fc-preview .fc-s .fc-v{font-size:13px}
+.fc-preview .fc-back{border-top:0;padding-top:0;font-size:14px}
+@media (max-width:480px){.fc-preview{grid-template-columns:1fr}}
+.ff-dirty{color:var(--omr);font-size:12.5px;font-weight:700}
+/* 학생 상세: 접속 잔디 · 하루 카드 */
+.grass{display:grid;grid-template-columns:22px 1fr;gap:4px 6px;align-items:stretch}
+.grass .gmon{grid-column:2;display:grid;grid-template-columns:repeat(var(--w),1fr);gap:3px;font-size:10.5px;color:var(--muted);height:14px;line-height:14px;white-space:nowrap;overflow:hidden}
+.grass .gdays{display:grid;grid-template-rows:repeat(7,1fr);gap:3px;font-size:10.5px;color:var(--muted);align-items:center}
+.grass .gdays span{display:flex;align-items:center;line-height:1}
+.grass .gcells{display:grid;grid-template-columns:repeat(var(--w),1fr);grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px}
+.gd{aspect-ratio:1;background:var(--track);border-radius:2px;min-width:0}
+.gd.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--rule)}
+.gd.on{background:var(--faint)}
+.gd.f1{background:var(--omr);opacity:.3} .gd.f2{background:var(--omr);opacity:.55} .gd.f3{background:var(--omr);opacity:.8} .gd.f4{background:var(--omr)}
+.gd.today{outline:2px solid var(--ink);outline-offset:1px}
+.glegend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.glegend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.glegend i.f1{opacity:.3} .glegend i.f2{opacity:.55} .glegend i.f3{opacity:.8}
+.gbars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:64px;border-bottom:1px solid var(--rule);padding-bottom:2px}
+.gbars>div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;min-width:0}
+.gbars b{font-family:var(--f-mono);font-size:10.5px;font-weight:600;color:var(--muted);line-height:1}
+.gbars i{display:block;width:100%;background:var(--omr);border-radius:2px 2px 0 0;min-height:2px}
+.gbars i.z{background:var(--track)}
+.gbarl{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;font-size:10px;color:var(--faint);text-align:center;font-family:var(--f-mono)}
+.gsum{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.gsum b{color:var(--ink);font-family:var(--f-mono);font-weight:600}
+.gsum b.hot{color:var(--omr)}
+/* 가져오기: 칸 ↔ 항목 */
+.ff-map{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.ff-maprow{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+.ff-maprow .mono{color:var(--muted);font-size:12.5px}
+.ff-maprow small{color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ff-maprow select{font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:0;max-width:150px}
+.fc-edit .fc-side{display:flex;flex-direction:column;gap:10px;border-left:3px solid var(--rule);padding-left:12px}
+.fc-edit .fc-side.b{border-color:var(--omr)}
+.fc-edit .fc-side label{gap:4px}
+.fc-edit .fc-side label b{color:var(--ink);font-weight:600}
 @media (max-width:380px){.deck{grid-template-columns:1fr}.deck .acts .btn{flex:1}}
 
 /* ===== 아페라 신문 디자인 ===== */
@@ -1301,6 +1369,7 @@ function vAdminStudent(){
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
     <div class="stat ${m.blockedPct>=30?'alert':''}"><b>${m.blockedPct}<small>%</small></b><small>막힘</small></div>
   </section>
+  ${actSection(s)}
   <section><span class="label">단원별 진도</span>
     ${gradeUnits(s.grade).map(u=>{const t=unitStats(s,u.id),pc=x=>(x/t.total*100).toFixed(2)+'%';return `<div class="unitrow">
       <div class="h"><b>${esc(u.subj)} · ${esc(u.name)}</b><span>진도 ${t.seenPct}% · 익힘 ${t.maturePct}%</span></div>
@@ -1461,7 +1530,7 @@ function bind(){
   app.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size; render();});
   app.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{const i=+b.dataset.opt; S.sel.has(i)?S.sel.delete(i):S.sel.add(i); render();});
   app.querySelectorAll('[data-grade]').forEach(b=>b.onclick=()=>{S.gradeFilter=b.dataset.grade; render();});
-  app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{ if(S.pick){ const id=b.dataset.stu; S.pick.has(id)?S.pick.delete(id):S.pick.add(id); S.pickAsk=false; return render(); } S.view=b.dataset.stu; go('adminStudent');});
+  app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{ if(S.pick){ const id=b.dataset.stu; S.pick.has(id)?S.pick.delete(id):S.pick.add(id); S.pickAsk=false; return render(); } S.view=b.dataset.stu; actLoad(S.view); go('adminStudent');});
   app.querySelectorAll('[data-act]').forEach(b=>b.onclick=async ()=>{
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
     if(a==='toAdmin'||a==='toOwner'){ S.wantOwner = a==='toOwner'; if(S.admin){ S.ownerMode = S.wantOwner && isOwner(); go('admin'); } else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
@@ -1849,8 +1918,8 @@ function vFlash(){
   ${f.mode==='cram'?`<div class="track" aria-hidden="true"><div class="fill" style="width:${f.total?f.done/f.total*100:0}%"></div></div>`:''}
   <article class="sheet">
     <div class="meta"><span class="unit">${esc(deck?.name||'')}${f.mode==='cram'?' · 몰아보기':''}</span><span>${!st?'새 카드':st.queue==='review'?'복습':'배우는 중'}</span></div>
-    <p class="fc-front">${mtx(c.front)}</p>
-    ${f.shown?`<p class="fc-back">${mtx(c.back)}</p>`:''}
+    ${flSideHtml(deck, c, 'f')}
+    ${f.shown?flSideHtml(deck, c, 'b'):''}
   </article>
   <div class="drill-actions">${f.shown?btns:`<button class="btn" data-fl="show">정답 보기</button>`}</div>`;
 }
@@ -1860,6 +1929,112 @@ function flLinkBtn(c){
   return n ? `<button class="linkbtn" style="align-self:flex-start" data-flink="${esc(c.id)}">관련 개념 카드 ${n}장 보기</button>` : '';
 }
 function flShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ===== 학생 상세: 접속 잔디 · 하루 카드 =====
+   서버: student_days(접속한 날짜, students.last_seen 트리거) + flash_logs(복습 기록)을 student_activity RPC로 받는다.
+   데모: 복습 기록 날짜 + 마지막 접속일로 어림한다. */
+const dkey = t => { const d=new Date(t), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+Object.assign(API, {
+  async studentActivity(id){
+    if(DEMO){ const db=flDemo(), f=db.flash, st=db.students[id], flash={}, seen=new Set();
+      f.logs.filter(l=>l.student_id===id).forEach(l=>{ const k=dkey(l.reviewed_at); flash[k]=(flash[k]||0)+1; seen.add(k); });
+      if(st?.lastSeen) seen.add(dkey(st.lastSeen));
+      // 예시 학생: 화면 확인용으로 접속일을 몇 개 더 깐다
+      if(st?.example) for(let i=1;i<60;i+=1+((i*7)%4)) seen.add(dkey(Date.now()-i*DAY));
+      return {seen:[...seen], flash:Object.entries(flash).map(([day,n])=>({day,n}))}; }
+    const {data,error}=await sb.rpc('student_activity',{p_student:id}); if(error) throw error; return data;
+  }
+});
+function actLoad(id){
+  S.act={id, status:'loading'};
+  API.studentActivity(id).then(d=>{ if(S.act?.id!==id) return; S.act={id, status:'ready', seen:new Set(d.seen||[]), flash:Object.fromEntries((d.flash||[]).map(x=>[x.day,+x.n]))}; render(); })
+    .catch(e=>{ if(S.act?.id!==id) return; S.act={id, status:/42883|PGRST202|does not exist|42P01/.test((e?.code||'')+' '+(e?.message||''))?'missing':'error'}; render(); });
+}
+function actSection(s){
+  const A=S.act, head='<span class="label">접속 · 카드 복습 (최근 26주)</span>';
+  if(!A||A.id!==s.id||A.status==='loading') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="lede" style="padding:8px 0">불러오는 중…</p></section>`;
+  if(A.status==='missing') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="note">접속 기록 기능의 서버 설정이 아직 안 됐어요. Supabase SQL Editor에서 sql/activity.sql을 한 번 실행하면 열려요.</p></section>`;
+  if(A.status!=='ready') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="note">접속 기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p></section>`;
+  const W=26, now=new Date(), today=dkey(now), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const dow=(t0.getDay()+6)%7; // 월=0
+  const start=new Date(t0.getTime()-(dow+7*(W-1))*DAY);
+  const lvl=n=>!n?0:n<10?1:n<25?2:n<50?3:4, kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일`; };
+  const mons=[], cells=[]; let pm=-1;
+  for(let w=0;w<W;w++){ const mon=new Date(start.getTime()+w*7*DAY); const m=mon.getMonth(); mons.push(m!==pm&&(w===0||mon.getDate()<=7)?`<span>${m+1}월</span>`:'<span></span>'); pm=m;
+    for(let r=0;r<7;r++){ const d=new Date(start.getTime()+(w*7+r)*DAY), k=dkey(d); if(d>t0){ cells.push('<i class="gd fut"></i>'); continue; }
+      const n=A.flash[k]||0, on=A.seen.has(k)||n>0, cls=n?'f'+lvl(n):on?'on':'';
+      cells.push(`<i class="gd ${cls}${k===today?' today':''}" title="${kor(k)} · ${on?'접속':'접속 없음'}${n?` · 카드 ${n}장`:''}"></i>`); } }
+  const days=(n,fn)=>{ let c=0; for(let i=0;i<n;i++){ const k=dkey(t0.getTime()-i*DAY); if(fn(k)) c++; } return c; };
+  const sum=(n,fn)=>{ let c=0; for(let i=0;i<n;i++){ c+=fn(dkey(t0.getTime()-i*DAY)); } return c; };
+  const seen7=days(7,k=>A.seen.has(k)||A.flash[k]), seen30=days(30,k=>A.seen.has(k)||A.flash[k]);
+  const f7=sum(7,k=>A.flash[k]||0), f30=sum(30,k=>A.flash[k]||0), fd7=days(7,k=>A.flash[k]), fd30=days(30,k=>A.flash[k]);
+  let streak=0; for(let i=A.flash[today]?0:1;;i++){ if(A.flash[dkey(t0.getTime()-i*DAY)]) streak++; else break; }
+  const last14=[...Array(14)].map((_,i)=>{ const k=dkey(t0.getTime()-(13-i)*DAY); return {k, n:A.flash[k]||0, d:new Date(t0.getTime()-(13-i)*DAY)}; }), mx=Math.max(1,...last14.map(x=>x.n));
+  return `<section style="display:flex;flex-direction:column;gap:10px">${head}
+    <div class="grass" style="--w:${W}"><span></span><div class="gmon">${mons.join('')}</div>
+      <div class="gdays"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span></span></div><div class="gcells">${cells.join('')}</div></div>
+    <div class="glegend"><span><i style="background:var(--track)"></i>없음</span><span><i style="background:var(--faint)"></i>접속만</span><span><i class="f1" style="background:var(--omr)"></i>카드 1~9장</span><span><i class="f2" style="background:var(--omr)"></i>10~24</span><span><i class="f3" style="background:var(--omr)"></i>25~49</span><span><i style="background:var(--omr)"></i>50장 이상</span></div>
+    <div class="gsum"><span>접속 최근 7일 <b class="${seen7===0?'hot':''}">${seen7}</b>일 · 30일 <b>${seen30}</b>일</span><span>카드 최근 7일 <b>${f7}</b>장${fd7?` · 복습한 날 하루 평균 <b>${Math.round(f7/fd7)}</b>장`:''}</span><span>30일 <b>${f30}</b>장${fd30?` · 하루 평균 <b>${Math.round(f30/fd30)}</b>장`:''}</span><span>연속 복습 <b class="${streak>=7?'hot':''}">${streak}</b>일</span></div>
+    <span class="label">최근 14일 · 하루 카드 복습 수</span>
+    <div class="gbars">${last14.map(x=>`<div title="${kor(x.k)} · ${x.n}장"><b>${x.n||''}</b><i class="${x.n?'':'z'}" style="height:${x.n?Math.max(6,Math.round(x.n/mx*44)):2}px"></i></div>`).join('')}</div>
+    <div class="gbarl">${last14.map(x=>`<span>${x.d.getDate()}</span>`).join('')}</div>
+  </section>`;
+}
+
+/* ===== 카드 구성(필드) =====
+   덱의 fields: [{id, n:항목 이름, s:'f'(앞)|'b'(뒤), k:'h'(크게)|'t'(보통)|'s'(작게), l:true면 항목 이름을 같이 보여 준다}].
+   카드의 fields: {항목id: 글}. 예전 카드(fields 없음)는 front·back 글을 그대로 보여 준다.
+   front·back 글은 항목에서 만들어 항상 같이 저장한다 — 중복 검사·자주 틀리는 카드·쪽지 시험·학부모 화면이 그대로 쓴다. */
+const FL_DEFAULT_FIELDS = [{id:'front', n:'앞면', s:'f', k:'h'}, {id:'back', n:'뒷면', s:'b', k:'t'}];
+const FL_PRESETS = [
+  {id:'basic', name:'기본 — 앞면 / 뒷면', fields:FL_DEFAULT_FIELDS},
+  {id:'vocab', name:'어휘장 — 표제어 / 한자 · 뜻풀이 · 예문 · 유의어 · 혼동어', fields:[
+    {id:'word',n:'표제어',s:'f',k:'h'},{id:'hanja',n:'한자',s:'b',k:'s'},{id:'mean',n:'뜻풀이',s:'b',k:'t'},
+    {id:'ex',n:'예문',s:'b',k:'s',l:true},{id:'syn',n:'유의어',s:'b',k:'s',l:true},{id:'conf',n:'혼동어',s:'b',k:'s',l:true}]},
+  {id:'concept', name:'개념어 — 용어 / 정의 · 예시 · 주의', fields:[
+    {id:'term',n:'용어',s:'f',k:'h'},{id:'def',n:'정의',s:'b',k:'t'},{id:'ex',n:'예시',s:'b',k:'s',l:true},{id:'warn',n:'주의',s:'b',k:'s',l:true}]},
+  {id:'reverse', name:'뜻 → 단어 — 뜻풀이 / 단어 · 예문', fields:[
+    {id:'mean',n:'뜻풀이',s:'f',k:'t'},{id:'word',n:'단어',s:'b',k:'h'},{id:'ex',n:'예문',s:'b',k:'s',l:true}]}
+];
+const FL_KIND = {h:'크게', t:'보통', s:'작게'};
+const flFields = d => Array.isArray(d?.fields)&&d.fields.length ? d.fields : FL_DEFAULT_FIELDS;
+const flIsDefault = fs => fs.length===2 && fs[0].id==='front' && fs[0].s==='f' && fs[1].id==='back' && fs[1].s==='b';
+const flFieldsOk = fs => fs.length>=2 && fs.length<=10 && fs.every(f=>f.n.trim()) && fs.some(f=>f.s==='f') && fs.some(f=>f.s==='b');
+const flCloneFields = fs => fs.map(f=>({id:f.id, n:f.n, s:f.s, k:f.k, ...(f.l?{l:true}:{})}));
+// 항목 → front·back 글. 앞면은 앞 항목들을 줄바꿈으로, 뒷면은 '이름: 글'(이름 표시일 때)로 잇는다.
+function flSideText(fs, vals, side){
+  return fs.filter(f=>f.s===side).map(f=>{ const v=String(vals?.[f.id]??'').trim(); return v ? (f.l?`${f.n}: ${v}`:v) : ''; }).filter(Boolean).join('\n');
+}
+// 항목 글을 정리한다: 덱에 있는 항목만, 앞뒤 공백 없이, 빈 항목은 뺀다.
+function flNormVals(fs, vals){ const o={}; fs.forEach(f=>{ const v=String(vals?.[f.id]??'').replace(/\r\n?/g,'\n').trim(); if(v) o[f.id]=v; }); return o; }
+// 저장할 카드 모양: {front, back, fields}. 기본 구성(앞면/뒷면)이면 fields를 저장하지 않는다(예전 카드와 똑같은 모양).
+function flMakeCard(fs, vals){
+  const v=flNormVals(fs, vals), front=flSideText(fs,v,'f'), back=flSideText(fs,v,'b');
+  return {front, back, fields: flIsDefault(fs) ? null : v};
+}
+// 예전 카드(fields 없음)를 항목 편집 칸에 올릴 때: 첫 앞 항목에 front, 첫 뒤 항목에 back
+function flCardVals(fs, c){ if(c.fields&&Object.keys(c.fields).length) return c.fields; const f=fs.find(x=>x.s==='f'), b=fs.find(x=>x.s==='b'); return {[f.id]:c.front, [b.id]:c.back}; }
+// 카드 한 쪽을 그린다. 항목 글이 없는 예전 카드는 글 한 덩어리로.
+function flSideHtml(d, c, side){
+  const fs=flFields(d), vals=c.fields;
+  if(!vals||!Object.keys(vals).length) return side==='f' ? `<p class="fc-front">${mtx(c.front)}</p>` : `<p class="fc-back">${mtx(c.back)}</p>`;
+  const parts=fs.filter(f=>f.s===side).map(f=>{ const v=String(vals[f.id]??'').trim(); if(!v) return '';
+    return `<div class="fc-f fc-${f.k||'t'}">${f.l?`<span class="fc-lab">${esc(f.n)}</span>`:''}<span class="fc-v">${mtx(v)}</span></div>`; }).join('');
+  return `<div class="${side==='f'?'fc-front':'fc-back'} fc-fields">${parts||`<span class="dim">(${side==='f'?'앞면':'뒷면'}이 비어 있어요)</span>`}</div>`;
+}
+// 가져온 줄(칸 배열) → 카드. map[i]는 i번째 칸이 들어갈 항목 id('' 이면 건너뜀). 항목에 못 넣고 남은 칸은 마지막 뒤 항목에 줄을 바꿔 붙인다(예전 '셋째 칸부터 뒷면' 규칙).
+function flRowsToCards(fs, rows, map){
+  map = map || fs.map(f=>f.id);
+  const lastB=[...fs].reverse().find(f=>f.s==='b')?.id, out=[]; let skipped=0;
+  rows.forEach(r=>{ const cols=r.cols||[r.front, r.back], vals={};
+    cols.forEach((v,i)=>{ v=String(v||'').trim(); if(!v) return; const id=i<map.length ? map[i] : lastB; if(!id||!fs.some(f=>f.id===id)) return; vals[id]=vals[id] ? vals[id]+'\n'+v : v; });
+    const c=flMakeCard(fs, vals);
+    if(c.front&&c.back&&c.front.length<=2000&&c.back.length<=4000) out.push(c); else skipped++; });
+  return {cards:out, skipped};
+}
+const flColCount = rows => Math.min(12, rows.reduce((m,r)=>Math.max(m,(r.cols||[]).length),0));
+const flFieldsErr = e => /42703|column .*fields/i.test((e?.code||'')+' '+(e?.message||''));
+function flFieldsHint(e){ if(flFieldsErr(e)) e.userMsg="카드 구성 기능을 쓰려면 Supabase SQL Editor에서 sql/flash_fields.sql을 한 번 실행해 주세요(기존 카드·기록은 그대로예요)."; throw e; }
 
 /* --- 선생님: 덱·카드 관리 --- */
 Object.assign(API, {
@@ -1872,10 +2047,12 @@ Object.assign(API, {
     return {decks:d.data, cards:c.data.map(x=>({...x,links:x.links||[]})), stats:s.data};
   },
   async flashDeckSave(v){
-    if(DEMO){ const f=flDemo().flash; if(v.id){ Object.assign(f.decks.find(d=>d.id===v.id), v); saveLoc(); return v.id; } const id='dk-'+Date.now()+'-'+Math.random().toString(36).slice(2,6); f.decks.push({...v, id, sort:v.sort||f.decks.length+1}); saveLoc(); return id; }
-    if(v.id){ const {error} = await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day}).eq('id',v.id); if(error) throw error; return v.id; }
-    const {data, error} = await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:v.sort||(S.fa?.decks.length||0)+1}).select('id').single();
-    if(error) throw error; return data.id;
+    if(DEMO){ const f=flDemo().flash; if(v.id){ const w={...v}; if(w.fields===undefined) delete w.fields; Object.assign(f.decks.find(d=>d.id===v.id), w); saveLoc(); return v.id; } const id='dk-'+Date.now()+'-'+Math.random().toString(36).slice(2,6); f.decks.push({...v, id, sort:v.sort||f.decks.length+1}); saveLoc(); return id; }
+    // fields가 undefined면 그대로 두고, null이면 기본 구성으로 되돌린다
+    const fld = v.fields===undefined ? {} : {fields: v.fields&&!flIsDefault(v.fields) ? flCloneFields(v.fields) : null};
+    if(v.id){ const {error} = await sb.from('flash_decks').update({name:v.name,grades:v.grades,new_per_day:v.new_per_day,...fld}).eq('id',v.id); if(error) flFieldsHint(error); return v.id; }
+    const {data, error} = await sb.from('flash_decks').insert({academy_id:AID(),name:v.name,grades:v.grades,new_per_day:v.new_per_day,sort:v.sort||(S.fa?.decks.length||0)+1,...fld}).select('id').single();
+    if(error) flFieldsHint(error); return data.id;
   },
   async flashDeckDelete(id){
     if(DEMO){ const f=flDemo().flash, gone=new Set(f.cards.filter(c=>c.deck_id===id).map(c=>c.id)); f.decks=f.decks.filter(d=>d.id!==id); f.cards=f.cards.filter(c=>!gone.has(c.id)); f.logs=f.logs.filter(l=>!gone.has(l.card_id)); Object.values(f.states).forEach(s=>gone.forEach(g=>delete s[g])); saveLoc(); return; }
@@ -1885,8 +2062,10 @@ Object.assign(API, {
     // 새로 넣은 카드의 id를 넣은 순서대로 돌려준다
     if(DEMO){ const f=flDemo().flash, ids=[]; rows.forEach(v=>{ if(v.id) Object.assign(f.cards.find(c=>c.id===v.id), v); else { const id='fc-'+Date.now()+'-'+Math.random().toString(36).slice(2,8); ids.push(id); f.cards.push({...v, id, sort:f.cards.length}); } }); saveLoc(); return ids; }
     const upd=rows.filter(r=>r.id), add=rows.filter(r=>!r.id), base=S.fa?.cards.length||0, ids=[];
-    for(const r of upd){ const {error}=await sb.from('flash_cards').update({front:r.front,back:r.back,links:r.links}).eq('id',r.id); if(error) throw error; }
-    for(let k=0;k<add.length;k+=500){ const {data,error}=await sb.from('flash_cards').insert(add.slice(k,k+500).map((r,i)=>({academy_id:AID(),deck_id:r.deck_id,front:r.front,back:r.back,links:r.links,sort:base+k+i}))).select('id'); if(error) throw error; ids.push(...data.map(x=>x.id)); }
+    // fields: 기본 구성 카드는 null(예전 카드와 같은 모양), 항목 카드는 {항목id: 글}. 어느 쪽이든 front·back 글은 같이 저장한다.
+    const fld = r => r.fields&&Object.keys(r.fields).length ? r.fields : null;
+    for(const r of upd){ const {error}=await sb.from('flash_cards').update({front:r.front,back:r.back,links:r.links,fields:fld(r)}).eq('id',r.id); if(error) flFieldsHint(error); }
+    for(let k=0;k<add.length;k+=500){ const {data,error}=await sb.from('flash_cards').insert(add.slice(k,k+500).map((r,i)=>({academy_id:AID(),deck_id:r.deck_id,front:r.front,back:r.back,links:r.links,fields:fld(r),sort:base+k+i}))).select('id'); if(error) flFieldsHint(error); ids.push(...data.map(x=>x.id)); }
     return ids;
   },
   async flashCardsMove(ids, deck){
@@ -1936,26 +2115,65 @@ function vAdminFlash(){
     <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어">${esc(S.fdNames||'')}</textarea></label>
     <span class="label">받을 학년</span>${flGradeChecks([])}
     <label>하루 새 카드 수<input id="fdNew" name="newPerDay" type="number" min="0" max="200" value="10"></label>
+    <label>카드 구성 · 카드에 어떤 항목을 적을지 (만든 뒤 덱에서 자유롭게 고칠 수 있어요)<select id="fdPreset" name="preset">${FL_PRESETS.map(p=>`<option value="${p.id}" ${(S.fdPreset||'basic')===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
     <label class="btn alt fc-file">카드 파일 불러오기 (.txt · 선택 · 여러 개 가능)<input id="fdFile" type="file" multiple accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
     <p class="note fd-files" id="fdFileNote" role="status">${S.fdFiles?.note||''}</p>
-    <p class="note">안키처럼 메모장에 '앞면 | 뒷면'을 한 줄에 하나씩 쓴 파일을 고르면, 덱을 만들면서 카드도 한꺼번에 넣어요. 파일을 여러 개 고르면 <b>파일마다 덱이 하나씩</b> 생기고 덱 이름은 파일 이름이 돼요(학년·하루 새 카드 수는 모두 같게). 파일이 하나면 위에 쓴 덱 이름을 쓰고, 비워 두면 파일 이름을 써요.</p>
+    <p class="note">안키처럼 메모장에 '앞면 | 뒷면'을 한 줄에 하나씩 쓴 파일을 고르면, 덱을 만들면서 카드도 한꺼번에 넣어요. 항목이 여러 개인 구성을 골랐으면 칸 순서대로 항목에 들어가요(예: 어휘장은 표제어 | 한자 | 뜻풀이 | 예문 | 유의어 | 혼동어). 파일을 여러 개 고르면 <b>파일마다 덱이 하나씩</b> 생기고 덱 이름은 파일 이름이 돼요(학년·하루 새 카드 수는 모두 같게). 파일이 하나면 위에 쓴 덱 이름을 쓰고, 비워 두면 파일 이름을 써요.</p>
     <button class="btn alt" type="submit">덱 만들기</button></form>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">최근 30일 자주 틀리는 카드 · 3번 이상 본 카드만</span>
     <div class="rows">${hard.map((y,i)=>`<div class="row"><span class="mark x">${i+1}</span><span class="rq">${esc(y.c.front)}</span><span class="s">다시 ${Math.round(y.x.again/y.x.n*100)}%</span></div>`).join('')||'<p class="lede" style="padding:12px 0">아직 기록이 없어요.</p>'}</div></section>`;
 }
+/* 카드 구성 편집기: 항목마다 이름 · 앞/뒤 · 글자 크기 · 이름 표시 · 순서 · 빼기. 미리 보기는 덱의 첫 항목 카드(없으면 항목 이름)로 그린다. */
+function flFieldsEditor(fs, dirty, cards){
+  const sample = cards.find(c=>c.fields&&Object.keys(c.fields).length);
+  const vals = sample ? sample.fields : Object.fromEntries(fs.map(f=>[f.id, f.n+' 글']));
+  const pv = {fields:fs}, pc = {fields:vals, front:'', back:''};
+  const presetSel = `<select id="ffPreset" aria-label="미리 만든 구성"><option value="">미리 만든 구성으로 바꾸기…</option>${FL_PRESETS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
+  return `<section class="fc-cfg" style="display:flex;flex-direction:column;gap:10px">
+    <div class="ff-head"><span class="label">카드 구성 · 카드에 적을 항목</span>${presetSel}</div>
+    <div class="ff-rows">${fs.map((f,i)=>`<div class="ff-row">
+      <span class="ff-move"><button type="button" data-ff="up:${i}" ${i?'':'disabled'} aria-label="위로">▲</button><button type="button" data-ff="down:${i}" ${i<fs.length-1?'':'disabled'} aria-label="아래로">▼</button></span>
+      <input class="ff-name" data-ff-name="${i}" value="${esc(f.n)}" maxlength="20" placeholder="항목 이름" aria-label="항목 이름">
+      <span class="seg ff-side" role="group" aria-label="앞면·뒷면"><button type="button" data-ff="side:${i}:f" aria-pressed="${f.s==='f'}">앞면</button><button type="button" data-ff="side:${i}:b" aria-pressed="${f.s==='b'}">뒷면</button></span>
+      <select data-ff-kind="${i}" aria-label="글자 크기">${Object.entries(FL_KIND).map(([k,v])=>`<option value="${k}" ${(f.k||'t')===k?'selected':''}>${v}</option>`).join('')}</select>
+      <label class="check ff-lab"><input type="checkbox" data-ff-lab="${i}" ${f.l?'checked':''}>카드에 항목 이름도 보이기</label>
+      <button type="button" class="linkbtn danger ff-del" data-ff="del:${i}" ${fs.length>2?'':'disabled'}>빼기</button></div>`).join('')}</div>
+    <div class="schedule-btns"><button type="button" class="linkbtn" data-ff="add" ${fs.length>=10?'disabled':''}>+ 항목 추가</button></div>
+    <span class="label">미리 보기${sample?'':' · 항목 이름으로'}</span>
+    <div class="fc-preview"><div><span class="label">앞면</span>${flSideHtml(pv, pc, 'f')}</div><div><span class="label">뒷면</span>${flSideHtml(pv, pc, 'b')}</div></div>
+    <p class="note">앞면·뒷면에 각각 항목이 하나는 있어야 해요. 항목을 바꿔도 이미 있는 카드의 글은 지워지지 않아요 — 예전 '앞면 | 뒷면'으로 넣은 카드는 항목별로 고치기 전까지 그대로 보여요. 항목을 빼면 그 항목의 글은 카드에 안 보여요(다시 넣으면 돌아와요).</p>
+  </section>`;
+}
+/* 가져오기 칸 ↔ 항목. 붙여 넣은 글의 칸 수가 항목 수와 다르거나 기본 구성이 아니면 보여 준다. */
+function flMapView(fs){
+  if(!S.fbulk||!S.fbulk.trim()) return '';
+  const r=ankiParse(S.fbulk), n=flColCount(r.rows); if(!n) return '';
+  if(flIsDefault(fs)&&n<=2) return '';
+  const map=S.fmap&&S.fmap.length===n ? S.fmap : (S.fmap=fs.slice(0,n).map(f=>f.id).concat(Array(Math.max(0,n-fs.length)).fill('')));
+  const sample=r.rows[0]?.cols||[], lastB=[...fs].reverse().find(f=>f.s==='b');
+  return `<section style="display:flex;flex-direction:column;gap:6px"><span class="label">칸 ↔ 항목 · 첫 줄로 확인하세요</span>
+    <div class="ff-map">${map.map((id,i)=>`<div class="ff-maprow"><span class="mono">${i+1}번 칸</span><small>${esc((sample[i]||'').split('\n')[0]||'(비어 있음)')}</small>
+      <select data-fmap="${i}" aria-label="${i+1}번 칸이 들어갈 항목"><option value="" ${!id?'selected':''}>${i>=fs.length&&lastB?`'${esc(lastB.n)}' 뒤에 붙이기`:'건너뛰기'}</option>${fs.map(f=>`<option value="${esc(f.id)}" ${id===f.id?'selected':''}>${esc(f.n)} (${f.s==='f'?'앞':'뒤'})</option>`).join('')}</select></div>`).join('')}</div></section>`;
+}
 function vAdminDeck(msg){
   const A=S.fa, d=A.decks.find(x=>x.id===S.fdeck), cards=A.cards.filter(c=>c.deck_id===d.id), drill=CARDS.filter(c=>(Array.isArray(c.grades)?c.grades:[c.grades]).some(g=>d.grades.includes(g)));
   const ed=S.fedit, cur=ed&&ed!=='new'?cards.find(c=>c.id===ed):null;
+  const saved=flFields(d), fs=S.ffs||saved, dirty=!!S.ffs&&JSON.stringify(S.ffs)!==JSON.stringify(saved), basic=flIsDefault(saved);
+  // 카드 편집: 저장된 구성(saved) 기준으로 항목마다 칸 하나. 예전 카드는 첫 앞·뒤 항목에 글을 올려 둔다.
+  const ev=cur?flCardVals(saved,cur):{};
+  const fieldBox=(side,title)=>`<div class="fc-side ${side}"><span class="label">${title}</span>${saved.filter(f=>f.s===side).map(f=>`<label><span><b>${esc(f.n)}</b>${f.l?'<small class="dim"> · 카드에 항목 이름이 같이 보여요</small>':''}</span><textarea name="ff_${esc(f.id)}" rows="${f.k==='t'?3:2}" maxlength="4000">${esc(ev[f.id]||'')}</textarea></label>`).join('')}</div>`;
   const form = ed ? `<form id="fCard" class="schedule-form fc-edit"><h2 class="schedule-head">${cur?'카드 고치기':'카드 추가'}</h2>
-    <label>앞면 · 학생이 먼저 보는 쪽<textarea id="fcFront" name="front" rows="2" required maxlength="2000">${esc(cur?.front||'')}</textarea></label>
-    <label>뒷면 · 정답과 설명 (줄바꿈 그대로 보여요)<textarea id="fcBack" name="back" rows="4" required maxlength="4000">${esc(cur?.back||'')}</textarea></label>
+    ${basic ? `<label>앞면 · 학생이 먼저 보는 쪽<textarea id="fcFront" name="ff_front" rows="2" required maxlength="2000">${esc(ev.front||'')}</textarea></label>
+    <label>뒷면 · 정답과 설명 (줄바꿈 그대로 보여요)<textarea id="fcBack" name="ff_back" rows="4" required maxlength="4000">${esc(ev.back||'')}</textarea></label>`
+    : fieldBox('f','앞면 · 학생이 먼저 보는 쪽')+fieldBox('b','뒷면 · 정답 보기를 누르면 보여요')+'<p class="note">비워 둔 항목은 카드에 나오지 않아요. 앞면·뒷면에 각각 하나는 적어야 해요.</p>'}
     ${drill.length?`<span class="label">연결할 드릴 문제 · 학생이 그 문제에서 막히면 이 카드를 바로 볼 수 있어요</span><div class="schedule-targets">${drill.map(q=>`<label class="check"><input type="checkbox" name="link" value="${esc(q.id)}" ${cur?.links.includes(q.id)?'checked':''}>${esc(q.tag)} · ${unitName(q.unit)}</label>`).join('')}</div>`:''}
     <div class="schedule-btns"><button class="btn sm" type="submit">${cur?'저장':'추가'}</button><button class="linkbtn" type="button" data-fa="cancelEdit">취소</button></div></form>` : '';
   return `<div class="top"><button class="quit" data-fa="decks">← 덱 목록</button><span class="combo mono">${cards.length}장</span></div>${msg}
   <form id="fDeck" class="schedule-form"><label>덱 이름<input id="fdName2" name="name" required maxlength="40" value="${esc(d.name)}"></label>
     <span class="label">받을 학년</span>${flGradeChecks(d.grades)}
     <label>하루 새 카드 수<input id="fdNew2" name="newPerDay" type="number" min="0" max="200" value="${d.new_per_day}"></label>
-    <div class="schedule-btns"><button class="btn sm alt" type="submit">덱 설정 저장</button>${S.fdel==='deck'?`<span class="selnote">덱과 카드 ${cards.length}장, 학생 기록까지 지울까요?</span><button class="linkbtn danger" type="button" data-fa="delDeck">지우기</button><button class="linkbtn" type="button" data-fa="cancelDel">취소</button>`:`<button class="linkbtn danger" type="button" data-fa="askDelDeck">덱 지우기</button>`}</div></form>
+    ${flFieldsEditor(fs, dirty, cards)}
+    <div class="schedule-btns"><button class="btn sm ${dirty?'':'alt'}" type="submit">덱 설정 저장</button>${dirty?'<span class="ff-dirty">카드 구성이 바뀌었어요 · 저장을 눌러야 적용돼요</span>':''}${S.fdel==='deck'?`<span class="selnote">덱과 카드 ${cards.length}장, 학생 기록까지 지울까요?</span><button class="linkbtn danger" type="button" data-fa="delDeck">지우기</button><button class="linkbtn" type="button" data-fa="cancelDel">취소</button>`:`<button class="linkbtn danger" type="button" data-fa="askDelDeck">덱 지우기</button>`}</div></form>
   ${form}
   <section style="display:flex;flex-direction:column;gap:8px"><div class="ask-meta"><span class="label">카드</span>${ed?'':'<button class="btn sm" data-fa="newCard">카드 추가</button>'}</div>
     <div class="posts">${cards.map(c=>`<article class="post fc-item"><p class="qt">${mtx(c.front)}</p><p class="fc-backline">${mtx(c.back)}</p>
@@ -1964,7 +2182,8 @@ function vAdminDeck(msg){
   <form id="fBulk" class="schedule-form"><h2 class="schedule-head">한꺼번에 추가</h2>
     <label class="btn alt fc-file">텍스트 파일 불러오기 (.txt)<input id="fcFile" type="file" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden></label>
     <p class="note" id="fcFileNote" role="status">${esc(S.fbulkNote||'')}</p>
-    <label>또는 붙여 넣기 · 한 줄에 카드 하나 · 앞면 | 뒷면<textarea id="fcBulk" name="bulk" rows="6" placeholder="반어 | 겉으로 한 말과 속뜻이 반대인 표현&#10;역설 | 겉으로는 모순이지만 속에 진리를 담은 표현">${esc(S.fbulk||'')}</textarea></label>
+    <label>또는 붙여 넣기 · 한 줄에 카드 하나 · ${esc(saved.map(f=>f.n).join(' | '))}<textarea id="fcBulk" name="bulk" rows="6" placeholder="${basic?'반어 | 겉으로 한 말과 속뜻이 반대인 표현&#10;역설 | 겉으로는 모순이지만 속에 진리를 담은 표현':esc(saved.map(f=>'('+f.n+')').join(' | '))}">${esc(S.fbulk||'')}</textarea></label>
+    ${flMapView(saved)}
     <p class="note">안키 텍스트 가져오기와 같은 방식이에요. 줄마다 카드 하나, 구분 기호(| · 탭 · ;)는 알아서 찾아요. 뒷면에서 줄을 바꾸려면 칸을 "큰따옴표"로 감싸거나 &lt;br&gt; 또는 \\n을 쓰세요. 수식은 $x^2$처럼 $로 감싸요. #으로 시작하는 줄은 건너뛰고(#separator:Pipe 같은 안키 머리줄도 읽어요), 이 덱에 이미 있는 앞면은 중복이라 건너뛰어요. 드릴 연결은 추가한 뒤 카드마다 고치기에서 할 수 있어요.</p>
     <button class="btn alt" type="submit">한꺼번에 추가</button></form>`;
 }
@@ -2015,14 +2234,16 @@ function bindFlash(){
   });
   // 파일 하나를 덱 하나에 넣는다. 덱에 이미 있는 앞면은 건너뛰거나(over면 뒷면만 바꿈) 새 카드는 넣고 id를 돌려준다.
   const fiPut=async(r, deck, over)=>{
+    // 칸은 덱의 카드 구성 순서대로 항목에 들어간다(기본 구성이면 예전처럼 앞면 | 뒷면)
+    const fs=flFields(S.fa.decks.find(d=>d.id===deck)), conv=flRowsToCards(fs, r.rows);
     const map=new Map(S.fa.cards.filter(c=>c.deck_id===deck).map(c=>[c.front.trim(), c])), add=[], fix=[], seen=new Set(); let dup=0;
-    r.rows.forEach(c=>{ if(seen.has(c.front)) return; seen.add(c.front); const old=map.get(c.front);
-      if(!old) add.push({deck_id:deck, front:c.front, back:c.back, links:[]});
-      else if(over && old.back!==c.back) fix.push({id:old.id, deck_id:deck, front:old.front, back:c.back, links:old.links||[]});
+    conv.cards.forEach(c=>{ if(seen.has(c.front)) return; seen.add(c.front); const old=map.get(c.front);
+      if(!old) add.push({deck_id:deck, ...c, links:[]});
+      else if(over && old.back!==c.back) fix.push({id:old.id, deck_id:deck, front:old.front, back:c.back, fields:c.fields, links:old.links||[]});
       else dup++; });
     const ids = add.length ? await API.flashCardsSave(add) : [];
     if(fix.length) await API.flashCardsSave(fix);
-    S.fa.cards.push(...add.map((x,k)=>({...x, id:ids[k]}))); fix.forEach(x=>{ const c=S.fa.cards.find(y=>y.id===x.id); if(c) c.back=x.back; });
+    S.fa.cards.push(...add.map((x,k)=>({...x, id:ids[k]}))); fix.forEach(x=>{ const c=S.fa.cards.find(y=>y.id===x.id); if(c){ c.back=x.back; c.fields=x.fields; } });
     return {ids, dup, upd:fix.length};
   };
   const fiRefresh=async(msg)=>{ try{ const d=await API.flashAdmin(); S.fa={status:'ready',...d,err:'',msg:msg||''}; }catch(e){ S.fa.err='목록을 새로 불러오지 못했어요. 새로고침해 주세요.'; } render(); };
@@ -2084,13 +2305,28 @@ function bindFlash(){
     }
     I.busy=null; fiRefresh();
   });
-  q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; S.fbulk=''; S.fbulkNote=''; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
+  q('[data-fdeck]').forEach(b=>b.onclick=()=>{ S.fdeck=b.dataset.fdeck; S.fedit=null; S.fdel=null; S.fbulk=''; S.fbulkNote=''; S.ffs=null; S.fmap=null; A.msg=''; A.err=''; render(); window.scrollTo(0,0); });
+  // 카드 구성 편집 (덱 설정 저장을 눌러야 저장된다)
+  const curDeck=A?.decks?.find(x=>x.id===S.fdeck), ffs=()=>S.ffs||(S.ffs=flCloneFields(flFields(curDeck)));
+  const ffp=document.getElementById('ffPreset'); if(ffp) ffp.onchange=()=>{ const p=FL_PRESETS.find(x=>x.id===ffp.value); if(p){ S.ffs=flCloneFields(p.fields); render(); } };
+  q('[data-ff]').forEach(b=>b.onclick=()=>{ const [a,i,v]=b.dataset.ff.split(':'), fs=ffs(), k=+i;
+    if(a==='add'){ if(fs.length<10) fs.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), n:'', s:'b', k:'s'}); }
+    else if(a==='del'){ if(fs.length>2) fs.splice(k,1); }
+    else if(a==='up'&&k>0){ [fs[k-1],fs[k]]=[fs[k],fs[k-1]]; }
+    else if(a==='down'&&k<fs.length-1){ [fs[k+1],fs[k]]=[fs[k],fs[k+1]]; }
+    else if(a==='side'){ fs[k].s=v; }
+    render(); if(a==='add') app.querySelector(`[data-ff-name="${fs.length-1}"]`)?.focus(); });
+  q('[data-ff-name]').forEach(inp=>{ inp.oninput=()=>{ ffs()[+inp.dataset.ffName].n=inp.value; }; inp.onchange=()=>render(); });
+  q('[data-ff-kind]').forEach(sel=>sel.onchange=()=>{ ffs()[+sel.dataset.ffKind].k=sel.value; render(); });
+  q('[data-ff-lab]').forEach(cb=>cb.onchange=()=>{ const f=ffs()[+cb.dataset.ffLab]; if(cb.checked) f.l=true; else delete f.l; render(); });
+  q('[data-fmap]').forEach(sel=>sel.onchange=()=>{ S.fmap[+sel.dataset.fmap]=sel.value; render(); });
   q('[data-fedit]').forEach(b=>b.onclick=()=>{ S.fedit=b.dataset.fedit; render(); document.getElementById('fCard')?.scrollIntoView({block:'start'}); });
   q('[data-faskc]').forEach(b=>b.onclick=()=>{ S.fdel=b.dataset.faskc; render(); });
   q('[data-fdelc]').forEach(b=>b.onclick=()=>{ const id=b.dataset.fdelc; S.fdel=null; done(()=>API.flashCardDelete(id),'카드를 지웠어요.'); });
   const nd=document.getElementById('fDeckNew');
   if(nd){
     nd.elements.namedItem('name').required=false;
+    const ps=nd.elements.namedItem('preset'); if(ps) ps.onchange=()=>{ S.fdPreset=ps.value; };
     const fi=document.getElementById('fdFile'), note=document.getElementById('fdFileNote'), nm=nd.elements.namedItem('name');
     const multi=()=>{ const F=S.fdFiles?.list||[]; nm.disabled=F.length>1; nm.placeholder=F.length>1?'파일마다 파일 이름으로 만들어요':'예: 문학 개념어\n비문학 어휘\n문법 용어'; };
     multi();
@@ -2115,14 +2351,15 @@ function bindFlash(){
       const jobs = !F.length ? names.map(name=>({name, rows:[]})) : F.map(x=>({name:F.length===1?(names[0]||x.name):x.name, rows:x.r.rows}));
       // 이미 있는 덱이나 같이 만드는 덱과 이름이 겹치면 (2)를 붙인다
       const used=new Set(A.decks.map(d=>d.name));
+      const pf=flCloneFields((FL_PRESETS.find(p=>p.id===(nd.elements.namedItem('preset')?.value||'basic'))||FL_PRESETS[0]).fields);
       jobs.forEach(j=>{ j.name=flUniqueName(j.name, used);
-        const seen=new Set(); j.uniq=j.rows.filter(x=>!seen.has(x.front)&&seen.add(x.front)); j.dup=j.rows.length-j.uniq.length; });
+        const conv=flRowsToCards(pf, j.rows), seen=new Set(); j.uniq=conv.cards.filter(x=>!seen.has(x.front)&&seen.add(x.front)); j.dup=j.rows.length-j.uniq.length; });
       const total=jobs.reduce((a,j)=>a+j.uniq.length,0), dup=jobs.reduce((a,j)=>a+j.dup,0), base=A.decks.length;
       done(async()=>{ const madeNames=[];
         try{ for(let i=0;i<jobs.length;i++){ const j=jobs[i];
-            const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1});
+            const id=await API.flashDeckSave({name:j.name, grades:g, new_per_day:n, sort:base+i+1, fields:pf});
             madeNames.push(j.name); j.made=true;
-            if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, front:x.front, back:x.back, links:[]}))); } }
+            if(j.uniq.length) await API.flashCardsSave(j.uniq.map(x=>({deck_id:id, ...x, links:[]}))); } }
         catch(err){
           if(madeNames.length){
             // 남은 것만 다시 시도하게: 파일은 남은 파일만, 이름은 남은 이름만 칸에 남긴다
@@ -2130,7 +2367,7 @@ function bindFlash(){
             err.userMsg=`중간에 저장이 끊겼어요. 만든 덱: ${madeNames.map(x=>`'${x}'`).join(', ')}${jobs.some(j=>j.made&&j.uniq.length)?' (마지막 덱은 카드가 덜 들어갔을 수 있어요. 덱을 열어 확인하거나 아래 \'파일로 카드 한꺼번에 넣기\'로 다시 넣으면 빠진 카드만 들어가요)':''}. 남은 것만 다시 '덱 만들기'를 눌러 주세요.`;
           }
           throw err; }
-        S.fdFiles=null; S.fdNames=''; },
+        S.fdFiles=null; S.fdNames=''; S.fdPreset=''; },
         (jobs.length>1 ? `덱 ${jobs.length}개(${jobs.map(j=>`'${j.name}'`).join(', ')})를 만들었어요.${total?` 카드 ${total}장도 넣었어요.`:' 목록에서 눌러 카드를 넣어 주세요.'}`
           : total ? `'${jobs[0].name}' 덱을 만들고 카드 ${total}장을 넣었어요.` : `'${jobs[0].name}' 덱을 만들었어요. 목록에서 눌러 카드를 넣어 주세요.`)
         + (dup?` 파일 안에서 겹친 앞면 ${dup}장은 건너뛰었어요.`:'')); };
@@ -2138,29 +2375,39 @@ function bindFlash(){
 
   const ds=document.getElementById('fDeck'); if(ds) ds.onsubmit=e=>{ e.preventDefault(); const name=ds.elements.namedItem('name').value.trim(), g=grades(ds), n=+ds.elements.namedItem('newPerDay').value;
     if(!name||!g.length){ A.err='덱 이름과 받을 학년을 하나 이상 골라 주세요.'; A.msg=''; return render(); }
-    done(()=>API.flashDeckSave({id:S.fdeck, name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0))}), '덱 설정을 저장했어요.'); };
-  const cf=document.getElementById('fCard'); if(cf) cf.onsubmit=e=>{ e.preventDefault(); const front=cf.elements.namedItem('front').value.trim(), back=cf.elements.namedItem('back').value.trim();
-    if(!front||!back){ A.err='앞면과 뒷면을 모두 써 주세요.'; A.msg=''; return render(); }
+    const fs=S.ffs?flCloneFields(S.ffs).map(f=>({...f, n:f.n.trim()})):undefined;
+    if(fs&&!flFieldsOk(fs)){ A.err=fs.some(f=>!f.n)?'항목 이름을 모두 써 주세요.':'앞면과 뒷면에 항목이 하나씩은 있어야 해요.'; A.msg=''; return render(); }
+    if(fs){ const names=fs.map(f=>f.n); if(new Set(names).size!==names.length){ A.err='항목 이름이 겹쳐요. 서로 다르게 써 주세요.'; A.msg=''; return render(); } }
+    S.ffs=null; S.fmap=null;
+    done(()=>API.flashDeckSave({id:S.fdeck, name, grades:g, new_per_day:Math.max(0,Math.min(200,n||0)), fields:fs}), '덱 설정을 저장했어요.'); };
+  const cf=document.getElementById('fCard'); if(cf) cf.onsubmit=e=>{ e.preventDefault();
+    const fs=flFields(curDeck), vals={}; fs.forEach(f=>{ vals[f.id]=cf.elements.namedItem('ff_'+f.id)?.value||''; });
+    const c=flMakeCard(fs, vals);
+    if(!c.front||!c.back){ A.err=flIsDefault(fs)?'앞면과 뒷면을 모두 써 주세요.':'앞면 항목과 뒷면 항목을 하나씩은 써 주세요.'; A.msg=''; return render(); }
+    if(c.front.length>2000||c.back.length>4000){ A.err='너무 길어요. 앞면은 2000자, 뒷면은 모두 합쳐 4000자까지예요.'; A.msg=''; return render(); }
     const links=Array.from(cf.querySelectorAll('[name=link]:checked')).map(x=>x.value), id=S.fedit==='new'?null:S.fedit; S.fedit=null;
-    done(()=>API.flashCardsSave([{id, deck_id:S.fdeck, front, back, links}]), id?'카드를 고쳤어요.':'카드를 추가했어요.'); };
+    done(()=>API.flashCardsSave([{id, deck_id:S.fdeck, ...c, links}]), id?'카드를 고쳤어요.':'카드를 추가했어요.'); };
   const bf=document.getElementById('fBulk');
   if(bf){
     const ta=bf.elements.namedItem('bulk'), note=document.getElementById('fcFileNote');
-    ta.oninput=()=>{ S.fbulk=ta.value; };
+    ta.oninput=()=>{ S.fbulk=ta.value; }; ta.onchange=()=>{ S.fmap=null; render(); };
     const fi=document.getElementById('fcFile');
     fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return;
       try{ const t=await readTextFile(f), r=ankiParse(t);
-        S.fbulk=t; ta.value=t; S.fbulkNote=`${f.name} · 카드 ${r.rows.length}장${r.bad.length?` · 모양이 맞지 않는 줄 ${r.bad.length}개`:''} · 확인한 뒤 '한꺼번에 추가'를 누르세요.`; }
+        S.fbulk=t; ta.value=t; S.fmap=null; S.fbulkNote=`${f.name} · 카드 ${r.rows.length}장${r.bad.length?` · 모양이 맞지 않는 줄 ${r.bad.length}개`:''} · 확인한 뒤 '한꺼번에 추가'를 누르세요.`; }
       catch(err){ S.fbulkNote='파일을 읽지 못했어요. 메모장에서 저장한 .txt 파일인지 확인해 주세요.'; }
-      note.textContent=S.fbulkNote; fi.value=''; };
+      note.textContent=S.fbulkNote; fi.value=''; render(); };
     bf.onsubmit=e=>{ e.preventDefault();
       const r=ankiParse(ta.value); S.fbulk=ta.value;
       if(r.bad.length){ const b=r.bad; A.err=`${b.slice(0,10).join(', ')}${b.length>10?` 외 ${b.length-10}곳`:''}번째 줄이 '앞면 | 뒷면' 모양이 아니거나 너무 길어요(앞면 2000자·뒷면 4000자까지). 고친 뒤 다시 눌러 주세요.`; A.msg=''; return render(); }
       if(!r.rows.length){ A.err='추가할 줄을 써 주세요.'; A.msg=''; return render(); }
+      const fs=flFields(curDeck), n=flColCount(r.rows), map=S.fmap&&S.fmap.length===n?S.fmap:undefined;
+      if(map&&!map.some(id=>fs.some(f=>f.id===id&&f.s==='f'))){ A.err='앞면 항목에 들어갈 칸을 하나는 골라 주세요.'; A.msg=''; return render(); }
+      const conv=flRowsToCards(fs, r.rows, map);
       const have=new Set(A.cards.filter(c=>c.deck_id===S.fdeck).map(c=>c.front.trim())), rows=[]; let dup=0;
-      r.rows.forEach(x=>{ if(have.has(x.front)){ dup++; return; } have.add(x.front); rows.push({deck_id:S.fdeck, front:x.front, back:x.back, links:[]}); });
-      if(!rows.length){ A.err=''; A.msg=`${dup}장 모두 이 덱에 이미 있는 앞면이라 건너뛰었어요.`; return render(); }
-      done(async()=>{ await API.flashCardsSave(rows); S.fbulk=''; S.fbulkNote=''; }, `카드 ${rows.length}장을 추가했어요.${dup?` 이미 있는 앞면 ${dup}장은 건너뛰었어요.`:''}`); };
+      conv.cards.forEach(x=>{ if(have.has(x.front)){ dup++; return; } have.add(x.front); rows.push({deck_id:S.fdeck, ...x, links:[]}); });
+      if(!rows.length){ A.err=''; A.msg=`${dup}장 모두 이 덱에 이미 있는 앞면이라 건너뛰었어요.${conv.skipped?` 앞면이나 뒷면이 빈 ${conv.skipped}줄은 넣지 않았어요.`:''}`; return render(); }
+      done(async()=>{ await API.flashCardsSave(rows); S.fbulk=''; S.fbulkNote=''; S.fmap=null; }, `카드 ${rows.length}장을 추가했어요.${dup?` 이미 있는 앞면 ${dup}장은 건너뛰었어요.`:''}${conv.skipped?` 앞면이나 뒷면이 빈 ${conv.skipped}줄은 넣지 않았어요.`:''}`); };
   }
 }
 /* 안키 텍스트 가져오기와 같은 규칙: 줄마다 카드 하나, 첫 칸 앞면·둘째 칸 뒷면(셋째 칸부터는 뒷면에 줄을 바꿔 붙인다).
@@ -2191,8 +2438,8 @@ function ankiParse(text){
     if(html) v=v.replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li|tr|h[1-6])>/gi,'\n').replace(tagRe,'').replace(/&(nbsp|amp|lt|gt|quot|apos|#39);/gi,(m,k)=>ent[k.toLowerCase()]);
     return v.replace(/\\n(?![a-zA-Z])/g,'\n').split('\n').map(x=>x.trimEnd()).join('\n').trim(); };
   const rows=[], bad=[];
-  recs.forEach(r=>{ if(r.broken){ bad.push(r.line); return; } const front=clean(r.f[0]), back=r.f.slice(1).map(clean).filter(Boolean).join('\n');
-    front&&back&&front.length<=2000&&back.length<=4000 ? rows.push({front, back}) : bad.push(r.line); });
+  recs.forEach(r=>{ if(r.broken){ bad.push(r.line); return; } const cols=r.f.map(clean), front=cols[0], back=cols.slice(1).filter(Boolean).join('\n');
+    front&&back&&front.length<=2000&&back.length<=4000 ? rows.push({front, back, cols}) : bad.push(r.line); });
   return {rows, bad, sep};
 }
 /* 파일 여러 개 → 이미 있는 덱에 한꺼번에 넣기. 파일 이름과 덱 이름을 맞춰 자동 연결한다.

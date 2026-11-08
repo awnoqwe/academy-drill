@@ -141,6 +141,9 @@ create table if not exists public.flash_states (
  primary key (student_id, card_id));
 -- FSRS 기억 상태(안정도·난이도·마지막 복습). 비어 있으면 앱이 예전 간격·ease로 어림한다.
 alter table public.flash_states add column if not exists stability real, add column if not exists difficulty real, add column if not exists last_review timestamptz;
+-- 카드 구성(항목): 덱의 fields는 [{id,n,s,k,l}] 목록, 카드의 fields는 {항목id: 글}. 비어 있으면 예전 '앞면/뒷면' 카드.
+alter table public.flash_decks add column if not exists fields jsonb check (fields is null or (jsonb_typeof(fields) = 'array' and jsonb_array_length(fields) between 2 and 10));
+alter table public.flash_cards add column if not exists fields jsonb check (fields is null or (jsonb_typeof(fields) = 'object' and pg_column_size(fields) < 16000));
 create table if not exists public.flash_logs (
  id uuid primary key, student_id uuid not null references public.students on delete cascade, card_id uuid not null references public.flash_cards on delete cascade,
  rating smallint not null check (rating in (1,3,4)), kind text not null check (kind in ('new','learn','review','relearn')),
@@ -487,9 +490,9 @@ begin
  where s.token = p_token and s.expires_at > now();
  if sid is null then raise exception 'session_expired'; end if;
  return jsonb_build_object(
-  'decks', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name, 'new_per_day', d.new_per_day) order by d.sort, d.created_at)
+  'decks', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name, 'new_per_day', d.new_per_day, 'fields', d.fields) order by d.sort, d.created_at)
    from public.flash_decks d where d.academy_id = aid and g = any (d.grades)), '[]'::jsonb),
-  'cards', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'deck_id', c.deck_id, 'front', c.front, 'back', c.back, 'links', c.links) order by d.sort, c.sort, c.created_at)
+  'cards', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'deck_id', c.deck_id, 'front', c.front, 'back', c.back, 'links', c.links, 'fields', c.fields) order by d.sort, c.sort, c.created_at)
    from public.flash_cards c join public.flash_decks d on d.id = c.deck_id where d.academy_id = aid and g = any (d.grades)), '[]'::jsonb),
   'states', coalesce((select jsonb_agg(jsonb_build_object('card_id', f.card_id, 'queue', f.queue, 'step', f.step, 'ivl', f.ivl, 'ease', f.ease, 'reps', f.reps, 'lapses', f.lapses, 'due', f.due,
     'stability', f.stability, 'difficulty', f.difficulty, 'last_review', f.last_review))
@@ -901,6 +904,41 @@ begin
  where push_sent.status = 'failed' or (push_sent.status = 'sending' and push_sent.updated_at < now() - interval '2 minutes');
  get diagnostics claimed = row_count; return claimed = 1;
 end $$;
+
+-- ⑨-2 학생 접속 잔디 · 카드 복습 수 ---------------------------------------------------
+-- 학생 접속 날짜(잔디): students.last_seen이 바뀔 때마다 그날(서울 날짜)을 한 줄 남긴다. 하루에 한 줄.
+create table if not exists public.student_days (
+ student_id uuid not null references public.students on delete cascade, day date not null, primary key (student_id, day));
+alter table public.student_days enable row level security;
+grant select on public.student_days to authenticated;
+drop policy if exists "member reads student days" on public.student_days;
+create policy "member reads student days" on public.student_days for select to authenticated using (exists (select 1 from public.students s where s.id = student_id and public.is_member(s.academy_id)));
+create or replace function public.student_days_mark()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+ insert into public.student_days (student_id, day) values (new.id, (new.last_seen at time zone 'Asia/Seoul')::date) on conflict do nothing;
+ return new;
+end $$;
+drop trigger if exists student_days_mark on public.students;
+create trigger student_days_mark after insert or update of last_seen on public.students for each row execute function public.student_days_mark();
+-- 지금까지의 마지막 접속일도 한 번 채워 둔다
+insert into public.student_days (student_id, day) select id, (last_seen at time zone 'Asia/Seoul')::date from public.students on conflict do nothing;
+
+-- 선생님: 학생 한 명의 최근 26주 접속 날짜와 날짜별 카드 복습 수
+create or replace function public.student_activity(p_student uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare aid uuid;
+begin
+ select academy_id into aid from public.students where id = p_student;
+ if aid is null or not public.is_member(aid) then raise exception 'not_teacher'; end if;
+ return jsonb_build_object(
+  'seen', coalesce((select jsonb_agg(to_char(day, 'YYYY-MM-DD') order by day) from public.student_days where student_id = p_student and day >= current_date - 190), '[]'::jsonb),
+  'flash', coalesce((select jsonb_agg(jsonb_build_object('day', d, 'n', n)) from
+    (select to_char(reviewed_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') d, count(*) n from public.flash_logs
+     where student_id = p_student and reviewed_at > now() - interval '191 days' group by 1) x), '[]'::jsonb));
+end $$;
+revoke all on function public.student_activity(uuid) from public;
+grant execute on function public.student_activity(uuid) to authenticated;
 
 -- ⑩ 실행 권한 ---------------------------------------------------------------------
 do $$

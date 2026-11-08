@@ -1,5 +1,14 @@
 # 아페라 서버 설정
 
+## 2026-11-09 추가: `flash_fields.sql` · `activity.sql`
+
+`apera_v2.sql`을 이미 실행한 곳은 이 두 파일만 한 번씩 더 실행하세요(순서대로, 다시 실행해도 안전).
+
+- `flash_fields.sql` — 카드 구성(항목): 덱마다 항목(표제어·뜻풀이·예문…)을 정하고 카드를 항목별로 적는 기능. `flash_decks.fields`·`flash_cards.fields` 컬럼과 학생 로드 함수 교체.
+- `activity.sql` — 선생님 학생 상세의 접속 잔디·하루 카드 복습 수. `student_days` 표(접속 날짜, `last_seen` 트리거)와 `student_activity` 함수.
+
+새로 설치하는 곳은 `apera_v2.sql` 하나에 둘 다 들어 있습니다.
+
 ## 지금 쓰는 파일: `apera_v2.sql` 하나
 
 여러 학원이 함께 쓰는 구조와 원장 업무(반·연락처·시간표·학원비·알림장)까지 모두 들어 있습니다.
