@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="아페라">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<script>/* 홈 화면 아이콘을 테마·강조색에 맞춘다: icons/<light|dark>-<강조색>/ 묶음(아이콘 3장 + manifest). 홈 화면에 추가하는 순간의 테마를 따른다. */
+function iconSet(){try{var d=document.documentElement,t=d.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),a=d.getAttribute('data-accent')||'red',p='icons/'+t+'-'+a+'/';
+document.querySelector('link[rel=manifest]').href=p+'manifest.webmanifest';document.querySelector('link[rel=apple-touch-icon]').href=p+'apple-touch-icon.png'}catch(e){}}iconSet();</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
 <title>아페라</title>
@@ -1135,7 +1138,8 @@ const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), siz
 const app = document.getElementById('app');
 function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId(); if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
   if(a==='red') r.removeAttribute('data-accent'); else r.setAttribute('data-accent', a);
-  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#ffffff'; }
+  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#ffffff';
+  if(typeof iconSet==='function') iconSet(); }
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
 const SPLASH_T0 = Date.now();
