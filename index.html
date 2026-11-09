@@ -694,10 +694,22 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .notice summary span{font-size:12px;white-space:nowrap}
 
 .brand.nokick{padding-bottom:22px}
+/* 오프닝 · 불러오는 중 */
+#splash{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:var(--paper);transition:opacity .4s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash .logo,.loading-logo .logo{width:min(60vw,280px);height:auto;color:var(--ink);animation:splash-in .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes splash-in{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes splash-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+#splash.wait .logo,.loading-logo .logo{animation:splash-in .7s cubic-bezier(.2,.7,.2,1) both,splash-pulse 1.6s ease-in-out .9s infinite}
+.loading-logo{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.loading-logo small{font-size:13px;color:var(--faint);letter-spacing:.04em}
+@media (prefers-reduced-motion:reduce){#splash .logo,.loading-logo .logo{animation:none}}
 </style>
 
 </head>
 <body>
+<!-- 오프닝: 스크립트·서버 연결을 기다리는 동안 가운데에 로고. 첫 화면이 그려지면 사라진다(최소 0.7초). 로고 SVG는 아래 LOGO 상수와 같은 그림. -->
+<div id="splash" aria-hidden="true"><svg class="logo" viewBox="8 -656 3280 672" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 0V-24L80 -34H97L173 -24V0ZM60 0 264 -652H360L564 0H384L233 -516H250L246 -502L95 0ZM144 -208V-236H419V-208ZM308 0V-24L420 -40H528L612 -24V0Z M658.0 0V-24L762.0 -40H854.0L966.0 -24V0ZM716.0 0Q718.0 -39 719.5 -91.5Q721.0 -144 721.5 -200.5Q722.0 -257 722.0 -308V-351Q722.0 -402 721.5 -456.5Q721.0 -511 720.0 -562.0Q719.0 -613 717.0 -652H895.0Q893.0 -613 892.0 -562.0Q891.0 -511 890.5 -456.5Q890.0 -402 890.0 -351V-308Q890.0 -257 890.5 -200.5Q891.0 -144 892.0 -91.5Q893.0 -39 895.0 0ZM797.0 -272V-300H903.0Q938.0 -300 962.0 -322.5Q986.0 -345 998.0 -383.5Q1010.0 -422 1010.0 -471Q1010.0 -544 980.5 -584.0Q951.0 -624 900.0 -624H797.0V-652H898.0Q1002.0 -652 1063.5 -631.5Q1125.0 -611 1151.5 -571.0Q1178.0 -531 1178.0 -472Q1178.0 -417 1153.0 -371.5Q1128.0 -326 1068.0 -299.0Q1008.0 -272 902.0 -272ZM658.0 -628V-652H850.0V-612H762.0Z M1229.0 0V-24L1333.0 -40H1421.0V0ZM1287.0 0Q1289.0 -39 1290.5 -91.5Q1292.0 -144 1292.5 -200.5Q1293.0 -257 1293.0 -308V-351Q1293.0 -402 1292.5 -456.5Q1292.0 -511 1291.0 -562.0Q1290.0 -613 1288.0 -652H1466.0Q1464.0 -613 1463.0 -562.0Q1462.0 -511 1461.5 -456.5Q1461.0 -402 1461.0 -351V-308Q1461.0 -257 1461.5 -200.5Q1462.0 -144 1463.0 -91.5Q1464.0 -39 1466.0 0ZM1381.0 0V-28H1637.0L1603.0 -12L1685.0 -188H1709.0L1697.0 0ZM1381.0 -317V-349H1561.0V-317ZM1583.0 -220 1545.0 -324V-340L1583.0 -444H1605.0V-220ZM1229.0 -628V-652H1421.0V-612H1333.0ZM1669.0 -476 1586.0 -640 1621.0 -624H1357.0V-652H1681.0L1693.0 -476Z M1772.0 0V-24L1876.0 -40H1968.0L2072.0 -24V0ZM1830.0 0Q1832.0 -39 1833.5 -91.5Q1835.0 -144 1835.5 -200.5Q1836.0 -257 1836.0 -308V-351Q1836.0 -402 1835.5 -456.5Q1835.0 -511 1834.0 -562.0Q1833.0 -613 1831.0 -652H2009.0Q2007.0 -613 2006.0 -562.0Q2005.0 -511 2004.5 -456.5Q2004.0 -402 2004.0 -351V-308Q2004.0 -257 2004.5 -200.5Q2005.0 -144 2006.0 -91.5Q2007.0 -39 2009.0 0ZM2288.0 12Q2225.0 12 2188.5 -11.0Q2152.0 -34 2138.0 -88L2108.0 -200Q2100.0 -230 2089.5 -255.0Q2079.0 -280 2061.5 -295.0Q2044.0 -310 2016.0 -310H1916.0V-336H2025.0Q2071.0 -336 2094.5 -355.5Q2118.0 -375 2126.0 -408.0Q2134.0 -441 2134.0 -479Q2134.0 -553 2107.0 -588.5Q2080.0 -624 2027.0 -624H1914.0V-652H2028.0Q2173.0 -652 2233.5 -609.0Q2294.0 -566 2294.0 -491Q2294.0 -446 2259.5 -406.5Q2225.0 -367 2161.5 -342.5Q2098.0 -318 2011.0 -317V-324Q2086.0 -320 2135.5 -310.5Q2185.0 -301 2214.5 -285.0Q2244.0 -269 2261.0 -245.5Q2278.0 -222 2289.0 -190L2350.0 -13L2296.0 -40L2396.0 -24V0Q2378.0 4 2360.0 6.5Q2342.0 9 2324.0 10.5Q2306.0 12 2288.0 12ZM1772.0 -628V-652H1964.0V-612H1876.0Z M2437.0 0V-24L2505.0 -34H2522.0L2598.0 -24V0ZM2485.0 0 2689.0 -652H2785.0L2989.0 0H2809.0L2658.0 -516H2675.0L2671.0 -502L2520.0 0ZM2569.0 -208V-236H2844.0V-208ZM2733.0 0V-24L2845.0 -40H2953.0L3037.0 -24V0Z"/><rect style="fill:var(--cta)" x="3134" y="-150" width="150" height="150"/></svg></div>
 <div class="wrap" id="app"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
@@ -1126,10 +1138,18 @@ function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId
   const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#ffffff'; }
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 function go(screen){ S.screen = screen; S.err=''; render(); window.scrollTo(0,0); }
+const SPLASH_T0 = Date.now();
+function splashDone(ready){
+  const el=document.getElementById('splash'); if(!el) return;
+  if(!ready){ el.classList.add('wait'); return; }
+  const wait=Math.max(0, 700-(Date.now()-SPLASH_T0));
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 450); }, wait);
+}
 function render(){
   const LOGIN_SCREENS = ['entry','adminLogin','parentLogin'];
   const view = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent, consent:vConsent, guardian:vGuardian, privacy:vPrivacy}[S.screen]();
   app.innerHTML = (LOGIN_SCREENS.includes(S.screen) ? `<div class="login">${view}</div>` : view) + themeSheet();
+  splashDone(S.screen!=='loading');
   app.querySelectorAll('[data-modepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.modepick; saveLoc(); applyTheme(); render(); });
   app.querySelectorAll('[data-accentpick]').forEach(b=>b.onclick=()=>{ loc().accent=b.dataset.accentpick; saveLoc(); applyTheme(); render(); });
   bind(); bindSchedule(); bindFlash();
@@ -1160,7 +1180,7 @@ function vSettings(){
 }
 const demoBanner = () => DEMO ? '<p class="hint">기능 미리보기 · 실제 학생 계정과 연결되지 않으며 이 브라우저에만 저장돼요</p>' : '';
 
-function vLoading(){ return `${masthead('')}<p class="lede" style="text-align:center;padding:40px 0">불러오는 중…</p>`; }
+function vLoading(){ return `<div class="loading-logo">${LOGO}<small>불러오는 중…</small></div>`; }
 
 /* --- 입장 --- */
 function vEntry(){
@@ -4393,7 +4413,7 @@ bindFlash = function(){ bindBeforeParent2(); bindParent2(); };
 applyTheme();
 const last = loc().session;
 if(last && !last.phone){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; loc().session = null; saveLoc(); S.err = '이제 전화번호도 함께 입력해요. 한 번만 넣으면 다음부터는 자동으로 들어가요.'; render(); }
-else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = last.phone; S.grade = last.grade; enter(last.code, last.nick, last.grade, last.phone); }
+else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = last.phone; S.grade = last.grade; S.screen='loading'; enter(last.code, last.nick, last.grade, last.phone); }
 // 선생님·원장으로 마지막에 들어왔으면, 로그인이 살아 있을 때 바로 그 화면으로 (로그아웃을 눌렀을 때만 기억을 지운다)
 else if(!DEMO && ['teacher','owner'].includes(loc().lastRole)){ S.wantOwner = loc().lastRole==='owner'; S.screen='loading'; render();
   API.adminSession().then(ok=>{ if(ok) openAdmin(); else go('adminLogin'); }).catch(()=>go('adminLogin')); }
