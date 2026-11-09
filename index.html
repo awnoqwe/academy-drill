@@ -2173,8 +2173,11 @@ function vAdminFlash(){
   const msg = `${A.msg?`<p class="schedule-success" role="status">${esc(A.msg)}</p>`:''}${A.err?`<p class="err" role="alert">${esc(A.err)}</p>`:''}`;
   if(S.fdeck && A.decks.some(d=>d.id===S.fdeck)) return vAdminDeck(msg);
   const hard=(A.stats?.cards||[]).map(x=>({x,c:A.cards.find(c=>c.id===x.card_id)})).filter(y=>y.c).slice(0,5);
-  return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">덱 · 학년별로 배정돼요</span>
-    <div class="rows">${A.decks.map(d=>`<button class="row fc-deckrow" data-fdeck="${esc(d.id)}"><span class="mark">▸</span><span class="rq">${esc(d.name)} <small class="dim">${flGradesLabel(d.grades)} · 하루 새 ${d.new_per_day}장</small></span><span class="s">${A.cards.filter(c=>c.deck_id===d.id).length}장</span></button>`).join('')||'<p class="lede" style="padding:12px 0">아직 덱이 없어요. 아래에서 첫 덱을 만들어 주세요.</p>'}</div></section>
+  const fg=['전체',...GRADES].includes(S.fdg)?S.fdg:'전체', shown=A.decks.filter(d=>fg==='전체'||d.grades.includes(fg));
+  return `${msg}<section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
+    <div class="seg full" style="--n:${GRADES.length+1}">${['전체',...GRADES].map(g=>{ const c=g==='전체'?A.decks.length:A.decks.filter(d=>d.grades.includes(g)).length; return `<button type="button" data-fdg="${g}" aria-pressed="${fg===g}">${g}</button>`; }).join('')}</div></section>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">덱 · ${fg==='전체'?'전체 '+A.decks.length+'개':fg+'에 배정된 덱 '+shown.length+'개 · 카드 '+A.cards.filter(c=>shown.some(d=>d.id===c.deck_id)).length+'장'}</span>
+    <div class="rows">${shown.map(d=>`<button class="row fc-deckrow" data-fdeck="${esc(d.id)}"><span class="mark">▸</span><span class="rq">${esc(d.name)} <small class="dim">${flGradesLabel(d.grades)} · 하루 새 ${d.new_per_day}장</small></span><span class="s">${A.cards.filter(c=>c.deck_id===d.id).length}장</span></button>`).join('')||`<p class="lede" style="padding:12px 0">${A.decks.length?esc(fg)+'에 배정된 덱이 없어요.':'아직 덱이 없어요. 아래에서 첫 덱을 만들어 주세요.'}</p>`}</div></section>
   ${A.decks.length?flImportView(A):''}
   <form id="fDeckNew" class="schedule-form"><h2 class="schedule-head">새 덱 만들기</h2>
     <label>덱 이름 · 여러 개를 만들려면 한 줄에 하나씩<textarea id="fdName" name="name" rows="3" placeholder="예: 문학 개념어&#10;비문학 어휘&#10;문법 용어">${esc(S.fdNames||'')}</textarea></label>
@@ -4449,6 +4452,7 @@ document.addEventListener('click', e=>{
 document.addEventListener('change', e=>{ const box=e.target.closest?.('.tgt'); if(box) tgtSync(box); });
 // 화면을 그린 뒤 전체 선택 칸 글자를 맞춘다
 new MutationObserver(()=>document.querySelectorAll('.tgt').forEach(b=>{ if(!b.dataset.synced){ b.dataset.synced='1'; tgtSync(b); } })).observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-fdg]'); if(!b) return; S.fdg=b.dataset.fdg; render(); });
 </script>
 
 </body>
