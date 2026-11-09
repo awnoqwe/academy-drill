@@ -341,12 +341,25 @@ button.row:hover{background:var(--hover)}
 .grass .gcells{display:grid;grid-template-columns:repeat(var(--w),1fr);grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px}
 .gd{aspect-ratio:1;background:var(--track);border-radius:2px;min-width:0}
 .gd.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--rule)}
-.gd.on{background:var(--faint)}
-.gd.f1{background:var(--omr);opacity:.3} .gd.f2{background:var(--omr);opacity:.55} .gd.f3{background:var(--omr);opacity:.8} .gd.f4{background:var(--omr)}
+.gd.on{background:color-mix(in srgb,var(--omr) 28%,var(--track))}
+.gd.f1{background:color-mix(in srgb,var(--omr) 55%,var(--track))} .gd.f2{background:color-mix(in srgb,var(--omr) 80%,var(--track))} .gd.f3{background:var(--omr)}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.ghead .mono{font-size:12px;color:var(--muted)}
+.stats.fl-pills{display:grid;grid-template-columns:repeat(4,1fr);overflow:visible}.fl-pills .stat{min-width:0;padding:9px 10px}
+@media (max-width:560px){.stats.fl-pills{grid-template-columns:repeat(2,1fr)}}
+.flm-bar{display:flex;height:12px;background:var(--track);border-radius:2px;overflow:hidden}
+.flm-bar>span{display:block;height:100%}
+.flm-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 16px}
+.flm-list>div{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:baseline;font-size:13px;border-bottom:1px solid var(--rule);padding:4px 0;min-width:0}
+.flm-list b{font-variant-numeric:tabular-nums;white-space:nowrap}.flm-list b small{font-weight:500;color:var(--muted);font-size:11.5px}
+.flm-list i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.flm-bar .mature,.flm-list i.mature{background:var(--omr)}
+.flm-bar .young,.flm-list i.young{background:color-mix(in srgb,var(--omr) 55%,var(--track))}
+.flm-bar .learn,.flm-list i.learn{background:var(--mid)}
+.flm-list i.unseen{background:var(--track);box-shadow:inset 0 0 0 1px var(--rule)}
 .gd.today{outline:2px solid var(--ink);outline-offset:1px}
 .glegend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
 .glegend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:4px}
-.glegend i.f1{opacity:.3} .glegend i.f2{opacity:.55} .glegend i.f3{opacity:.8}
+.glegend i.gd{aspect-ratio:auto}
 .gbars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:64px;border-bottom:1px solid var(--rule);padding-bottom:2px}
 .gbars>div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;min-width:0}
 .gbars b{font-family:var(--f-mono);font-size:10.5px;font-weight:600;color:var(--muted);line-height:1}
@@ -1951,14 +1964,14 @@ function actLoad(id){
     .catch(e=>{ if(S.act?.id!==id) return; S.act={id, status:/42883|PGRST202|does not exist|42P01/.test((e?.code||'')+' '+(e?.message||''))?'missing':'error'}; render(); });
 }
 function actSection(s){
-  const A=S.act, head='<span class="label">접속 · 카드 복습 (최근 26주)</span>';
+  const A=S.act, head='<span class="label">공부 잔디 · 접속한 날과 넘긴 카드 수 (최근 26주)</span>';
   if(!A||A.id!==s.id||A.status==='loading') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="lede" style="padding:8px 0">불러오는 중…</p></section>`;
   if(A.status==='missing') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="note">접속 기록 기능의 서버 설정이 아직 안 됐어요. Supabase SQL Editor에서 sql/activity.sql을 한 번 실행하면 열려요.</p></section>`;
   if(A.status!=='ready') return `<section style="display:flex;flex-direction:column;gap:8px">${head}<p class="note">접속 기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p></section>`;
   const W=26, now=new Date(), today=dkey(now), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const dow=(t0.getDay()+6)%7; // 월=0
   const start=new Date(t0.getTime()-(dow+7*(W-1))*DAY);
-  const lvl=n=>!n?0:n<10?1:n<25?2:n<50?3:4, kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일`; };
+  const lvl=n=>!n?0:n<20?1:n<50?2:3, kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일`; };
   const mons=[], cells=[]; let pm=-1;
   for(let w=0;w<W;w++){ const mon=new Date(start.getTime()+w*7*DAY); const m=mon.getMonth(); mons.push(m!==pm&&(w===0||mon.getDate()<=7)?`<span>${m+1}월</span>`:'<span></span>'); pm=m;
     for(let r=0;r<7;r++){ const d=new Date(start.getTime()+(w*7+r)*DAY), k=dkey(d); if(d>t0){ cells.push('<i class="gd fut"></i>'); continue; }
@@ -1969,11 +1982,12 @@ function actSection(s){
   const seen7=days(7,k=>A.seen.has(k)||A.flash[k]), seen30=days(30,k=>A.seen.has(k)||A.flash[k]);
   const f7=sum(7,k=>A.flash[k]||0), f30=sum(30,k=>A.flash[k]||0), fd7=days(7,k=>A.flash[k]), fd30=days(30,k=>A.flash[k]);
   let streak=0; for(let i=A.flash[today]?0:1;;i++){ if(A.flash[dkey(t0.getTime()-i*DAY)]) streak++; else break; }
+  const seenK=k=>A.seen.has(k)||A.flash[k]; let inRow=0; for(let i=seenK(today)?0:1;i<400;i++){ if(seenK(dkey(t0.getTime()-i*DAY))) inRow++; else break; }
   const last14=[...Array(14)].map((_,i)=>{ const k=dkey(t0.getTime()-(13-i)*DAY); return {k, n:A.flash[k]||0, d:new Date(t0.getTime()-(13-i)*DAY)}; }), mx=Math.max(1,...last14.map(x=>x.n));
-  return `<section style="display:flex;flex-direction:column;gap:10px">${head}
+  return `<section style="display:flex;flex-direction:column;gap:10px"><div class="ghead">${head}<span class="mono">${inRow}일 연속 접속</span></div>
     <div class="grass" style="--w:${W}"><span></span><div class="gmon">${mons.join('')}</div>
       <div class="gdays"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span></span></div><div class="gcells">${cells.join('')}</div></div>
-    <div class="glegend"><span><i style="background:var(--track)"></i>없음</span><span><i style="background:var(--faint)"></i>접속만</span><span><i class="f1" style="background:var(--omr)"></i>카드 1~9장</span><span><i class="f2" style="background:var(--omr)"></i>10~24</span><span><i class="f3" style="background:var(--omr)"></i>25~49</span><span><i style="background:var(--omr)"></i>50장 이상</span></div>
+    <div class="glegend"><span><i class="gd"></i>없음</span><span><i class="gd on"></i>접속</span><span><i class="gd f1"></i>카드 1~19장</span><span><i class="gd f2"></i>20~49장</span><span><i class="gd f3"></i>50장 이상</span></div>
     <div class="gsum"><span>접속 최근 7일 <b class="${seen7===0?'hot':''}">${seen7}</b>일 · 30일 <b>${seen30}</b>일</span><span>카드 최근 7일 <b>${f7}</b>장${fd7?` · 복습한 날 하루 평균 <b>${Math.round(f7/fd7)}</b>장`:''}</span><span>30일 <b>${f30}</b>장${fd30?` · 하루 평균 <b>${Math.round(f30/fd30)}</b>장`:''}</span><span>연속 복습 <b class="${streak>=7?'hot':''}">${streak}</b>일</span></div>
     <span class="label">최근 14일 · 하루 카드 복습 수</span>
     <div class="gbars">${last14.map(x=>`<div title="${kor(x.k)} · ${x.n}장"><b>${x.n||''}</b><i class="${x.n?'':'z'}" style="height:${x.n?Math.max(6,Math.round(x.n/mx*44)):2}px"></i></div>`).join('')}</div>
@@ -2087,6 +2101,10 @@ function flStatsDemo(){
     const decks=new Set(f.decks.filter(d=>d.grades.includes(s.grade)).map(d=>d.id)), st=f.states[s.id]||{}, logs=f.logs.filter(l=>l.student_id===s.id), l30=logs.filter(l=>l.reviewed_at>m30), rv=l30.filter(l=>l.kind==='review');
     out.students[s.id]={due:Object.entries(st).filter(([cid,x])=>x.due<=now&&decks.has(f.cards.find(c=>c.id===cid)?.deck_id)).length, started:Object.keys(st).length,
       reviews30:l30.length, review30:rv.length, kept30:rv.filter(l=>l.rating>1).length, last:logs.length?Math.max(...logs.map(l=>l.reviewed_at)):null};
+    const mine=Object.entries(st).filter(([cid])=>decks.has(f.cards.find(c=>c.id===cid)?.deck_id)).map(([,v])=>v), t0=new Date(); t0.setHours(0,0,0,0);
+    Object.assign(out.students[s.id], {assigned:f.cards.filter(c=>decks.has(c.deck_id)).length, seen:mine.length,
+      learn:mine.filter(v=>v.queue!=='review').length, young:mine.filter(v=>v.queue==='review'&&v.ivl<21).length, mature:mine.filter(v=>v.queue==='review'&&v.ivl>=21).length,
+      today:logs.filter(l=>l.reviewed_at>=t0.getTime()).length, today_new:logs.filter(l=>l.reviewed_at>=t0.getTime()&&l.kind==='new').length});
   });
   const by={}; f.logs.filter(l=>l.reviewed_at>m30).forEach(l=>{ const x=by[l.card_id] ||= {card_id:l.card_id,n:0,again:0}; x.n++; if(l.rating===1) x.again++; });
   out.cards=Object.values(by).filter(x=>x.n>=3).sort((a,b)=>b.again/b.n-a.again/a.n);
@@ -2188,14 +2206,35 @@ function vAdminDeck(msg){
     <button class="btn alt" type="submit">한꺼번에 추가</button></form>`;
 }
 function flStudentSection(s){
-  const A=S.fa;
-  if(!A||A.status==='loading') return '<section><span class="label">플래시카드</span><p class="lede" style="padding:12px 0">불러오는 중…</p></section>';
+  const A=S.fa, head='<span class="label">플래시카드</span>';
+  if(!A||A.status==='loading') return `<section>${head}<p class="lede" style="padding:12px 0">불러오는 중…</p></section>`;
   if(A.status!=='ready') return '';
-  const x=A.stats?.students?.[s.id]; if(!x) return '';
+  const x=A.stats?.students?.[s.id]||{due:0,started:0,reviews30:0,review30:0,kept30:0,last:null};
+  // 배정 카드: 이 학생 학년에 배정된 덱의 카드(선생님 화면은 학원 카드를 전부 받아 둔다)
+  const decks=new Set(A.decks.filter(d=>d.grades.includes(s.grade)).map(d=>d.id));
+  const assigned=x.assigned ?? A.cards.filter(c=>decks.has(c.deck_id)).length;
+  const full=x.mature!==undefined, seen=Math.min(assigned, full?x.seen:x.started), unseen=Math.max(0, assigned-seen);
   const last=x.last?flMs(x.last):null, keep=x.review30?Math.round(x.kept30/x.review30*100):null;
-  return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">플래시카드</span>
-    <section class="stats"><div class="stat ${x.due>=20?'alert':''}"><b>${x.due}</b><small>밀린 카드</small></div><div class="stat"><b>${x.reviews30}</b><small>30일 복습</small></div><div class="stat ${keep!==null&&keep<80?'alert':''}"><b>${keep===null?'–':keep}${keep===null?'':'<small>%</small>'}</b><small>기억 유지율</small></div></section>
-    <p class="note">시작한 카드 ${x.started}장 · 마지막 복습 ${last?fmtDate(last)+' ('+ago(last)+')':'없음'} · 유지율은 복습 카드에서 '다시'를 누르지 않은 비율이에요.</p></section>`;
+  // 하루 카드 수: 접속 잔디와 같은 기록(날짜별 복습 수)으로 최근 7일 평균을 낸다
+  const act=S.act?.id===s.id&&S.act.status==='ready'?S.act:null, t0=new Date(); t0.setHours(0,0,0,0);
+  const today=x.today ?? (act?act.flash[dkey(t0)]||0:null);
+  let wk=null; if(act){ wk=0; for(let i=0;i<7;i++) wk+=act.flash[dkey(t0.getTime()-i*DAY)]||0; }
+  const pills=`<section class="stats fl-pills">
+    <div class="stat"><small>배정 카드</small><b>${assigned}<small>장</small></b></div>
+    <div class="stat"><small>안 본 카드</small><b>${unseen}<small>장</small></b></div>
+    <div class="stat ${x.due>=50?'alert':''}"><small>복습할 카드</small><b>${x.due}<small>장</small></b></div>
+    <div class="stat"><small>오늘 넘긴 카드</small><b>${today===null?'–':today}${today===null?'':'<small>장</small>'}</b></div></section>`;
+  const pc=n=>assigned?(n/assigned*100):0, pct=n=>assigned?Math.round(n/assigned*100)+'%':'–';
+  const seg=full?[['mature','성숙 · 간격 21일 이상',x.mature],['young','어린 카드 · 21일 미만',x.young],['learn','배우는 중',x.learn],['unseen','안 본 카드',unseen]]:null;
+  const mat = !assigned ? '<p class="note">이 학년에 배정된 덱이 아직 없어요.</p>'
+    : full ? `<div class="flm-bar" role="img" aria-label="${seg.map(g=>g[1].split(' · ')[0]+' '+g[2]+'장').join(', ')}">${seg.map(g=>g[2]?`<span class="${g[0]}" style="width:${pc(g[2]).toFixed(2)}%"></span>`:'').join('')}</div>
+      <div class="flm-list">${seg.map(g=>`<div><i class="${g[0]}"></i><span>${g[1]}</span><b>${g[2]}<small>장 · ${pct(g[2])}</small></b></div>`).join('')}</div>`
+    : `<div class="flm-bar"><span class="young" style="width:${pc(seen).toFixed(2)}%"></span></div>
+      <p class="note">본 카드 ${seen}장 · 안 본 카드 ${unseen}장. 성숙도(배우는 중·어린·성숙)를 보려면 Supabase SQL Editor에서 sql/flash_progress.sql을 한 번 실행해 주세요.</p>`;
+  return `<section style="display:flex;flex-direction:column;gap:10px">${head}${pills}
+    <span class="label">성숙도별 카드</span>${mat}
+    <p class="note">${today!==null&&x.today_new!==undefined?`오늘 새 카드 ${x.today_new}장 · `:''}${wk!==null?`최근 7일 ${wk}장(하루 평균 ${Math.round(wk/7)}장) · `:''}30일 ${x.reviews30}장 · 기억 유지율 ${keep===null?'–':keep+'%'} · 마지막 복습 ${last?fmtDate(last)+' ('+ago(last)+')':'없음'}</p>
+    <p class="note dim">복습할 카드는 오늘까지 다시 볼 때가 된 카드예요. 유지율은 복습 카드에서 '다시'를 누르지 않은 비율이에요.</p></section>`;
 }
 const vAdminStudentBeforeFlash = vAdminStudent;
 vAdminStudent = () => vAdminStudentBeforeFlash() + flStudentSection(S.admin.students.find(x=>x.id===S.view));
