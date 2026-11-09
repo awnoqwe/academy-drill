@@ -4137,12 +4137,17 @@ function vAdminDrill(){
   const units=allUnits(all), subjs=subjectsOf(units), subj=subjs.includes(D.subj)?D.subj:(subjs[0]||''), sUnits=units.filter(u=>u.subj===subj);
   const gl=c=>(Array.isArray(c.grades)?c.grades:[c.grades]);
   const gradeSpan=qs=>{ const g=GRADES.filter(x=>qs.some(c=>gl(c).includes(x))); return g.length===GRADES.length?'전 학년':g.length>2&&GRADES.indexOf(g.at(-1))-GRADES.indexOf(g[0])===g.length-1?`${g[0]}~${g.at(-1)}`:g.join('·'); };
+  // 학년 탭: 고른 학년의 문제가 있는 단원만 보이고, 새 문제는 그 학년으로 시작한다
+  const dg=GRADES.includes(S.drg)?S.drg:(GRADES.find(x=>all.some(c=>gl(c).includes(x)))||GRADES[0]); S.drgCur=dg;
+  const inG=c=>gl(c).includes(dg);
+  const gradeTabs=`<section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span><div class="seg full" style="--n:${GRADES.length}">${GRADES.map(x=>`<button type="button" data-drg="${x}" aria-pressed="${x===dg}">${x}</button>`).join('')}</div></section>`;
   const adv=`<details class="dr-adv" ${I||D.busy?'open':''}><summary>여러 문제를 파일로 한꺼번에 넣기 (고급)</summary><section class="schedule-form fc-imp">${imp}</section></details>`;
   // 단원 화면
   const U=D.unit&&units.find(u=>u.id===D.unit);
-  if(U){ const qs=all.filter(c=>c.unit===U.id);
-    return `${msg}<div class="top"><button class="quit" data-dr="back">← ${esc(U.subj)} 단원 목록</button><span class="combo mono">${qs.length}문제</span></div>
-    <div><span class="label">${esc(U.subj)}</span><h2 class="dr-title">${esc(U.name)}</h2></div>
+  if(U){ const uAll=all.filter(c=>c.unit===U.id), qs=uAll.filter(inG);
+    return `${msg}<div class="top"><button class="quit" data-dr="back">← ${esc(U.subj)} 단원 목록</button><span class="combo mono">${dg} ${qs.length}문제</span></div>
+    ${gradeTabs}
+    <div><span class="label">${esc(U.subj)} · ${dg}${uAll.length>qs.length?` · 다른 학년 문제 ${uAll.length-qs.length}개는 그 학년 탭에서 보여요`:''}</span><h2 class="dr-title">${esc(U.name)}</h2></div>
     <button class="btn dr-new" type="button" data-dr="newhere">+ 이 단원에 문제 만들기</button>
     <div class="rows dr-qs">${qs.map((c,k)=>`<div class="row fi-row"><span class="mark mono">${k+1}</span>
       <span class="rq"><b>${esc(c.tag)}</b> <small class="dim">${gl(c).join('·')}</small><br>${mtx(c.stem)}</span>
@@ -4160,12 +4165,13 @@ function vAdminDrill(){
       <div class="schedule-btns"><button class="btn sm" type="submit">다음 · 첫 문제 만들기</button><button class="linkbtn" type="button" data-dr="addno">취소</button></div></form>` : '';
   if(!subjs.length) return `${msg}<p class="lede" style="padding:8px 0">아직 드릴 문제가 없어요. 과목(예: 국어, 수학)을 만들고 그 안에 단원과 문제를 넣어요.</p>
     ${newSubj||`<button class="btn dr-new" type="button" data-dr="addsubj">+ 새 과목 만들기</button>`}${adv}`;
-  return `${msg}<div class="dr-subjbar"><div class="seg full subj-seg" role="tablist" aria-label="과목" style="--n:${Math.min(subjs.length,4)}">${subjs.map(x=>`<button data-dr-subj="${esc(x)}" aria-pressed="${x===subj}">${esc(x)}</button>`).join('')}</div>
+  const gUnits=sUnits.filter(u=>all.some(c=>c.unit===u.id&&inG(c)));
+  return `${msg}${gradeTabs}<div class="dr-subjbar"><div class="seg full subj-seg" role="tablist" aria-label="과목" style="--n:${Math.min(subjs.length,4)}">${subjs.map(x=>`<button data-dr-subj="${esc(x)}" aria-pressed="${x===subj}">${esc(x)}</button>`).join('')}</div>
     <button class="linkbtn" data-dr="addsubj">+ 과목</button></div>
   ${newSubj}
-  <span class="label">${esc(subj)} · 단원 ${sUnits.length}개 · 문제 ${all.filter(c=>unitInfo(c.unit).subj===subj).length}개 · 단원을 눌러 문제를 보고 넣어요</span>
-  <div class="tiles dr-tiles">${sUnits.map(u=>{ const qs=all.filter(c=>c.unit===u.id); return `<button class="tile" data-dr-open="${esc(u.id)}">
-      <span class="tn"><span>${esc(u.subj)}</span><span>${qs.length}문제</span></span><b>${esc(u.name)}</b><span class="tc"><span>${gradeSpan(qs)}</span></span></button>`; }).join('')}
+  <span class="label">${esc(subj)} · ${dg} 단원 ${gUnits.length}개 · 문제 ${all.filter(c=>unitInfo(c.unit).subj===subj&&inG(c)).length}개 · 단원을 눌러 문제를 보고 넣어요</span>
+  <div class="tiles dr-tiles">${gUnits.map(u=>{ const qs=all.filter(c=>c.unit===u.id&&inG(c)); return `<button class="tile" data-dr-open="${esc(u.id)}">
+      <span class="tn"><span>${esc(u.subj)}</span><span>${qs.length}문제</span></span><b>${esc(u.name)}</b><span class="tc"><span>${gradeSpan(all.filter(c=>c.unit===u.id))}</span></span></button>`; }).join('')}
     ${D.addUnit?`<form id="drAddUnit" class="tile dr-addtile"><span class="tn"><span>새 단원</span></span><input name="unit" maxlength="40" placeholder="단원 이름" aria-label="새 단원 이름" required><span class="schedule-btns"><button class="btn sm" type="submit">만들기</button><button class="linkbtn" type="button" data-dr="addno">취소</button></span></form>`
       :`<button class="tile dr-addtile" data-dr="addunit"><span class="tn"><span>${esc(subj)}</span></span><b>+ 새 단원</b><span class="tc"><span>단원을 만들고 문제를 넣어요</span></span></button>`}</div>
   ${D.ren==='subj'?`<form id="drRenSubj" class="inline-form"><input name="v" maxlength="40" value="${esc(subj)}" aria-label="새 과목 이름"><button class="btn sm" type="submit">바꾸기</button><button class="linkbtn" type="button" data-dr="renno">취소</button></form>`
@@ -4181,7 +4187,7 @@ function bindDrill(){
   const reset=()=>{ D.ren=null; D.udel=false; D.sdel=false; D.addSubj=false; D.addUnit=false; D.del=null; };
   q('[data-dr-subj]').forEach(b=>b.onclick=()=>{ D.subj=b.dataset.drSubj; reset(); D.msg=''; render(); });
   q('[data-dr-open]').forEach(b=>b.onclick=()=>{ D.unit=b.dataset.drOpen; reset(); D.msg=''; D.err=''; render(); window.scrollTo(0,0); });
-  const startNew=(unit, extra)=>{ D.form={...drillBlank({...D.lastKeep, unit, tag:D.lastKeep?.unit===unit?D.lastKeep.tag:''}), ...(extra||{})}; D.prev??=true; D.ferr=null; D.msg=''; D.err=''; reset(); render(); window.scrollTo(0,0); app.querySelector(unit?'[data-drf-grade]':'[data-drf-unitsel]')?.focus(); };
+  const startNew=(unit, extra)=>{ D.form={...drillBlank({...D.lastKeep, unit, tag:D.lastKeep?.unit===unit?D.lastKeep.tag:''}), ...(extra||{})}; if(S.drgCur&&!D.form.grades.includes(S.drgCur)) D.form.grades=[S.drgCur]; D.prev??=true; D.ferr=null; D.msg=''; D.err=''; reset(); render(); window.scrollTo(0,0); app.querySelector(unit?'[data-drf-grade]':'[data-drf-unitsel]')?.focus(); };
   const nameOk=v=>{ v=v.trim(); return !v?'이름을 써 주세요.':/[\/]/.test(v)?"이름에 '/'는 쓸 수 없어요.":''; };
   const fs=document.getElementById('drAddSubj'); if(fs) fs.onsubmit=e=>{ e.preventDefault(); const a=fs.subj.value.trim(), b=fs.unit.value.trim(), m=nameOk(a)||nameOk(b); if(m){ D.err=m; return render(); }
     const id=unitIdOf(a,b), exists=allUnits().some(u=>u.id===id); D.subj=a; startNew(exists?id:'__new', exists?{}:{nsubj:a, nunit:b}); };
@@ -4234,7 +4240,7 @@ function bindDrill(){
     if(a==='sdel'){ reset(); D.sdel=true; D.subj=D.subj||subjectsOf(allUnits())[0]; return render(); }
     if(a==='udelgo'||a==='sdelgo'){ const ids=CARDS.filter(c=>a==='udelgo'?c.unit===D.unit:unitInfo(c.unit).subj===(D.subj||subjectsOf(allUnits())[0])).map(c=>c.id);
       D.busy='지우는 중…'; render(); try{ await API.drillDelete(ids); const m=a==='udelgo'?`단원과 문제 ${ids.length}개를 지웠어요.`:`과목과 문제 ${ids.length}개를 지웠어요.`; D.unit=null; if(a==='sdelgo') D.subj=null; reset(); reload(m); }catch(err){ fail(err,'지우지 못했어요. 인터넷 연결을 확인해 주세요.'); } return; }
-    if(a==='new'){ D.form=drillBlank(D.lastKeep); D.prev??=true; D.ferr=null; D.msg=''; D.err=''; render(); window.scrollTo(0,0); app.querySelector('[data-drf-unit]')?.focus(); return; }
+    if(a==='new'){ D.form=drillBlank(D.lastKeep); if(S.drgCur&&!D.form.grades.includes(S.drgCur)) D.form.grades=[S.drgCur]; D.prev??=true; D.ferr=null; D.msg=''; D.err=''; render(); window.scrollTo(0,0); app.querySelector('[data-drf-unit]')?.focus(); return; }
     if(a==='formclose'){ D.form=null; D.ferr=null; return render(); }
     if(a==='optadd'){ F.opts.push({t:'',ok:false}); render(); app.querySelector(`[data-drf-opt="${F.opts.length-1}"]`)?.focus(); return; }
     if(a==='save'||a==='savenext'){
@@ -4453,6 +4459,7 @@ document.addEventListener('change', e=>{ const box=e.target.closest?.('.tgt'); i
 // 화면을 그린 뒤 전체 선택 칸 글자를 맞춘다
 new MutationObserver(()=>document.querySelectorAll('.tgt').forEach(b=>{ if(!b.dataset.synced){ b.dataset.synced='1'; tgtSync(b); } })).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-fdg]'); if(!b) return; S.fdg=b.dataset.fdg; render(); });
+document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-drg]'); if(!b) return; S.drg=b.dataset.drg; render(); });
 </script>
 
 </body>
