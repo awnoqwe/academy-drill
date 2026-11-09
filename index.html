@@ -25,7 +25,7 @@
 :root{
   --paper:#ffffff; --sheet:#f5f5f3; --ink:#121212; --muted:#545452; --faint:#8b8b88; --rule:#dedede; --rule-strong:#121212;
   --good:#147a3d; --good-soft:#e7f4ec; --bad:#b42318; --bad-soft:#fdecec; --track:#ececea; --mid:#9a5b00; --hover:#f4f4f2; --pill:#121212; --pill-ink:#ffffff; color-scheme:light;
-  --cta:#c4161c; --cta-ink:#ffffff; --omr:#c4161c; --new:#c4161c; --omr-soft:#fdecec;
+  --cta:#c4161c; --cta-ink:#ffffff; --omr:#c4161c; --new:#c4161c; --omr-soft:#fdecec; --anki-new:#1d6fd6; --anki-lrn:#c4161c; --anki-rev:#147a3d;
   /* 글꼴: 화면 전체는 Pretendard(OFL), 국어 지문만 명조(Noto Serif KR, OFL). --f-serif·--f-mast는 예전 이름을 그대로 두고 Pretendard를 가리킨다. */
   --f-mast:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-serif:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
@@ -36,11 +36,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#121212; --sheet:#1c1c1c; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
   --good:#5fd08b; --good-soft:#16301f; --bad:#ff8a80; --bad-soft:#3a1d1b; --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --pill:#f1f1ee; --pill-ink:#121212; color-scheme:dark;
-  --cta:#d62828; --cta-ink:#ffffff; --omr:#ff6b5e; --new:#ff6b5e; --omr-soft:#3a1d1b}}
+  --cta:#d62828; --cta-ink:#ffffff; --omr:#ff6b5e; --new:#ff6b5e; --omr-soft:#3a1d1b; --anki-new:#6aa8ff; --anki-lrn:#ff7b6e; --anki-rev:#5fd08b}}
 :root[data-theme="dark"]{
   --paper:#121212; --sheet:#1c1c1c; --ink:#f1f1ee; --muted:#b0b0ab; --faint:#80807b; --rule:#303030; --rule-strong:#f1f1ee;
   --good:#5fd08b; --good-soft:#16301f; --bad:#ff8a80; --bad-soft:#3a1d1b; --track:#2a2a2a; --mid:#e0a64a; --hover:#1f1f1f; --pill:#f1f1ee; --pill-ink:#121212; color-scheme:dark;
-  --cta:#d62828; --cta-ink:#ffffff; --omr:#ff6b5e; --new:#ff6b5e; --omr-soft:#3a1d1b}
+  --cta:#d62828; --cta-ink:#ffffff; --omr:#ff6b5e; --new:#ff6b5e; --omr-soft:#3a1d1b; --anki-new:#6aa8ff; --anki-lrn:#ff7b6e; --anki-rev:#5fd08b}
 :root[data-accent="black"]{--cta:#121212; --cta-ink:#ffffff; --omr:#121212; --new:#121212; --omr-soft:#ececea}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"])[data-accent="black"]{--cta:#f1f1ee; --cta-ink:#121212; --omr:#f1f1ee; --new:#f1f1ee; --omr-soft:#2a2a2a}}
 :root[data-theme="dark"][data-accent="black"]{--cta:#f1f1ee; --cta-ink:#121212; --omr:#f1f1ee; --new:#f1f1ee; --omr-soft:#2a2a2a}
@@ -343,6 +343,18 @@ button.row:hover{background:var(--hover)}
 .gd.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--rule)}
 .gd.on{background:color-mix(in srgb,var(--omr) 28%,var(--track))}
 .gd.f1{background:color-mix(in srgb,var(--omr) 55%,var(--track))} .gd.f2{background:color-mix(in srgb,var(--omr) 80%,var(--track))} .gd.f3{background:var(--omr)}
+.gd.sel{outline:2px solid var(--omr);outline-offset:1px}.gd[data-gk]{cursor:pointer}
+.gpick{margin:0;font-size:12.5px;color:var(--ink)}
+.gbarl span{line-height:1.25}.gbarl small{color:var(--faint);font-size:10px}.gbarl b{font-weight:600}
+.ankit-wrap{overflow-x:auto}
+.ankit{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.ankit th,.ankit td{padding:8px 6px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.ankit thead th{font-size:12.5px;color:var(--muted);font-weight:700}
+.ankit th[scope=row],.ankit thead th:first-child{text-align:left;font-weight:600;white-space:normal}
+.ankit th[scope=row] small{display:block;font-weight:400;font-size:11.5px;color:var(--faint)}
+.ankit td{font-weight:700;font-size:16px;width:4.5em}
+.ankit td.an{color:var(--anki-new)} .ankit td.al{color:var(--anki-lrn)} .ankit td.ar{color:var(--anki-rev)} .ankit td.zero{color:var(--faint);font-weight:500}
+.ankit tfoot th,.ankit tfoot td{border-bottom:0;border-top:1px solid var(--rule-strong)}
 .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.ghead .mono{font-size:12px;color:var(--muted)}
 .stats.fl-pills{display:grid;grid-template-columns:repeat(4,1fr);overflow:visible}.fl-pills .stat{min-width:0;padding:9px 10px}
 @media (max-width:560px){.stats.fl-pills{grid-template-columns:repeat(2,1fr)}}
@@ -1543,7 +1555,7 @@ function bind(){
   app.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size; render();});
   app.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{const i=+b.dataset.opt; S.sel.has(i)?S.sel.delete(i):S.sel.add(i); render();});
   app.querySelectorAll('[data-grade]').forEach(b=>b.onclick=()=>{S.gradeFilter=b.dataset.grade; render();});
-  app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{ if(S.pick){ const id=b.dataset.stu; S.pick.has(id)?S.pick.delete(id):S.pick.add(id); S.pickAsk=false; return render(); } S.view=b.dataset.stu; actLoad(S.view); go('adminStudent');});
+  app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{ if(S.pick){ const id=b.dataset.stu; S.pick.has(id)?S.pick.delete(id):S.pick.add(id); S.pickAsk=false; return render(); } S.view=b.dataset.stu; actLoad(S.view); S.ft=null; S.gsel=null; go('adminStudent');});
   app.querySelectorAll('[data-act]').forEach(b=>b.onclick=async ()=>{
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
     if(a==='toAdmin'||a==='toOwner'){ S.wantOwner = a==='toOwner'; if(S.admin){ S.ownerMode = S.wantOwner && isOwner(); go('admin'); } else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
@@ -1958,6 +1970,9 @@ Object.assign(API, {
     const {data,error}=await sb.rpc('student_activity',{p_student:id}); if(error) throw error; return data;
   }
 });
+document.addEventListener('click', e=>{ const c=e.target.closest?.('.gd[data-gk]'); if(!c) return;
+  S.gsel=c.dataset.gk; document.querySelectorAll('.gd.sel').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
+  const p=document.getElementById('gPick'); if(p) p.innerHTML=esc(c.dataset.gi)+' <span class="dim">· 칸을 누르면 그날 기록이 보여요</span>'; });
 function actLoad(id){
   S.act={id, status:'loading'};
   API.studentActivity(id).then(d=>{ if(S.act?.id!==id) return; S.act={id, status:'ready', seen:new Set(d.seen||[]), flash:Object.fromEntries((d.flash||[]).map(x=>[x.day,+x.n]))}; render(); })
@@ -1971,12 +1986,13 @@ function actSection(s){
   const W=26, now=new Date(), today=dkey(now), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const dow=(t0.getDay()+6)%7; // 월=0
   const start=new Date(t0.getTime()-(dow+7*(W-1))*DAY);
-  const lvl=n=>!n?0:n<20?1:n<50?2:3, kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일`; };
+  const lvl=n=>!n?0:n<20?1:n<50?2:3, kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일(${'일월화수목금토'[new Date(+y,m-1,+d).getDay()]})`; };
   const mons=[], cells=[]; let pm=-1;
   for(let w=0;w<W;w++){ const mon=new Date(start.getTime()+w*7*DAY); const m=mon.getMonth(); mons.push(m!==pm&&(w===0||mon.getDate()<=7)?`<span>${m+1}월</span>`:'<span></span>'); pm=m;
     for(let r=0;r<7;r++){ const d=new Date(start.getTime()+(w*7+r)*DAY), k=dkey(d); if(d>t0){ cells.push('<i class="gd fut"></i>'); continue; }
       const n=A.flash[k]||0, on=A.seen.has(k)||n>0, cls=n?'f'+lvl(n):on?'on':'';
-      cells.push(`<i class="gd ${cls}${k===today?' today':''}" title="${kor(k)} · ${on?'접속':'접속 없음'}${n?` · 카드 ${n}장`:''}"></i>`); } }
+      const info=`${kor(k)} · ${on?'접속':'접속 없음'}${n?` · 카드 ${n}장`:''}`;
+      cells.push(`<i class="gd ${cls}${k===today?' today':''}${k===S.gsel?' sel':''}" data-gk="${k}" data-gi="${esc(info)}" title="${esc(info)}"></i>`); } }
   const days=(n,fn)=>{ let c=0; for(let i=0;i<n;i++){ const k=dkey(t0.getTime()-i*DAY); if(fn(k)) c++; } return c; };
   const sum=(n,fn)=>{ let c=0; for(let i=0;i<n;i++){ c+=fn(dkey(t0.getTime()-i*DAY)); } return c; };
   const seen7=days(7,k=>A.seen.has(k)||A.flash[k]), seen30=days(30,k=>A.seen.has(k)||A.flash[k]);
@@ -1986,12 +2002,13 @@ function actSection(s){
   const last14=[...Array(14)].map((_,i)=>{ const k=dkey(t0.getTime()-(13-i)*DAY); return {k, n:A.flash[k]||0, d:new Date(t0.getTime()-(13-i)*DAY)}; }), mx=Math.max(1,...last14.map(x=>x.n));
   return `<section style="display:flex;flex-direction:column;gap:10px"><div class="ghead">${head}<span class="mono">${inRow}일 연속 접속</span></div>
     <div class="grass" style="--w:${W}"><span></span><div class="gmon">${mons.join('')}</div>
-      <div class="gdays"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span></span></div><div class="gcells">${cells.join('')}</div></div>
+      <div class="gdays"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div><div class="gcells">${cells.join('')}</div></div>
+    <p class="gpick" id="gPick" aria-live="polite">${(()=>{ const k=S.gsel&&S.gsel<=today?S.gsel:today, n=A.flash[k]||0, on=A.seen.has(k)||n>0; return `${kor(k)}${k===today?' · 오늘':''} · ${on?'접속':'접속 없음'}${n?` · 카드 ${n}장`:''}`; })()} <span class="dim">· 칸을 누르면 그날 기록이 보여요</span></p>
     <div class="glegend"><span><i class="gd"></i>없음</span><span><i class="gd on"></i>접속</span><span><i class="gd f1"></i>카드 1~19장</span><span><i class="gd f2"></i>20~49장</span><span><i class="gd f3"></i>50장 이상</span></div>
     <div class="gsum"><span>접속 최근 7일 <b class="${seen7===0?'hot':''}">${seen7}</b>일 · 30일 <b>${seen30}</b>일</span><span>카드 최근 7일 <b>${f7}</b>장${fd7?` · 복습한 날 하루 평균 <b>${Math.round(f7/fd7)}</b>장`:''}</span><span>30일 <b>${f30}</b>장${fd30?` · 하루 평균 <b>${Math.round(f30/fd30)}</b>장`:''}</span><span>연속 복습 <b class="${streak>=7?'hot':''}">${streak}</b>일</span></div>
     <span class="label">최근 14일 · 하루 카드 복습 수</span>
     <div class="gbars">${last14.map(x=>`<div title="${kor(x.k)} · ${x.n}장"><b>${x.n||''}</b><i class="${x.n?'':'z'}" style="height:${x.n?Math.max(6,Math.round(x.n/mx*44)):2}px"></i></div>`).join('')}</div>
-    <div class="gbarl">${last14.map(x=>`<span>${x.d.getDate()}</span>`).join('')}</div>
+    <div class="gbarl">${last14.map(x=>`<span>${x.d.getDate()===1||x===last14[0]?`<b>${x.d.getMonth()+1}/</b>`:''}${x.d.getDate()}<br><small>${'일월화수목금토'[x.d.getDay()]}</small></span>`).join('')}</div>
   </section>`;
 }
 
@@ -2205,6 +2222,46 @@ function vAdminDeck(msg){
     <p class="note">안키 텍스트 가져오기와 같은 방식이에요. 줄마다 카드 하나, 구분 기호(| · 탭 · ;)는 알아서 찾아요. 뒷면에서 줄을 바꾸려면 칸을 "큰따옴표"로 감싸거나 &lt;br&gt; 또는 \\n을 쓰세요. 수식은 $x^2$처럼 $로 감싸요. #으로 시작하는 줄은 건너뛰고(#separator:Pipe 같은 안키 머리줄도 읽어요), 이 덱에 이미 있는 앞면은 중복이라 건너뛰어요. 드릴 연결은 추가한 뒤 카드마다 고치기에서 할 수 있어요.</p>
     <button class="btn alt" type="submit">한꺼번에 추가</button></form>`;
 }
+/* 선생님: 학생이 오늘 앱을 열면 보는 숫자(안키 첫 화면의 새 카드·학습·만기). 학생 앱과 같은 계산 — 하루는 새벽 4시에 바뀌고, 새 카드는 덱마다 '하루 새 카드 수'에서 오늘 본 만큼 뺀다. */
+Object.assign(API, {
+  async studentFlashToday(id){
+    const since=flDayStart();
+    if(DEMO){ const f=flDemo().flash; return {states:Object.entries(f.states[id]||{}).map(([card_id,x])=>({card_id, queue:x.queue, due:x.due})),
+      logs:f.logs.filter(l=>l.student_id===id&&l.reviewed_at>=since).map(l=>({card_id:l.card_id, kind:l.kind}))}; }
+    const page=async q=>{ const out=[]; for(let k=0;;k+=1000){ const r=await q().range(k,k+999); if(r.error) throw r.error; out.push(...r.data); if(r.data.length<1000) return out; } };
+    const [st, lg]=await Promise.all([
+      page(()=>sb.from('flash_states').select('card_id,queue,due').eq('student_id',id).order('card_id')),
+      page(()=>sb.from('flash_logs').select('card_id,kind').eq('student_id',id).gte('reviewed_at',new Date(since).toISOString()).order('id'))]);
+    return {states:st.map(x=>({...x, due:Date.parse(x.due)})), logs:lg};
+  }
+});
+function ftLoad(id){
+  S.ft={id, status:'loading'};
+  API.studentFlashToday(id).then(d=>{ if(S.ft?.id!==id) return; S.ft={id, status:'ready', ...d}; render(); })
+    .catch(()=>{ if(S.ft?.id!==id) return; S.ft={id, status:'error'}; render(); });
+}
+function ftView(s){
+  const T=S.ft, A=S.fa, head='<span class="label">오늘 카드 · 학생 앱 첫 화면과 같은 숫자</span>';
+  if(!T||T.id!==s.id){ queueMicrotask(()=>ftLoad(s.id)); return `${head}<p class="note">불러오는 중…</p>`; }
+  if(T.status==='loading') return `${head}<p class="note">불러오는 중…</p>`;
+  if(T.status!=='ready') return `${head}<p class="note">오늘 카드를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p>`;
+  const now=Date.now(), end=flDayAt(1,now), st=new Map(T.states.map(x=>[x.card_id,x])), newT=new Set(T.logs.filter(l=>l.kind==='new').map(l=>l.card_id));
+  const rows=A.decks.filter(d=>d.grades.includes(s.grade)).map(d=>{
+    let fresh=0, lrn=0, rev=0, nd=0;
+    A.cards.forEach(c=>{ if(c.deck_id!==d.id) return; const x=st.get(c.id); if(!x){ fresh++; return; } if(newT.has(c.id)) nd++;
+      if(x.queue==='review'){ if(x.due<=now) rev++; } else if(x.due<end) lrn++; });
+    return {d, nw:Math.min(fresh, Math.max(0, d.new_per_day-nd)), lrn, rev, nd};
+  });
+  if(!rows.length) return `${head}<p class="note">이 학년에 배정된 덱이 아직 없어요.</p>`;
+  const tot=rows.reduce((a,r)=>({nw:a.nw+r.nw, lrn:a.lrn+r.lrn, rev:a.rev+r.rev}),{nw:0,lrn:0,rev:0});
+  const doneNew=T.logs.filter(l=>l.kind==='new').length, doneAll=T.logs.length, doneCards=new Set(T.logs.map(l=>l.card_id)).size;
+  const num=(n,c)=>`<td class="${n?c:'zero'}">${n}</td>`;
+  return `${head}<div class="ankit-wrap"><table class="ankit"><thead><tr><th>덱</th><th>새 카드</th><th>학습</th><th>만기</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><th scope="row">${esc(r.d.name)}<small>하루 새 ${r.d.new_per_day}장${r.nd?` · 오늘 ${r.nd}장 봄`:''}</small></th>${num(r.nw,'an')}${num(r.lrn,'al')}${num(r.rev,'ar')}</tr>`).join('')}</tbody>
+    ${rows.length>1?`<tfoot><tr><th scope="row">합계</th>${num(tot.nw,'an')}${num(tot.lrn,'al')}${num(tot.rev,'ar')}</tr></tfoot>`:''}</table></div>
+    <p class="note">오늘 공부: 새 카드 <b>${doneNew}</b>장 · 복습·학습 <b>${doneAll-doneNew}</b>번 · 카드 ${doneCards}장을 ${doneAll}번 넘김 <span class="dim">(새벽 4시 기준)</span></p>
+    <p class="note dim">새 카드는 오늘 더 볼 수 있는 새 카드, 학습은 오늘 안에 다시 나올 배우는 중 카드, 만기는 지금 복습할 때가 된 카드예요.</p>`;
+}
 function flStudentSection(s){
   const A=S.fa, head='<span class="label">플래시카드</span>';
   if(!A||A.status==='loading') return `<section>${head}<p class="lede" style="padding:12px 0">불러오는 중…</p></section>`;
@@ -2222,7 +2279,7 @@ function flStudentSection(s){
   const pills=`<section class="stats fl-pills">
     <div class="stat"><small>배정 카드</small><b>${assigned}<small>장</small></b></div>
     <div class="stat"><small>안 본 카드</small><b>${unseen}<small>장</small></b></div>
-    <div class="stat ${x.due>=50?'alert':''}"><small>복습할 카드</small><b>${x.due}<small>장</small></b></div>
+    <div class="stat"><small>본 카드</small><b>${seen}<small>장</small></b></div>
     <div class="stat"><small>오늘 넘긴 카드</small><b>${today===null?'–':today}${today===null?'':'<small>장</small>'}</b></div></section>`;
   const pc=n=>assigned?(n/assigned*100):0, pct=n=>assigned?Math.round(n/assigned*100)+'%':'–';
   const seg=full?[['mature','성숙 · 간격 21일 이상',x.mature],['young','어린 카드 · 21일 미만',x.young],['learn','배우는 중',x.learn],['unseen','안 본 카드',unseen]]:null;
@@ -2232,9 +2289,10 @@ function flStudentSection(s){
     : `<div class="flm-bar"><span class="young" style="width:${pc(seen).toFixed(2)}%"></span></div>
       <p class="note">본 카드 ${seen}장 · 안 본 카드 ${unseen}장. 성숙도(배우는 중·어린·성숙)를 보려면 Supabase SQL Editor에서 sql/flash_progress.sql을 한 번 실행해 주세요.</p>`;
   return `<section style="display:flex;flex-direction:column;gap:10px">${head}${pills}
+    ${ftView(s)}
     <span class="label">성숙도별 카드</span>${mat}
-    <p class="note">${today!==null&&x.today_new!==undefined?`오늘 새 카드 ${x.today_new}장 · `:''}${wk!==null?`최근 7일 ${wk}장(하루 평균 ${Math.round(wk/7)}장) · `:''}30일 ${x.reviews30}장 · 기억 유지율 ${keep===null?'–':keep+'%'} · 마지막 복습 ${last?fmtDate(last)+' ('+ago(last)+')':'없음'}</p>
-    <p class="note dim">복습할 카드는 오늘까지 다시 볼 때가 된 카드예요. 유지율은 복습 카드에서 '다시'를 누르지 않은 비율이에요.</p></section>`;
+    <p class="note">${wk!==null?`최근 7일 ${wk}장(하루 평균 ${Math.round(wk/7)}장) · `:''}30일 ${x.reviews30}장 · 기억 유지율 ${keep===null?'–':keep+'%'} · 마지막 복습 ${last?fmtDate(last)+' ('+ago(last)+')':'없음'}</p>
+    <p class="note dim">유지율은 복습 카드에서 '다시'를 누르지 않은 비율이에요.</p></section>`;
 }
 const vAdminStudentBeforeFlash = vAdminStudent;
 vAdminStudent = () => vAdminStudentBeforeFlash() + flStudentSection(S.admin.students.find(x=>x.id===S.view));
