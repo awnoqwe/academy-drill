@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="아페라">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
 <title>아페라</title>
 <script>try{var L=JSON.parse(localStorage.getItem('academy-drill-v3'))||{},t={paper:'light',ink:'dark'}[L.theme]||L.theme;if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);if(L.accent)document.documentElement.setAttribute('data-accent',L.accent);if(L.fs==='l'||L.fs==='xl')document.documentElement.setAttribute('data-fs',L.fs)}catch(e){}</script>
@@ -47,9 +47,9 @@
 :root[data-accent="navy"]{--cta:#1b3a6b; --cta-ink:#ffffff; --omr:#1b3a6b; --new:#1b3a6b; --omr-soft:#e3ebf7}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"])[data-accent="navy"]{--cta:#3d6db3; --cta-ink:#ffffff; --omr:#8fb4ec; --new:#8fb4ec; --omr-soft:#1c2a40}}
 :root[data-theme="dark"][data-accent="navy"]{--cta:#3d6db3; --cta-ink:#ffffff; --omr:#8fb4ec; --new:#8fb4ec; --omr-soft:#1c2a40}
-:root[data-accent="magenta"]{--cta:#b0127a; --cta-ink:#ffffff; --omr:#b0127a; --new:#b0127a; --omr-soft:#f9e1f0}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"])[data-accent="magenta"]{--cta:#c22a8b; --cta-ink:#ffffff; --omr:#f07cc6; --new:#f07cc6; --omr-soft:#3a1830}}
-:root[data-theme="dark"][data-accent="magenta"]{--cta:#c22a8b; --cta-ink:#ffffff; --omr:#f07cc6; --new:#f07cc6; --omr-soft:#3a1830}
+:root[data-accent="magenta"]{--cta:#d70e93; --cta-ink:#ffffff; --omr:#d70e93; --new:#d70e93; --omr-soft:#fbdff0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"])[data-accent="magenta"]{--cta:#dd2d9e; --cta-ink:#ffffff; --omr:#f680cb; --new:#f680cb; --omr-soft:#461638}}
+:root[data-theme="dark"][data-accent="magenta"]{--cta:#dd2d9e; --cta-ink:#ffffff; --omr:#f680cb; --new:#f680cb; --omr-soft:#461638}
 :root[data-accent="coral"]{--cta:#c4442c; --cta-ink:#ffffff; --omr:#c4442c; --new:#c4442c; --omr-soft:#fde9e4}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"])[data-accent="coral"]{--cta:#ff7a5c; --cta-ink:#121212; --omr:#ff8f73; --new:#ff8f73; --omr-soft:#3a2019}}
 :root[data-theme="dark"][data-accent="coral"]{--cta:#ff7a5c; --cta-ink:#121212; --omr:#ff8f73; --new:#ff8f73; --omr-soft:#3a2019}
@@ -857,7 +857,7 @@ window.mathReady=()=>{ try{ if(typeof render==='function'&&app?.innerHTML&&/\$/.
 const unitName = id => unitInfo(id).name;
 const MARK = {ok:['O','o','맞힘'], wrong:['X','x','틀림'], unknown:['?','x','모름'], missing:['△','m','선지에 없음']};
 const MODES = [{id:'light',name:'라이트',bg:'#ffffff',ink:'#121212'},{id:'dark',name:'다크',bg:'#121212',ink:'#f1f1ee'}];
-const ACCENTS = [{id:'red',name:'빨강',light:'#c4161c',dark:'#d62828'},{id:'black',name:'검정',light:'#121212',dark:'#f1f1ee'},{id:'navy',name:'네이비',light:'#1b3a6b',dark:'#3d6db3'},{id:'magenta',name:'마젠타',light:'#b0127a',dark:'#c22a8b'},{id:'coral',name:'코랄',light:'#c4442c',dark:'#ff7a5c'},{id:'khaki',name:'카키',light:'#6e6534',dark:'#c9bb7a'},{id:'brown',name:'갈색',light:'#7a4a2a',dark:'#c08a5f'},{id:'teal',name:'청록',light:'#0b6f6a',dark:'#2bb3a8'}];
+const ACCENTS = [{id:'red',name:'빨강',light:'#c4161c',dark:'#d62828'},{id:'black',name:'검정',light:'#121212',dark:'#f1f1ee'},{id:'navy',name:'네이비',light:'#1b3a6b',dark:'#3d6db3'},{id:'magenta',name:'마젠타',light:'#d70e93',dark:'#dd2d9e'},{id:'coral',name:'코랄',light:'#c4442c',dark:'#ff7a5c'},{id:'khaki',name:'카키',light:'#6e6534',dark:'#c9bb7a'},{id:'brown',name:'갈색',light:'#7a4a2a',dark:'#c08a5f'},{id:'teal',name:'청록',light:'#0b6f6a',dark:'#2bb3a8'}];
 const themeId = () => { const t=loc().theme; const m=({paper:'light',ink:'dark'})[t]||t; return m==='light'||m==='dark' ? m : 'auto'; };
 const accentId = () => ACCENTS.some(a=>a.id===loc().accent) ? loc().accent : 'red';
 const darkNow = () => themeId()==='dark' || (themeId()==='auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
