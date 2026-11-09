@@ -840,11 +840,25 @@ begin
     'due', (select count(*) from public.flash_states f join public.flash_cards c on c.id = f.card_id join public.flash_decks d on d.id = c.deck_id
             where f.student_id = s.id and f.due <= now() and s.grade = any (d.grades)),
     'started', (select count(*) from public.flash_states f where f.student_id = s.id),
+    'assigned', (select count(*) from public.flash_cards c join public.flash_decks d on d.id = c.deck_id
+                 where d.academy_id = s.academy_id and s.grade = any (d.grades)),
+    'seen', m.seen, 'learn', m.learn, 'young', m.young, 'mature', m.mature,
+    'today', (select count(*) from public.flash_logs l where l.student_id = s.id
+              and l.reviewed_at >= ((now() at time zone 'Asia/Seoul')::date)::timestamp at time zone 'Asia/Seoul'),
+    'today_new', (select count(*) from public.flash_logs l where l.student_id = s.id and l.kind = 'new'
+              and l.reviewed_at >= ((now() at time zone 'Asia/Seoul')::date)::timestamp at time zone 'Asia/Seoul'),
     'reviews30', (select count(*) from public.flash_logs l where l.student_id = s.id and l.reviewed_at > now() - interval '30 days'),
     'review30', (select count(*) from public.flash_logs l where l.student_id = s.id and l.kind = 'review' and l.reviewed_at > now() - interval '30 days'),
     'kept30', (select count(*) from public.flash_logs l where l.student_id = s.id and l.kind = 'review' and l.rating > 1 and l.reviewed_at > now() - interval '30 days'),
     'last', (select max(l.reviewed_at) from public.flash_logs l where l.student_id = s.id)))
-   from public.students s where s.academy_id = p_academy), '{}'::jsonb),
+   from public.students s
+   cross join lateral (select count(*) seen,
+       count(*) filter (where f.queue <> 'review') learn,
+       count(*) filter (where f.queue = 'review' and f.ivl < 21) young,
+       count(*) filter (where f.queue = 'review' and f.ivl >= 21) mature
+     from public.flash_states f join public.flash_cards c on c.id = f.card_id join public.flash_decks d on d.id = c.deck_id
+     where f.student_id = s.id and d.academy_id = s.academy_id and s.grade = any (d.grades)) m
+   where s.academy_id = p_academy), '{}'::jsonb),
   'cards', coalesce((select jsonb_agg(jsonb_build_object('card_id', x.card_id, 'n', x.n, 'again', x.again) order by x.again::float / x.n desc)
    from (select l.card_id, count(*) n, count(*) filter (where l.rating = 1) again from public.flash_logs l join public.flash_cards c on c.id = l.card_id
          where c.academy_id = p_academy and l.reviewed_at > now() - interval '30 days' group by l.card_id having count(*) >= 3) x), '[]'::jsonb));
