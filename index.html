@@ -1384,18 +1384,23 @@ function vAdmin(){
 /* --- 관리자: 학생 상세 --- */
 function vAdminStudent(){
   const s = S.admin.students.find(x=>x.id===S.view);
+  return `<div class="top"><button class="quit" data-act="adminBack">← 학생 목록</button><span class="combo mono">최근 접속 ${fmtDate(s.lastSeen)}</span></div>
+  <div><span class="label">${s.grade}${s.example?' · 예시':''}</span><h2 style="margin:4px 0 0;font-family:var(--f-serif);font-size:30px">${esc(s.nick)}</h2></div>
+  ${actSection(s)}`;
+}
+/* 드릴(문제) 현황: 숫자 · 드릴 잔디 · 단원별 진도 · 막힌 문제. 학생 상세에서 숙제 바로 위에 놓는다. */
+function drillStudentSection(s){
   const m = studentSummary(s), mine = gradeCards(s.grade);
   const seen = mine.filter(c=>s.cards[c.id]?.seen).length;
   const mature = UNITS.reduce((a,u)=>a+unitStats(s,u.id).mature,0);
   const blocked = CARDS.map(c=>({c,r:s.cards[c.id]})).filter(x=>x.r&&x.r.blocked).sort((a,b)=>b.r.blocked-a.r.blocked);
-  return `<div class="top"><button class="quit" data-act="adminBack">← 학생 목록</button><span class="combo mono">최근 접속 ${fmtDate(s.lastSeen)}</span></div>
-  <div><span class="label">${s.grade}${s.example?' · 예시':''}</span><h2 style="margin:4px 0 0;font-family:var(--f-serif);font-size:30px">${esc(s.nick)}</h2></div>
+  return `<section style="display:flex;flex-direction:column;gap:10px"><span class="label">드릴</span>
   <section class="stats">
     <div class="stat"><b>${seen}<small>/${mine.length}</small></b><small>풀어 본 문제</small></div>
     <div class="stat"><b>${mature}</b><small>익힘</small></div>
     <div class="stat ${m.blockedPct>=30?'alert':''}"><b>${m.blockedPct}<small>%</small></b><small>막힘</small></div>
-  </section>
-  ${actSection(s)}
+  </section></section>
+  ${drillGrass(s)}
   <section><span class="label">단원별 진도</span>
     ${gradeUnits(s.grade).map(u=>{const t=unitStats(s,u.id),pc=x=>(x/t.total*100).toFixed(2)+'%';return `<div class="unitrow">
       <div class="h"><b>${esc(u.subj)} · ${esc(u.name)}</b><span>진도 ${t.seenPct}% · 익힘 ${t.maturePct}%</span></div>
@@ -1972,8 +1977,29 @@ Object.assign(API, {
   }
 });
 document.addEventListener('click', e=>{ const c=e.target.closest?.('.gd[data-gk]'); if(!c) return;
-  S.gsel=c.dataset.gk; document.querySelectorAll('.gd.sel').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
-  const p=document.getElementById('gPick'); if(p) p.innerHTML=esc(c.dataset.gi)+' <span class="dim">· 칸을 누르면 그날 기록이 보여요</span>'; });
+  const sec=c.closest('section')||document; if(c.closest('section')?.querySelector('#gPick')) S.gsel=c.dataset.gk; sec.querySelectorAll('.gd.sel').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
+  const p=sec.querySelector('.gpick'); if(p) p.innerHTML=esc(c.dataset.gi)+' <span class="dim">· 칸을 누르면 그날 기록이 보여요</span>'; });
+function drillGrass(s){
+  const act=(s.cards?._act&&typeof s.cards._act==='object'&&!Array.isArray(s.cards._act))?s.cards._act:{}, days=new Set(Array.isArray(s.cards?._days)?s.cards._days:[]);
+  Object.keys(act).forEach(k=>days.add(k));
+  const W=26, now=new Date(), today=dkey(now), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), dow=(t0.getDay()+6)%7, start=new Date(t0.getTime()-(dow+7*(W-1))*DAY);
+  const kor=k=>{ const [y,m,d]=k.split('-'); return `${+m}월 ${+d}일(${'일월화수목금토'[new Date(+y,m-1,+d).getDay()]})`; };
+  const lvl=n=>n<5?1:n<15?2:3, info=k=>{ const n=act[k]||0; return `${kor(k)}${k===today?' · 오늘':''} · ${days.has(k)?(n?`문제 ${n}개`:'드릴 함'):'드릴 안 함'}`; };
+  const mons=[], cells=[]; let pm=-1;
+  for(let w=0;w<W;w++){ const mon=new Date(start.getTime()+w*7*DAY), m=mon.getMonth(); mons.push(m!==pm&&(w===0||mon.getDate()<=7)?`<span>${m+1}월</span>`:'<span></span>'); pm=m;
+    for(let r=0;r<7;r++){ const d=new Date(start.getTime()+(w*7+r)*DAY), k=dkey(d); if(d>t0){ cells.push('<i class="gd fut"></i>'); continue; }
+      const n=act[k]||0, cls=n?'f'+lvl(n):days.has(k)?'on':'';
+      cells.push(`<i class="gd ${cls}${k===today?' today':''}" data-gk="${k}" data-gi="${esc(info(k))}" title="${esc(info(k))}"></i>`); } }
+  const sum=n=>{ let c=0,d=0; for(let i=0;i<n;i++){ const k=dkey(t0.getTime()-i*DAY); c+=act[k]||0; if(days.has(k)) d++; } return {c,d}; };
+  const w7=sum(7), w30=sum(30); let inRow=0; for(let i=days.has(today)?0:1;i<400;i++){ if(days.has(dkey(t0.getTime()-i*DAY))) inRow++; else break; }
+  return `<section style="display:flex;flex-direction:column;gap:10px"><div class="ghead"><span class="label">드릴 잔디 · 문제 푼 날과 푼 문제 수 (최근 26주)</span><span class="mono">${inRow}일 연속</span></div>
+    <div class="grass" style="--w:${W}"><span></span><div class="gmon">${mons.join('')}</div>
+      <div class="gdays"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div><div class="gcells">${cells.join('')}</div></div>
+    <p class="gpick">${esc(info(today))} <span class="dim">· 칸을 누르면 그날 기록이 보여요</span></p>
+    <div class="glegend"><span><i class="gd"></i>없음</span><span><i class="gd f1"></i>1~4문제</span><span><i class="gd f2"></i>5~14문제</span><span><i class="gd f3"></i>15문제 이상</span></div>
+    <div class="gsum"><span>최근 7일 <b class="${w7.d===0?'hot':''}">${w7.d}</b>일 · <b>${w7.c}</b>문제</span><span>30일 <b>${w30.d}</b>일 · <b>${w30.c}</b>문제${w30.d?` · 푼 날 하루 평균 <b>${Math.round(w30.c/w30.d)}</b>문제`:''}</span></div>
+  </section>`;
+}
 function actLoad(id){
   S.act={id, status:'loading'};
   API.studentActivity(id).then(d=>{ if(S.act?.id!==id) return; S.act={id, status:'ready', seen:new Set(d.seen||[]), flash:Object.fromEntries((d.flash||[]).map(x=>[x.day,+x.n]))}; render(); })
@@ -2734,7 +2760,7 @@ function taStudentSection(s){
     <div class="schedule-btns"><button class="btn sm alt" type="submit">메모 저장</button>${A.noteMsg?`<span class="selnote" role="status">${esc(A.noteMsg)}</span>`:''}</div></form>`;
 }
 const vAdminStudentBeforeTa = vAdminStudent;
-vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); return vAdminStudentBeforeTa() + taStudentSection(s); };
+vAdminStudent = () => { const s=S.admin.students.find(x=>x.id===S.view); return vAdminStudentBeforeTa() + drillStudentSection(s) + taStudentSection(s); };
 const vScheduleBeforeHw = vSchedule;
 vSchedule = () => hwStudentSection() + vScheduleBeforeHw();
 
@@ -2993,7 +3019,7 @@ function vPrivacy(){
 
 /* ===== 홈: 오늘의 1면 ===== */
 const dayKey = (t=Date.now()) => new Date(flDayStart(t)).toLocaleDateString('sv-SE');
-function markDay(){ if(!S.me) return false; const d=dayKey(), arr=Array.isArray(S.me.cards._days)?S.me.cards._days:[]; if(arr[arr.length-1]===d) return false; S.me.cards._days=[...arr,d].slice(-60); return true; }
+function markDay(){ if(!S.me) return false; const d=dayKey(), arr=Array.isArray(S.me.cards._days)?S.me.cards._days:[]; if(arr[arr.length-1]===d) return false; S.me.cards._days=[...arr,d].slice(-190); return true; }
 function streakDays(st=S.me){ const set=new Set(Array.isArray(st?.cards?._days)?st.cards._days:[]); let n=0, t=Date.now(); if(!set.has(dayKey(t))) t-=DAY; while(set.has(dayKey(t))){ n++; t-=DAY; } return n; }
 const recordBeforeDay = record;
 record = function(out){ markDay(); recordBeforeDay(out); };
@@ -3161,7 +3187,7 @@ bindFlash = function(){ bindBeforeAccounts(); bindAccounts(); };
 const recordBeforeAct = record;
 record = function(out){
   if(S.me){ const d=dayKey(), a=(S.me.cards._act&&typeof S.me.cards._act==='object'&&!Array.isArray(S.me.cards._act))?S.me.cards._act:{};
-    a[d]=(a[d]||0)+1; Object.keys(a).sort().slice(0,-35).forEach(k=>delete a[k]); S.me.cards._act=a; }
+    a[d]=(a[d]||0)+1; Object.keys(a).sort().slice(0,-190).forEach(k=>delete a[k]); S.me.cards._act=a; }
   recordBeforeAct(out);
 };
 const PCODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
