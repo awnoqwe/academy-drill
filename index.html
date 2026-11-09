@@ -4419,9 +4419,9 @@ function tgtPicker(o){
   const sname=s=>o.students.filter(x=>x.grade===s.grade&&x.nick===s.nick).length>1 ? `${esc(s.nick)} <small class="dim">${esc(String(s.phone||'').slice(-4))}</small>` : esc(s.nick);
   return `<div class="tgt">
     <label class="check tgt-all"><input type="checkbox" name="${o.name}" value="all" ${ck('all')}><b>전체 학생에게 보내기</b> <small class="dim">${o.students.length}명</small></label>
-    ${o.groups.length?`<div class="tgt-grp"><span class="tgt-h">${o.groupLabel}</span><div class="tgt-items">${o.groups.map(([v,n])=>`<label class="check"><input type="checkbox" name="${o.name}" value="${esc(v)}" ${ck(v)}>${esc(n)}</label>`).join('')}</div></div>`:''}
-    <span class="tgt-h">학년</span>
-    <div class="seg full" style="--n:${by.length+1}">${['전체',...by.map(x=>x[0])].map(g=>`<button type="button" data-tgtab="${esc(g)}" aria-pressed="${tab===g}">${esc(g)}</button>`).join('')}</div>
+    ${o.groups.length?`<div class="tgt-grp"><span class="label">${o.groupLabel}</span><div class="tgt-items">${o.groups.map(([v,n])=>`<label class="check"><input type="checkbox" name="${o.name}" value="${esc(v)}" ${ck(v)}>${esc(n)}</label>`).join('')}</div></div>`:''}
+    <section style="display:flex;flex-direction:column;gap:8px"><span class="label">학년</span>
+    <div class="seg full" style="--n:${by.length+1}">${['전체',...by.map(x=>x[0])].map(g=>`<button type="button" data-tgtab="${esc(g)}" aria-pressed="${tab===g}">${esc(g)}</button>`).join('')}</div></section>
     ${by.map(([g,list])=>{ const all=list.length&&list.every(x=>o.checked('student:'+x.id)); return `<div class="tgt-sec" data-tgsec="${esc(g)}" ${(tab==='전체'&&list.length)||tab===g?'':'hidden'}>
       ${list.length?`<label class="check tgt-h"><input type="checkbox" data-tgall="${esc(g)}" ${all?'checked':''}>${esc(g)} 전체 <small class="dim">${list.length}명</small></label>
       <div class="tgt-items">${list.map(x=>`<label class="check"><input type="checkbox" name="${o.name}" value="student:${esc(x.id)}" data-tgg="${esc(g)}" ${ck('student:'+x.id)}>${sname(x)}</label>`).join('')}</div>`
