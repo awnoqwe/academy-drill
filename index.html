@@ -1567,7 +1567,7 @@ function bind(){
   app.querySelectorAll('[data-stu]').forEach(b=>b.onclick=()=>{ if(S.pick){ const id=b.dataset.stu; S.pick.has(id)?S.pick.delete(id):S.pick.add(id); S.pickAsk=false; return render(); } S.view=b.dataset.stu; actLoad(S.view); S.ft=null; S.gsel=null; go('adminStudent');});
   app.querySelectorAll('[data-act]').forEach(b=>b.onclick=async ()=>{
     const a = b.dataset.act, c = CARDS.find(x=>x.id===S.set[S.idx]);
-    if(a==='toAdmin'||a==='toOwner'){ S.wantOwner = a==='toOwner'; if(S.admin){ S.ownerMode = S.wantOwner && isOwner(); go('admin'); } else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
+    if(a==='toAdmin'||a==='toOwner'){ S.wantOwner = a==='toOwner'; loc().lastRole = S.wantOwner?'owner':'teacher'; saveLoc(); if(S.admin){ S.ownerMode = S.wantOwner && isOwner(); go('admin'); } else if(await API.adminSession()) openAdmin(); else go('adminLogin'); }
     else if(a==='toEntry'){ go('entry'); }
     else if(a==='logout'){ S.me=null; S.scheduleToken=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; loc().session=null; saveLoc(); go('entry'); }
     else if(a==='theme'){ S.themeOpen=!S.themeOpen; render(); }
@@ -1582,7 +1582,7 @@ function bind(){
     else if(a==='missing') record('missing');
     else if(a==='check'){ const ok = S.sel.size===c.ans.length && c.ans.every(i=>S.sel.has(i)); record(ok?'ok':'wrong'); }
     else if(a==='next'){ if(S.idx+1<S.set.length){ S.idx++; S.phase='think'; S.qT0=Date.now(); S.sel=new Set(); S.excluded=new Set(); render(); window.scrollTo(0,0);} else go('result'); }
-    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; go('entry'); }
+    else if(a==='adminOut'){ await API.adminLogout(); S.admin=null; loc().lastRole=null; saveLoc(); scheduleOwner=''; if(!DEMO) sched={groups:[],events:[],reads:{}}; go('entry'); }
     else if(a==='adminRefresh') openAdmin();
     else if(a==='adminBack') go('admin');
     else if(a==='cancelDel'){ S.confirmDel=null; render(); }
@@ -4394,6 +4394,9 @@ applyTheme();
 const last = loc().session;
 if(last && !last.phone){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; loc().session = null; saveLoc(); S.err = '이제 전화번호도 함께 입력해요. 한 번만 넣으면 다음부터는 자동으로 들어가요.'; render(); }
 else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = last.phone; S.grade = last.grade; enter(last.code, last.nick, last.grade, last.phone); }
+// 선생님·원장으로 마지막에 들어왔으면, 로그인이 살아 있을 때 바로 그 화면으로 (로그아웃을 눌렀을 때만 기억을 지운다)
+else if(!DEMO && ['teacher','owner'].includes(loc().lastRole)){ S.wantOwner = loc().lastRole==='owner'; S.screen='loading'; render();
+  API.adminSession().then(ok=>{ if(ok) openAdmin(); else go('adminLogin'); }).catch(()=>go('adminLogin')); }
 else if(parentCodes().length) go('parent');
 else render();
 
