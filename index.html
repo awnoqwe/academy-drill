@@ -465,6 +465,9 @@ body{background:var(--paper)}
 
 /* 탭 균등 · 설정 */
 .tabs{display:grid;grid-template-columns:repeat(var(--n,5),minmax(0,1fr));gap:0;overflow:visible}
+.stu-tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;background:var(--paper)}
+.stu-tabs button{white-space:nowrap;font-size:15px}
+@media (max-width:420px){.stu-tabs button{font-size:13.5px}}
 .tabs button{text-align:center;padding-inline:0;white-space:nowrap}
 .tabs .badge{font-size:10.5px;padding:0 4px;margin-left:3px;vertical-align:1px}
 .set-sec{display:flex;flex-direction:column;gap:12px;padding-bottom:18px;border-bottom:1px solid var(--rule)}
@@ -4386,6 +4389,26 @@ else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = 
 else if(parentCodes().length) go('parent');
 else render();
 
+
+/* ===== 학생 상세: 탭으로 나누기 =====
+   스크롤이 길어서 플래시카드 · 드릴 · 학습 관리(숙제·메모·공부 시간·쪽지 시험) · 학부모 · 설정(학생 관리·개인정보 동의)으로 나눈다.
+   위쪽 이름·최근 접속은 늘 보이고, 고른 탭은 다른 학생을 봐도 그대로 둔다. */
+const STU_TABS = [['flash','플래시카드'],['drill','드릴'],['study','학습 관리'],['parent','학부모'],['set','설정']];
+vAdminStudent = () => {
+  const s=S.admin.students.find(x=>x.id===S.view); if(!s) return vAdmin();
+  if(S.qz&&S.qz.sid===S.view) return vQuiz();
+  const tab=STU_TABS.some(t=>t[0]===S.stab)?S.stab:'flash';
+  const body = tab==='flash' ? actSection(s)+flStudentSection(s)
+    : tab==='drill' ? drillStudentSection(s)
+    : tab==='study' ? taStudentSection(s)+studySection(s)
+    : tab==='parent' ? parentSection(s)
+    : manageSection(s)+consentSection(s);
+  return `<div class="top"><button class="quit" data-act="adminBack">← 학생 목록</button><span class="combo mono">최근 접속 ${fmtDate(s.lastSeen)}</span></div>
+  <div><span class="label">${s.grade}${s.example?' · 예시':''}</span><h2 style="margin:4px 0 0;font-family:var(--f-serif);font-size:30px">${esc(s.nick)}</h2></div>
+  <div class="tabs stu-tabs" role="tablist" style="--n:${STU_TABS.length}">${STU_TABS.map(([id,n])=>`<button role="tab" data-stab="${id}" aria-selected="${tab===id}">${n}</button>`).join('')}</div>
+  ${body}`;
+};
+document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-stab]'); if(!b||S.screen!=='adminStudent') return; if(S.stab===b.dataset.stab) return; S.stab=b.dataset.stab; render(); });
 </script>
 
 </body>
