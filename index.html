@@ -2738,7 +2738,7 @@ function vAdminHw(){
     <label>할 일 · 학생에게 보이는 안내<textarea id="hwMemo" name="memo" rows="3" maxlength="2000" placeholder="예: 막힌 문제는 Q&A에 올리기"></textarea></label>
     <label>바로 하기 버튼<select id="hwLink" name="link"><option value="">없음</option>${UNITS.map(u=>`<option value="drill:${esc(u.id)}">드릴 · ${esc(u.subj)} · ${esc(u.name)}</option>`).join('')}${decks.map(d=>`<option value="flash:${esc(d.id)}">카드 · ${esc(d.name)}</option>`).join('')}</select></label>
     <span class="label">받을 대상 · 중복 학생은 한 번만</span>
-    <div class="schedule-targets">${targets.map(([v,n])=>`<label class="check"><input type="checkbox" name="target" value="${esc(v)}">${esc(n)}</label>`).join('')}</div>
+    <div class="schedule-targets">${targets.map(([v,n])=>`<label class="check"><input type="checkbox" name="target" value="${esc(v)}" ${S.hwPre===v?'checked':''}>${esc(n)}</label>`).join('')}</div>
     <p class="note" id="hwCount" aria-live="polite">받을 대상을 골라 주세요.</p>
     <button class="btn" type="submit">숙제 내기</button></form>
   <section style="display:flex;flex-direction:column;gap:8px"><span class="label">낸 숙제</span>
@@ -2756,7 +2756,7 @@ function taStudentSection(s){
   if(A.status==='missing') return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제 · 메모</span>${taMissing()}</section>`;
   if(A.status!=='ready') return '';
   const mine=A.rec.filter(r=>r.student_id===s.id).map(r=>({r,h:A.hw.find(h=>h.id===r.homework_id)})).filter(x=>x.h).sort((a,b)=>b.h.due.localeCompare(a.h.due));
-  return `<section style="display:flex;flex-direction:column;gap:8px"><span class="label">숙제</span>
+  return `<section style="display:flex;flex-direction:column;gap:8px"><div class="ask-meta"><span class="label">숙제</span><button class="btn sm" data-hwfor="${esc(s.id)}">이 학생에게 숙제 내기</button></div>
     <div class="rows">${mine.map(({r,h})=>`<div class="row"><span class="mark ${r.done_at?'o':hwDday(h.due)<0?'x':'m'}">${r.done_at?'O':hwDday(h.due)<0?'X':'·'}</span><span class="rq">${esc(h.title)}</span><span class="s">${r.done_at?'완료 '+fmtDate(r.done_at):hwWhen(h.due)}</span></div>`).join('')||'<p class="lede" style="padding:12px 0">받은 숙제가 없어요.</p>'}</div></section>
   <form id="noteForm" class="schedule-form" data-sid="${esc(s.id)}"><span class="label">선생님 메모 · 학생에게는 안 보여요</span>
     <textarea id="noteBody" name="body" rows="4" maxlength="5000" placeholder="상담 내용, 약한 부분, 다음에 챙길 것">${esc(A.notes[s.id]||'')}</textarea>
@@ -2796,6 +2796,7 @@ function bindTa(){
     const picked=()=>Array.from(f.querySelectorAll('[name=target]:checked')).map(x=>x.value);
     const count=()=>{ const n=scheduleRecipients(picked()).length; f.querySelector('#hwCount').textContent = n ? '받을 학생 '+n+'명' : '받을 대상을 골라 주세요.'; };
     f.querySelectorAll('[name=target]').forEach(x=>x.onchange=count);
+    if(S.hwPre){ S.hwPre=null; count(); f.querySelector('#hwTitle')?.focus(); f.scrollIntoView({block:'start'}); }
     f.onsubmit=async e=>{ e.preventDefault();
       const t=picked(), students=scheduleRecipients(t), title=f.elements.namedItem('title').value.trim(), due=f.elements.namedItem('due').value, lk=f.elements.namedItem('link').value;
       if(!title||!due){ A.err='제목과 기한을 써 주세요.'; A.msg=''; return render(); }
@@ -4409,6 +4410,7 @@ vAdminStudent = () => {
   ${body}`;
 };
 document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-stab]'); if(!b||S.screen!=='adminStudent') return; if(S.stab===b.dataset.stab) return; S.stab=b.dataset.stab; render(); });
+document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-hwfor]'); if(!b) return; S.hwPre='student:'+b.dataset.hwfor; S.adminTab='hw'; go('admin'); });
 </script>
 
 </body>
