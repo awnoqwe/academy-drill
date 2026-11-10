@@ -697,6 +697,10 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .notice summary span{font-size:12px;white-space:nowrap}
 
 .brand.nokick{padding-bottom:22px}
+/* 반모음 반달표: 글자 위(또는 아래)에 ˘ */
+.brev{position:relative;display:inline-block}
+.brev::after{content:"\02D8";position:absolute;left:50%;top:-.14em;transform:translateX(-50%);font-size:.9em;line-height:1;font-weight:inherit}
+.brev.below::after{top:auto;bottom:-.72em;transform:translateX(-50%) scaleY(-1)}
 /* 오프닝 · 불러오는 중 */
 #splash{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:var(--paper);transition:opacity .4s ease}
 #splash.out{opacity:0;pointer-events:none}
@@ -842,11 +846,13 @@ const esc = s => String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':
    '$5와 $10'처럼 달러 기호가 띄어쓰기에 붙어 있으면 수식으로 보지 않고, \$는 달러 기호 그대로 둔다.
    KaTeX가 아직 안 받아졌거나 수식 문법이 틀리면 원래 글자를 그대로 보여 준다. */
 const MATH_RE=/\\\$|\$\$([\s\S]+?)\$\$|\$(?=[^\s$])((?:\\.|[^$\\\n])*?[^\s\\$])\$/g, mathCache=new Map();
+// 반모음 표기 'ㅣ̆'·'ㅗ̆'(한글 자모 + 결합 반달표 U+0306, 또는 아래 U+032F): 안드로이드 글꼴이 결합 기호를 못 붙여 깨진 글자로 보이므로 CSS로 반달표를 얹는다.
+const tx = s => esc(s).replace(/([\u3131-\u318E\uAC00-\uD7A3])\u0306/g,'<span class="brev">$1</span>').replace(/([\u3131-\u318E\uAC00-\uD7A3])\u032F/g,'<span class="brev below">$1</span>');
 function mtx(s){
-  s=String(s??''); if(!s.includes('$')) return esc(s);
+  s=String(s??''); if(!s.includes('$')) return tx(s);
   const K=window.katex; let out='', last=0;
   for(const m of s.matchAll(MATH_RE)){
-    out+=esc(s.slice(last,m.index)); last=m.index+m[0].length;
+    out+=tx(s.slice(last,m.index)); last=m.index+m[0].length;
     if(m[0]==='\\$'){ out+='$'; continue; }
     const tex=m[1]??m[2], disp=m[1]!=null, key=(disp?'D':'I')+tex;
     if(!K){ out+=esc(m[0]); continue; }
@@ -854,7 +860,7 @@ function mtx(s){
     if(h==null){ try{ h=K.renderToString(tex,{displayMode:disp, throwOnError:true, strict:'ignore', output:'html', trust:false}); }catch(e){ h=esc(m[0]); } if(mathCache.size>3000) mathCache.clear(); mathCache.set(key,h); }
     out+=h;
   }
-  return out+esc(s.slice(last));
+  return out+tx(s.slice(last));
 }
 window.mathReady=()=>{ try{ if(typeof render==='function'&&app?.innerHTML&&/\$/.test(app.textContent)) render(); }catch(e){} };
 const unitName = id => unitInfo(id).name;
