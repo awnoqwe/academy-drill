@@ -760,6 +760,40 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .ls-alert.bad{border-left-color:var(--bad);background:var(--bad-soft)}.ls-alert.bad b{color:var(--bad)}
 .ls-att{margin:0;font-size:13px;color:var(--muted);font-family:var(--f-mono)}
 @media (max-width:400px){.ls-chip{padding:6px 9px;font-size:13px}.ls-k{width:28px}}
+/* ===== 오늘 대시보드 · 입학 상담 ===== */
+.td-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.td-head b{font:600 18px var(--f-serif)}
+.td-tf{max-width:100%}.td-tf small{font-family:var(--f-mono);font-size:11px;opacity:.75}
+.td-row{grid-template-columns:62px 1fr 14px;align-items:start}
+.td-row .mark{font-size:12.5px;padding-top:2px;color:var(--muted)}
+.td-row .rq{white-space:normal}
+.td-type{display:inline-block;font-family:var(--f-body);font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;border:1px solid var(--rule);color:var(--muted);margin-right:2px;vertical-align:1px}
+.t-결석,.t-위험{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.t-보강,.t-재시험{color:var(--mid);border-color:var(--mid)}
+.t-상담{color:var(--omr);border-color:var(--omr)}
+.t-수업,.t-숙제{color:var(--ink);border-color:var(--ink)}
+.cs-sec{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.cs-list{border-top:2px solid var(--rule-strong)}
+.cs-item{border-bottom:1px solid var(--rule)}
+.cs-item summary{display:flex;align-items:baseline;gap:8px;padding:13px 0;cursor:pointer;list-style:none;flex-wrap:wrap}
+.cs-item summary::-webkit-details-marker{display:none}
+.cs-item summary b{font:700 17px var(--f-serif)}
+.cs-item summary small{color:var(--muted);font-size:12.5px}
+.cs-st{align-self:center}
+.ls-tag.ok{color:var(--good);border:1px solid var(--good)}
+.cs-when{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.cs-body{display:flex;flex-direction:column;gap:10px;padding:0 0 16px}
+.cs-body label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted)}
+.cs-body input,.cs-body textarea{background:var(--sheet);border:1px solid var(--rule);border-radius:3px;color:var(--ink);padding:9px 10px;font:inherit;font-size:15px;min-width:0}
+.cs-line{margin:0;font-size:14px}.cs-line a{color:var(--ink)}
+.cs-memo{margin:0;padding:10px 12px;background:var(--sheet);font:15px/1.7 var(--f-serif);white-space:pre-wrap}
+.cs-body a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.cs-form{text-align:left}
+.cs-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cs-form .check{font-size:13px;line-height:1.6;align-items:flex-start;gap:8px}
+.cs-form .check input{margin-top:4px;flex:none}
+.cs-done{display:flex;flex-direction:column;gap:10px;text-align:center;padding:30px 0}
+.cs-done h2{font:700 26px var(--f-serif);margin:0}
 </style>
 
 </head>
@@ -1191,7 +1225,7 @@ function demoMerge(from, into){
 const S = {screen:'entry', me:null, code:'', grade:'중1', picked:new Set(), size:5,
   set:[], idx:0, phase:'think', sel:new Set(), excluded:new Set(), results:[], combo:0, best:0, retryIds:new Set(),
   admin:null, gradeFilter:'전체', view:null, err:'', busy:false, saveFail:false, form:{code:'',nick:'',phone:'',email:'',q:''},
-  tab:'kor', news:'schedule', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'stu', ans:{}, confirmDel:null, toast:''};
+  tab:'kor', news:'schedule', qna:null, qnaErr:'', qnaCard:null, qnaMine:false, adminTab:'today', ans:{}, confirmDel:null, toast:''};
 const app = document.getElementById('app');
 function applyTheme(){ const r=document.documentElement, t=themeId(), a=accentId(); if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
   if(a==='red') r.removeAttribute('data-accent'); else r.setAttribute('data-accent', a);
@@ -1207,8 +1241,8 @@ function splashDone(ready){
   setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 450); }, wait);
 }
 function render(){
-  const LOGIN_SCREENS = ['entry','adminLogin','parentLogin'];
-  const view = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent, consent:vConsent, guardian:vGuardian, privacy:vPrivacy}[S.screen]();
+  const LOGIN_SCREENS = ['entry','adminLogin','parentLogin','consultForm'];
+  const view = {entry:vEntry, loading:vLoading, home:vHome, drill:vDrill, result:vResult, adminLogin:vAdminLogin, admin:vAdmin, adminStudent:vAdminStudent, flash:vFlash, join:vJoin, pending:vPending, academies:vAcademies, consultForm:vConsultForm, noAcademy:vNoAcademy, parentLogin:vParentLogin, parent:vParent, consent:vConsent, guardian:vGuardian, privacy:vPrivacy}[S.screen]();
   app.innerHTML = (LOGIN_SCREENS.includes(S.screen) ? `<div class="login">${view}</div>` : view) + themeSheet();
   splashDone(S.screen!=='loading');
   app.querySelectorAll('[data-modepick]').forEach(b=>b.onclick=()=>{ loc().theme=b.dataset.modepick; saveLoc(); applyTheme(); render(); });
@@ -1444,8 +1478,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist" style="--n:7"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="att" aria-selected="${S.adminTab==='att'}">출석</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="drill" aria-selected="${S.adminTab==='drill'}">드릴</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
-  ${S.adminTab==='att' ? vAttendance() : S.adminTab==='hw' ? vAdminHw() : S.adminTab==='drill' ? vAdminDrill() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist" style="--n:8"><button role="tab" data-atab="today" aria-selected="${S.adminTab==='today'}">오늘</button><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="att" aria-selected="${S.adminTab==='att'}">출석</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="drill" aria-selected="${S.adminTab==='drill'}">드릴</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
+  ${S.adminTab==='today' ? vToday() : S.adminTab==='att' ? vAttendance() : S.adminTab==='hw' ? vAdminHw() : S.adminTab==='drill' ? vAdminDrill() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
   ${waiting.length?`<section class="waiting"><span class="label">가입 대기 ${waiting.length}명 · 승인해야 시작할 수 있어요</span>
     <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row${S.confirmGuardian===s.id?' ask':''}"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${s.under14?' <span class="u14">만 14세 미만</span>':''}${same.length?` <small class="err">같은 이름: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
       <span class="s wait-acts">${S.confirmGuardian===s.id?`<span class="selnote">보호자 동의서를 받았나요?</span><button class="btn sm" data-gapprove="${esc(s.id)}">받았어요 · 승인</button><button class="linkbtn" data-act="cancelGuardian">취소</button>`:S.confirmReject===s.id?`<button class="linkbtn danger" data-reject="${esc(s.id)}">거절</button><button class="linkbtn" data-act="cancelReject">취소</button>`:`<button class="linkbtn danger" data-askreject="${esc(s.id)}">거절</button>${s.under14?`<button class="btn sm" data-askguardian="${esc(s.id)}">승인</button>`:`<button class="btn sm" data-approve="${esc(s.id)}">승인</button>`}`}</span></div>`; }).join('')}</div></section>`:''}
@@ -4538,7 +4572,9 @@ bindFlash = function(){ bindBeforeParent2(); bindParent2(); };
 /* ===== 시작 ===== */
 applyTheme();
 const last = loc().session;
-if(last && !last.phone){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; loc().session = null; saveLoc(); S.err = '이제 전화번호도 함께 입력해요. 한 번만 넣으면 다음부터는 자동으로 들어가요.'; render(); }
+// 입학 상담 신청 링크(?consult=<학원 id>)로 들어온 학부모는 로그인 없이 신청 폼만 본다
+if(new URLSearchParams(location.search).get('consult')){ S.screen='consultForm'; render(); }
+else if(last && !last.phone){ S.form.code = last.code; S.form.nick = last.nick; S.grade = last.grade; loc().session = null; saveLoc(); S.err = '이제 전화번호도 함께 입력해요. 한 번만 넣으면 다음부터는 자동으로 들어가요.'; render(); }
 else if(last){ S.form.code = last.code; S.form.nick = last.nick; S.form.phone = last.phone; S.grade = last.grade; S.screen='loading'; enter(last.code, last.nick, last.grade, last.phone); }
 // 선생님·원장으로 마지막에 들어왔으면, 로그인이 살아 있을 때 바로 그 화면으로 (로그아웃을 눌렀을 때만 기억을 지운다)
 else if(!DEMO && ['teacher','owner'].includes(loc().lastRole)){ S.wantOwner = loc().lastRole==='owner'; S.screen='loading'; render();
@@ -4671,7 +4707,7 @@ async function lsLoadAll(){
   const keep=S.ls||{};
   S.ls={...keep, status:'loading'};
   try{ const d=await API.lsLoad();
-    S.ls={day:lsToday(), cls:'all', sort:'risk', filter:'all', ...keep, status:'ready', classes:d.classes, recs:d.recs, classOf:d.classOf||{}, lastSeen:d.lastSeen||{}, saved:{}}; }
+    S.ls={day:lsToday(), cls:'all', sort:'risk', filter:'all', per:'day', tf:'all', ...keep, status:'ready', classOf:{}, lastSeen:{}, timetables:[], consults:[], ...d, saved:{}}; }
   catch(e){ S.ls={...keep, status:flErr(e)==='missing'?'missing':'error'}; }
   render();
 }
@@ -4845,11 +4881,200 @@ vAdminStudent = () => {
 const bindBeforeLs = bindFlash;
 bindFlash = function(){
   bindBeforeLs();
-  const need=(S.screen==='admin'&&S.adminTab==='att')||(S.screen==='adminStudent'&&S.stab==='lesson');
+  const need=(S.screen==='admin'&&['att','today'].includes(S.adminTab))||(S.screen==='adminStudent'&&S.stab==='lesson');
   if(need && S.admin && !S.ls) queueMicrotask(lsLoadAll);
   if(S.screen==='entry'||S.screen==='adminLogin') S.ls=null;
   app.querySelectorAll('[data-act=adminRefresh]').forEach(b=>b.addEventListener('click',()=>{ S.ls=null; }));
 };
+
+/* ===== 입학 상담 · 오늘 대시보드 (sql/lessons.sql) =====
+   입학 상담: 학부모가 공개 링크(?consult=<학원 id>)로 신청 → 선생님 '오늘' 탭에서 상태(신청·확정·완료·등록·취소)·일시·메모를 관리하고
+   안내 문자를 휴대폰 문자 앱으로 보낸다(또는 문구 복사).
+   오늘 대시보드: 오늘/이번 주 수업·결석·보강·재시험·상담·숙제 마감·퇴원 위험을 한 목록으로. 유형별로 걸러 본다. */
+const CS_STATUS=['신청','확정','완료','등록','취소'];
+const csTone = v => ({신청:'bad',확정:'mid',완료:'ok',등록:'ok',취소:''})[v]||'';
+const csLocal = iso => { if(!iso) return ''; if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(iso)) return iso; const d=new Date(iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${ymdOf(d)}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const csWhen = local => local ? `${lsLabel(local.slice(0,10))} ${local.slice(11,16)}` : '';
+const csRow = x => ({...x, created:typeof x.created==='number'?x.created:Date.parse(x.created), scheduled:csLocal(x.scheduled_at)});
+function csDemo(db){
+  if(!db.consults){ const now=Date.now(), t=lsToday();
+    db.consults=[
+      {id:'cs1', student_name:'이하늘', parent_phone:'010-2222-3333', grade:'중2', school:'남중', want_date:lsAdd(t,1), want_time:'저녁 7시 이후', memo:'내신 대비반 문의드려요. 문법을 특히 어려워해요.', status:'신청', scheduled_at:null, staff_memo:'', created:now-2*36e5},
+      {id:'cs2', student_name:'정우진', parent_phone:'010-4444-5555', grade:'고1', school:'대청고', want_date:t, want_time:'오후 5시', memo:'', status:'확정', scheduled_at:t+'T17:00', staff_memo:'모의고사 성적표 가져오시기로 함', created:now-DAY},
+      {id:'cs3', student_name:'한서연', parent_phone:'010-6666-7777', grade:'중3', school:'대청중', want_date:lsAdd(t,-3), want_time:'', memo:'', status:'완료', scheduled_at:lsAdd(t,-3)+'T18:30', staff_memo:'다음 주 화요일까지 등록 여부 연락 주시기로', created:now-5*DAY}];
+    saveLoc(); }
+  return db;
+}
+const lsLoadBeforeCs = API.lsLoad;
+Object.assign(API, {
+  async lsLoad(){
+    const d=await lsLoadBeforeCs();
+    if(DEMO){ const db=csDemo(lsDemo()); return {...d, timetables:db.owner.timetables, consults:db.consults.map(csRow)}; }
+    const aid=AID();
+    const [t,c]=await Promise.all([sb.from('timetables').select('*').eq('academy_id',aid),
+      sb.from('consult_requests').select('*').eq('academy_id',aid).gte('created',new Date(Date.now()-120*DAY).toISOString()).order('created',{ascending:false})]);
+    const e=t.error||c.error; if(e) throw e;
+    return {...d, timetables:t.data||[], consults:(c.data||[]).map(csRow)};
+  },
+  async csSave(id, patch){
+    if(DEMO){ const x=csDemo(lsDemo()).consults.find(c=>c.id===id); Object.assign(x, patch); saveLoc(); return; }
+    const row={...patch}; if('scheduled_at' in row) row.scheduled_at=row.scheduled_at?new Date(row.scheduled_at).toISOString():null;
+    const {error}=await sb.from('consult_requests').update(row).eq('id',id); if(error) throw error;
+  },
+  async csAcademy(aid){
+    if(DEMO) return '아페라 미리보기 학원';
+    const {data,error}=await sb.rpc('consult_academy',{p_academy:aid}); if(error) throw error; return data;
+  },
+  async csRequest(v){
+    if(DEMO){ const db=csDemo(lsDemo()); db.consults.unshift({id:'cs'+Date.now(), ...v, status:'신청', scheduled_at:null, staff_memo:'', created:Date.now()}); saveLoc(); return; }
+    const {error}=await sb.rpc('consult_request',{p_academy:S.cs.aid, p_name:v.student_name, p_phone:v.parent_phone, p_grade:v.grade, p_school:v.school, p_date:v.want_date||null, p_time:v.want_time, p_memo:v.memo});
+    if(error) throw error;
+  }
+});
+function csLink(){
+  const u=new URL(location.href); u.search=''; u.hash='';
+  u.searchParams.set('consult', DEMO?'demo':AID()); if(SUPA_URL&&DEMO) u.searchParams.set('demo','1');
+  return u.toString();
+}
+
+/* --- 학부모: 신청 폼 --- */
+async function csFormLoad(){
+  const aid=new URLSearchParams(location.search).get('consult');
+  S.cs={aid, status:'loading', name:'', err:''}; render();
+  try{ const name=await API.csAcademy(aid); S.cs={...S.cs, status:name?'ready':'none', name:name||''}; }
+  catch(e){ S.cs={...S.cs, status:/invalid input syntax|22P02/.test(e?.message||'')?'none':'error'}; }
+  render();
+}
+function vConsultForm(){
+  const C=S.cs;
+  if(!C){ queueMicrotask(csFormLoad); return '<p class="lede" style="padding:40px 0;text-align:center">불러오는 중…</p>'; }
+  const head=`<header class="brand nokick"><h1 aria-label="아페라">${LOGO}</h1></header>`;
+  if(C.status==='loading') return head+'<p class="lede" style="text-align:center">불러오는 중…</p>';
+  if(C.status==='none') return head+'<div class="ask-box"><p class="lede">이 상담 신청 링크는 쓸 수 없어요.</p><p class="note">학원에 새 링크를 요청해 주세요.</p></div>';
+  if(C.status==='error') return head+'<div class="ask-box"><p class="lede">불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.</p></div>';
+  if(C.status==='sent') return head+`<div class="cs-done"><span class="label">${esc(C.name)}</span><h2>상담 신청이 접수됐어요</h2><p class="lede">학원에서 확인한 뒤 남겨 주신 번호로 연락드릴게요.</p></div>`;
+  const tom=lsAdd(lsToday(),1);
+  return `${head}<form id="csForm" class="schedule-form cs-form"><div><span class="label">${esc(C.name)}</span><h2 class="schedule-head">입학 상담 신청</h2></div>
+    <label>학생 이름 *<input name="student_name" required maxlength="20" autocomplete="off"></label>
+    <label>학부모 연락처 *<input name="parent_phone" required inputmode="tel" maxlength="20" placeholder="010-0000-0000"></label>
+    <div class="cs-two"><label>학년<select name="grade"><option value="">선택</option>${['초등',...GRADES,'기타'].map(g=>`<option>${g}</option>`).join('')}</select></label>
+    <label>학교<input name="school" maxlength="20" placeholder="예: 남산중"></label></div>
+    <div class="cs-two"><label>희망 날짜<input name="want_date" type="date" min="${lsToday()}" value="${tom}"></label>
+    <label>희망 시간<input name="want_time" maxlength="20" placeholder="예: 저녁 7시 이후"></label></div>
+    <label>문의 내용<textarea name="memo" rows="4" maxlength="1000" placeholder="궁금한 점이나 학생 상황을 적어 주세요"></textarea></label>
+    <label class="check"><input type="checkbox" name="agree" required> 상담 안내를 위해 학생 이름·학부모 연락처·학년·학교를 받아요. 상담 연락에만 쓰고, 요청하시면 바로 지워요.</label>
+    ${C.err?`<p class="err" role="alert">${esc(C.err)}</p>`:''}
+    <button class="btn" type="submit">상담 신청하기</button></form>`;
+}
+document.addEventListener('submit', async e=>{
+  if(e.target.id!=='csForm') return; e.preventDefault();
+  const f=e.target, v=k=>(f.elements.namedItem(k)?.value||'').trim(), btn=f.querySelector('[type=submit]');
+  const phone=phoneDigits(v('parent_phone'));
+  if(!v('student_name')||phone.length<9||phone.length>11){ S.cs.err='학생 이름과 연락처(숫자 9~11자리)를 확인해 주세요.'; return render(); }
+  btn.disabled=true; btn.textContent='보내는 중…';
+  try{ await API.csRequest({student_name:v('student_name'), parent_phone:phoneFmt(phone), grade:v('grade'), school:v('school'), want_date:v('want_date'), want_time:v('want_time'), memo:v('memo')}); S.cs={...S.cs, status:'sent', err:''}; }
+  catch(err){ S.cs.err=/too_many/.test(err?.message||'')?'지금은 신청이 많아요. 잠시 뒤 다시 시도해 주세요.':'신청하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'; }
+  render(); window.scrollTo(0,0);
+});
+
+/* --- 선생님: 오늘 대시보드 --- */
+function lsDayLessons(ymd){
+  const t=ttPick(S.ls.timetables||[], new Date(ymd+'T00:00:00')); if(!t) return [];
+  const m=new Map();
+  Object.entries(t.cells||{}).forEach(([cid,arr])=>(t.slots||[]).forEach((sl,i)=>String((arr||[])[i]||'').split('\n').map(ttParse).filter(Boolean).forEach(p=>{
+    const cls=lsClassName(cid)||'반', text=p.body+(p.pre?` · ${p.pre}`:''), k=cls+'|'+text, o=m.get(k);
+    if(o){ o.start=o.start<sl.start?o.start:sl.start; o.end=o.end>sl.end?o.end:sl.end; } else m.set(k,{start:sl.start,end:sl.end,cls,text,cid});
+  })));
+  return [...m.values()].sort((a,b)=>a.start.localeCompare(b.start)||natCmp(a.cls,b.cls));
+}
+// 아직 안 끝난 보강·재시험: 그 뒤에 보강완료·통과 기록이 없는 것
+function lsOpenItems(){
+  const since=lsAdd(lsToday(),-30), recs=S.ls.recs.filter(r=>r.day>=since), out=[];
+  recs.forEach(r=>{ const later=recs.filter(x=>x.student_id===r.student_id&&x.day>r.day);
+    if(r.attend==='보강필요'&&!later.some(x=>x.attend==='보강완료')) out.push({type:'보강', r});
+    if(r.test&&r.test!=='통과'&&!later.some(x=>x.test==='통과')) out.push({type:'재시험', r}); });
+  return out;
+}
+const TD_TYPES=['전체','수업','결석','보강','재시험','상담','숙제','위험'];
+function vToday(){
+  const gate=lsGate(); if(gate) return gate;
+  const L=S.ls, per=L.per==='week'?'week':'day', t=lsToday(), days=per==='day'?[t]:Array.from({length:7},(_,i)=>lsAdd(t,i)), last=days[days.length-1];
+  const studs=lsStudents(), nick=id=>(studs.find(s=>s.id===id)||{}).nick||'(삭제된 학생)', items=[];
+  if(per==='day') lsDayLessons(t).forEach(l=>items.push({type:'수업', key:t+l.start, when:l.start, title:l.cls, sub:`${l.text} · ~${l.end}`, att:l.cid}));
+  const lessonsN=days.reduce((a,d)=>a+lsDayLessons(d).length,0);
+  const from=per==='day'?t:lsAdd(t,-6);
+  L.recs.filter(r=>r.attend==='결석'&&r.day>=from&&r.day<=t).forEach(r=>items.push({type:'결석', key:r.day, when:lsShort(r.day), title:nick(r.student_id), sub:'보강 일정 잡기', sid:r.student_id}));
+  const open=lsOpenItems(); open.forEach(x=>items.push({type:x.type, key:'0'+x.r.day, when:lsShort(x.r.day), title:nick(x.r.student_id), sub:x.type==='보강'?'보강 아직 안 함':`${x.r.test} 뒤 통과 기록 없음`, sid:x.r.student_id}));
+  const cs=(L.consults||[]);
+  cs.filter(c=>c.status==='신청').forEach(c=>items.push({type:'상담', key:'0', when:'새 신청', title:c.student_name, sub:`${c.grade||''} ${c.school||''} · 희망 ${c.want_date?lsShort(c.want_date):''} ${c.want_time||''}`.replace(/\s+/g,' ').trim(), cs:c.id}));
+  cs.filter(c=>c.status==='확정'&&c.scheduled&&c.scheduled.slice(0,10)>=t&&c.scheduled.slice(0,10)<=last).forEach(c=>items.push({type:'상담', key:c.scheduled.replace('T',''), when:per==='day'?c.scheduled.slice(11,16):lsShort(c.scheduled.slice(0,10))+' '+c.scheduled.slice(11,16), title:c.student_name, sub:'입학 상담 확정', cs:c.id}));
+  const A=S.ta;
+  if(A?.status==='ready') A.hw.filter(h=>h.due>=t&&h.due<=last).forEach(h=>{ const r=A.rec.filter(x=>x.homework_id===h.id), d=r.filter(x=>x.done_at).length;
+    items.push({type:'숙제', key:h.due, when:per==='day'?'오늘 마감':lsShort(h.due)+' 마감', title:h.title, sub:`완료 ${d}/${r.length}명`}); });
+  studs.map(s=>({s,...lsRisk(s)})).filter(x=>x.risk).forEach(x=>items.push({type:'위험', key:'0', when:'퇴원 위험', title:x.s.nick, sub:x.why.join(' · '), sid:x.s.id}));
+  const order=t=>TD_TYPES.indexOf(t);
+  items.sort((a,b)=>order(a.type)-order(b.type)||String(a.key).localeCompare(String(b.key)));
+  const tf=TD_TYPES.includes(L.tf)?L.tf:'전체', shown=items.filter(x=>tf==='전체'||x.type===tf), cnt=k=>items.filter(x=>x.type===k).length;
+  const row=x=>{ const attr=x.sid?`data-lsstu="${esc(x.sid)}"`:x.cs?`data-csopen="${esc(x.cs)}"`:x.att?`data-tdatt="${esc(x.att)}"`:'';
+    const tag=attr?'button':'div';
+    return `<${tag} class="row td-row" ${attr}><span class="mark mono">${esc(x.when)}</span><span class="rq"><span class="td-type t-${x.type}">${x.type}</span> <b>${esc(x.title)}</b><br><small class="ls-why">${esc(x.sub||'')}</small></span><span class="s">${attr?'›':''}</span></${tag}>`; };
+  return `<section class="td-head"><div class="seg" role="group"><button type="button" data-tdper="day" aria-pressed="${per==='day'}">오늘</button><button type="button" data-tdper="week" aria-pressed="${per==='week'}">이번 주</button></div><b>${per==='day'?lsLabel(t):`${lsShort(t)} ~ ${lsShort(last)}`}</b></section>
+  <section class="stats fl-pills"><div class="stat"><b>${lessonsN}</b><small>수업</small></div><div class="stat ${cnt('결석')?'alert':''}"><b>${cnt('결석')}</b><small>결석</small></div><div class="stat"><b>${cnt('보강')+cnt('재시험')}</b><small>보강·재시험</small></div><div class="stat ${cs.some(c=>c.status==='신청')?'alert':''}"><b>${cnt('상담')}</b><small>상담</small></div></section>
+  <div class="seg td-tf" role="group" aria-label="유형">${TD_TYPES.map(k=>`<button type="button" data-tdtf="${k}" aria-pressed="${tf===k}">${k}${k!=='전체'&&cnt(k)?` <small>${cnt(k)}</small>`:''}</button>`).join('')}</div>
+  <div class="rows">${shown.map(row).join('')||`<p class="lede" style="padding:12px 0">${tf==='전체'?'챙길 일이 없어요.':tf+' 항목이 없어요.'}</p>`}</div>
+  ${vConsults()}`;
+}
+
+/* --- 선생님: 입학 상담 목록 --- */
+function vConsults(){
+  const L=S.ls, cs=(L.consults||[]).slice().sort((a,b)=>CS_STATUS.indexOf(a.status)-CS_STATUS.indexOf(b.status)||(a.status==='확정'?String(a.scheduled).localeCompare(String(b.scheduled)):b.created-a.created));
+  const item=c=>{ const open=L.csOpen===c.id||(L.csOpen==null&&c.status==='신청');
+    return `<details class="cs-item" id="cs-${esc(c.id)}" ${open?'open':''}><summary><span class="ls-tag ${csTone(c.status)} cs-st">${c.status}</span><b>${esc(c.student_name)}</b><small>${esc([c.grade,c.school].filter(Boolean).join(' · '))}</small><span class="cs-when">${c.scheduled?esc(csWhen(c.scheduled)):'신청 '+esc(ago(c.created))}</span></summary>
+      <div class="cs-body">
+        <p class="cs-line">학부모 <a href="tel:${esc(phoneDigits(c.parent_phone))}">${esc(c.parent_phone)}</a> · 희망 ${c.want_date?esc(lsLabel(c.want_date)):'날짜 없음'}${c.want_time?' '+esc(c.want_time):''}</p>
+        ${c.memo?`<p class="cs-memo">${esc(c.memo)}</p>`:''}
+        <div class="ls-chips" role="group">${CS_STATUS.map(v=>`<button type="button" class="ls-chip ${csTone(v)}" data-csset="${esc(c.id)}" data-v="${v}" aria-pressed="${c.status===v}">${v}</button>`).join('')}</div>
+        <label>상담 일시<input type="datetime-local" data-cstime="${esc(c.id)}" value="${esc(c.scheduled||'')}"></label>
+        <label>상담 메모 · 학부모에게는 안 보여요<textarea rows="3" maxlength="2000" data-csmemo="${esc(c.id)}" placeholder="학생 상황, 학부모 요청, 약속한 것">${esc(c.staff_memo||'')}</textarea></label>
+        <div class="schedule-btns"><a class="btn sm" href="sms:${esc(phoneDigits(c.parent_phone))}?&body=${encodeURIComponent(csSms(c))}">안내 문자 보내기</a><button type="button" class="btn sm alt" data-cscopy="${esc(c.id)}">문구 복사</button><span class="selnote" data-cssaved="${esc(c.id)}">${esc(L.csSaved?.[c.id]||'')}</span></div>
+      </div></details>`; };
+  return `<section class="cs-sec" aria-label="입학 상담"><div class="ask-meta"><span class="label">입학 상담 ${cs.filter(c=>c.status==='신청').length?`· 새 신청 ${cs.filter(c=>c.status==='신청').length}건`:''}</span><button class="linkbtn" data-cslink>신청 링크 복사</button></div>
+    ${L.csMsg?`<p class="schedule-success" role="status">${esc(L.csMsg)}</p>`:''}
+    <p class="note">링크를 블로그·인스타·문자에 걸어 두면 학부모가 바로 신청하고, 여기로 들어와요.</p>
+    <div class="cs-list">${cs.map(item).join('')||'<p class="lede" style="padding:12px 0">아직 들어온 상담 신청이 없어요.</p>'}</div></section>`;
+}
+function csSms(c){
+  const ac=S.academy?.name||'학원';
+  return c.scheduled ? `[${ac}] 안녕하세요. ${c.student_name} 학생 입학 상담을 ${csWhen(c.scheduled)}에 진행해요. 시간 변경은 이 번호로 연락 주세요.`
+    : `[${ac}] 안녕하세요. ${c.student_name} 학생 입학 상담 신청 잘 받았어요. 상담 가능한 시간을 맞춰 다시 연락드릴게요.`;
+}
+async function csPut(id, patch, quiet){
+  const L=S.ls, c=L.consults.find(x=>x.id===id); if(!c) return; const old={...c};
+  Object.assign(c, patch); if('scheduled_at' in patch) c.scheduled=csLocal(patch.scheduled_at); L.csOpen=id; L.csSaved={...(L.csSaved||{}), [id]:'저장 중…'};
+  if(!quiet) render();
+  try{ await API.csSave(id, patch); L.csSaved[id]='저장됨'; app.querySelectorAll(`[data-cssaved="${CSS.escape(id)}"]`).forEach(x=>x.textContent='저장됨'); }
+  catch(e){ Object.assign(c, old); L.csSaved[id]='저장 실패 · 다시 해 주세요'; render(); }
+}
+document.addEventListener('click', e=>{
+  const t=e.target.closest?.('[data-tdper],[data-tdtf],[data-tdatt],[data-csopen],[data-csset],[data-cscopy],[data-cslink]'); if(!t||!S.admin||!lsReady()) return;
+  const L=S.ls, d=t.dataset;
+  if(d.tdper){ L.per=d.tdper; render(); return; }
+  if(d.tdtf){ L.tf=d.tdtf; render(); return; }
+  if(d.tdatt){ L.cls=d.tdatt; L.day=lsToday(); S.adminTab='att'; go('admin'); return; }
+  if(d.csopen){ L.csOpen=d.csopen; render(); document.getElementById('cs-'+d.csopen)?.scrollIntoView({block:'start'}); return; }
+  if(d.csset){ const c=L.consults.find(x=>x.id===d.csset); if(!c||c.status===d.v) return; csPut(c.id, {status:d.v}); return; }
+  if(d.cscopy){ const c=L.consults.find(x=>x.id===d.cscopy), txt=csSms(c);
+    (navigator.clipboard?.writeText(txt)||Promise.reject()).then(()=>{ L.csSaved={...(L.csSaved||{}), [c.id]:'문구를 복사했어요'}; render(); }).catch(()=>prompt('아래 글을 복사해 주세요', txt)); return; }
+  if(d.cslink!==undefined){ const u=csLink();
+    (navigator.clipboard?.writeText(u)||Promise.reject()).then(()=>{ L.csMsg='신청 링크를 복사했어요: '+u; render(); }).catch(()=>prompt('신청 링크', u)); return; }
+});
+document.addEventListener('change', e=>{
+  const t=e.target.closest?.('[data-cstime],[data-csmemo]'); if(!t||!lsReady()) return;
+  if(t.dataset.cstime){ const v=t.value||null, c=S.ls.consults.find(x=>x.id===t.dataset.cstime);
+    // 일시를 넣으면 '신청'은 '확정'으로 함께 바꾼다
+    csPut(t.dataset.cstime, {scheduled_at:v, ...(v&&c?.status==='신청'?{status:'확정'}:{})}); }
+  else csPut(t.dataset.csmemo, {staff_memo:t.value.trim()}, true);
+});
 </script>
 
 </body>
