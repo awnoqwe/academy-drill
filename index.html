@@ -630,7 +630,7 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .dr-opts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .dr-opts li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:stretch}
 .dr-ok{border:1px solid var(--rule);background:var(--paper);color:var(--muted);font-size:13px;font-weight:700;padding:0 10px;min-width:64px;cursor:pointer}
-.dr-opts li.ok .dr-ok{background:var(--good);border-color:var(--good);color:#fff}
+.dr-opts li.ok .dr-ok{background:var(--good);border-color:var(--good);color:var(--paper)}
 .dr-opts li.ok input{border-color:var(--good)}
 .dr-x{border:0;background:none;color:var(--faint);font-size:16px;width:36px;cursor:pointer}
 .dr-e{margin:0}
@@ -711,6 +711,55 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .loading-logo{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
 .loading-logo small{font-size:13px;color:var(--faint);letter-spacing:.04em}
 @media (prefers-reduced-motion:reduce){#splash .logo,.loading-logo .logo{animation:none}}
+/* ===== 출석부 · 수업 기록 ===== */
+.ls-date{display:flex;align-items:center;justify-content:center;gap:14px;padding:4px 0}
+.ls-date b{font:600 20px var(--f-serif)}
+.ls-nav{border:1px solid var(--rule);background:none;color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer}
+.ls-nav:hover{background:var(--hover)}
+.ls-today{font-size:12px;color:var(--omr);font-weight:700;letter-spacing:.06em}
+.ls-cls,.ls-sort,.ls-filt{max-width:100%}
+.ls-all{width:100%}
+.ls-list{display:flex;flex-direction:column;border-top:2px solid var(--rule-strong)}
+.ls-card{display:flex;flex-direction:column;gap:9px;padding:14px 0 12px;border-bottom:1px solid var(--rule)}
+.ls-card.absent .ls-row.dim{opacity:.45}
+.ls-h{display:flex;align-items:center;gap:8px;min-width:0}
+.ls-name{display:flex;align-items:baseline;gap:7px;border:0;background:none;padding:0;color:var(--ink);cursor:pointer;min-width:0;text-align:left}
+.ls-name b{font:700 18px var(--f-serif);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:4px}
+.ls-name small{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.ls-saved{margin-left:auto;font-size:11.5px;color:var(--faint);white-space:nowrap}
+.ls-tag{font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.ls-tag.bad{color:var(--bad);background:var(--bad-soft)}.ls-tag.mid{color:var(--mid);border:1px solid var(--mid)}
+.ls-last{margin:0;font-size:13px;color:var(--muted)}.ls-last small{color:var(--faint)}
+.ls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ls-k{width:30px;flex:none;font-size:12.5px;font-weight:700;color:var(--muted)}
+.ls-chips{display:flex;gap:5px;flex-wrap:wrap}
+.ls-chip{border:1px solid var(--rule);background:none;color:var(--ink);font:inherit;font-size:13.5px;padding:6px 11px;border-radius:999px;cursor:pointer;min-height:34px;white-space:nowrap}
+.ls-chip:hover{background:var(--hover)}
+.ls-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
+.ls-chip.ok[aria-pressed="true"]{background:var(--good);border-color:var(--good);color:var(--paper)}
+.ls-chip.mid[aria-pressed="true"]{background:var(--mid);border-color:var(--mid);color:var(--paper)}
+.ls-chip.bad[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.ls-chip[data-auto="1"]{background:none!important;border-style:dashed;border-width:2px;color:var(--ink)}
+.ls-chip.ok[data-auto="1"]{border-color:var(--good);color:var(--good)}.ls-chip.mid[data-auto="1"]{border-color:var(--mid);color:var(--mid)}.ls-chip.bad[data-auto="1"]{border-color:var(--bad);color:var(--bad)}
+.ls-auto{font-size:12px;color:var(--muted)}
+.ls-more summary,.ls-prev summary{cursor:pointer;font-size:13px;color:var(--muted);padding:2px 0;display:flex;gap:8px;min-width:0}
+.ls-pv{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ls-more label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.ls-more input{background:var(--sheet);border:1px solid var(--rule);border-radius:3px;color:var(--ink);padding:9px 10px;font:inherit;font-size:15px;min-width:0}
+.ls-prev .rows{margin-top:6px;border-top:1px solid var(--rule)}
+.ls-prow{grid-template-columns:42px 1fr}.ls-nx{flex-basis:100%;color:var(--muted);font-family:var(--f-body);font-size:12.5px}
+.ls-prow .rq{white-space:normal;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ls-mini{font-family:var(--f-body);font-size:11.5px;font-weight:700;padding:1px 6px;border-radius:999px;border:1px solid var(--rule)}
+.ls-mini.ok{color:var(--good);border-color:var(--good)}.ls-mini.mid{color:var(--mid);border-color:var(--mid)}.ls-mini.bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.ls-ct{font-size:13.5px}
+.ls-care{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.ls-care .row{grid-template-columns:22px 1fr auto}
+.ls-care .rq{white-space:normal}
+.ls-why{color:var(--muted);font-family:var(--f-body)}
+.ls-alert{margin:0;padding:10px 12px;border-left:3px solid var(--mid);background:var(--hover);font-size:14px}
+.ls-alert.bad{border-left-color:var(--bad);background:var(--bad-soft)}.ls-alert.bad b{color:var(--bad)}
+.ls-att{margin:0;font-size:13px;color:var(--muted);font-family:var(--f-mono)}
+@media (max-width:400px){.ls-chip{padding:6px 9px;font-size:13px}.ls-k{width:28px}}
 </style>
 
 </head>
@@ -727,7 +776,8 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
    SUPA_URL·SUPA_KEY가 비어 있으면 데모 모드(이 브라우저에만 저장, 예시 문제·예시 학생)로 동작한다. */
 const SUPA_URL = 'https://clorhqiyjtutvzacumyk.supabase.co';
 const SUPA_KEY = 'sb_publishable_WLWjr79mYUz8JabhObSfyg_obGlRn4l';
-const DEMO = !SUPA_URL;
+// ?demo=1 을 붙이면 서버 대신 이 브라우저에만 저장되는 미리보기(예시 학생)로 연다
+const DEMO = !SUPA_URL || new URLSearchParams(location.search).has('demo');
 const DEMO_CODE = '0000', DEMO_PW = 'teacher';
 const GRADES = ['중1','중2','중3','고1','고2','고3'];
 const TABS = [{id:'kor', name:'드릴'}, {id:'flash', name:'카드'}, {id:'qna', name:'Q&A'}, {id:'schedule',name:'일정'}, {id:'notice',name:'알림'}, {id:'settings',name:'설정'}];
@@ -872,7 +922,8 @@ const accentId = () => ACCENTS.some(a=>a.id===loc().accent) ? loc().accent : 're
 const darkNow = () => themeId()==='dark' || (themeId()==='auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
 
 /* ===== 기기 저장 (테마, 마지막 입장 정보, 데모 데이터) ===== */
-const LKEY = 'academy-drill-v3';
+// 미리보기(?demo=1)는 실제 로그인 정보와 섞이지 않게 따로 저장한다
+const LKEY = 'academy-drill-v3' + (SUPA_URL && DEMO ? '-demo' : '');
 let local = null;
 function loc(){
   if(local) return local;
@@ -1393,8 +1444,8 @@ function vAdmin(){
     <div class="stat"><b>${active}</b><small>최근 7일 접속</small></div>
     <div class="stat ${avg>=30?'alert':''}"><b>${avg}<small>%</small></b><small>평균 막힘</small></div>
   </section>
-  <div class="tabs" role="tablist" style="--n:6"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="drill" aria-selected="${S.adminTab==='drill'}">드릴</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
-  ${S.adminTab==='hw' ? vAdminHw() : S.adminTab==='drill' ? vAdminDrill() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
+  <div class="tabs" role="tablist" style="--n:7"><button role="tab" data-atab="stu" aria-selected="${S.adminTab==='stu'}">학생${waiting.length?`<span class="badge">${waiting.length}</span>`:''}</button><button role="tab" data-atab="att" aria-selected="${S.adminTab==='att'}">출석</button><button role="tab" data-atab="qna" aria-selected="${S.adminTab==='qna'}">Q&A${A.qna.filter(q=>!q.answer).length?`<span class="badge">${A.qna.filter(q=>!q.answer).length}</span>`:''}</button><button role="tab" data-atab="schedule" aria-selected="${S.adminTab==='schedule'}">일정</button><button role="tab" data-atab="drill" aria-selected="${S.adminTab==='drill'}">드릴</button><button role="tab" data-atab="flash" aria-selected="${S.adminTab==='flash'}">카드</button><button role="tab" data-atab="hw" aria-selected="${S.adminTab==='hw'}">숙제</button></div>
+  ${S.adminTab==='att' ? vAttendance() : S.adminTab==='hw' ? vAdminHw() : S.adminTab==='drill' ? vAdminDrill() : S.adminTab==='flash' ? vAdminFlash() : S.adminTab==='schedule' ? vScheduleAdmin() : S.adminTab==='qna' ? vAdminQna() : `
   ${waiting.length?`<section class="waiting"><span class="label">가입 대기 ${waiting.length}명 · 승인해야 시작할 수 있어요</span>
     <div class="rows">${waiting.map(s=>{ const same=everyone.filter(x=>x.nick===s.nick); return `<div class="row wait-row${S.confirmGuardian===s.id?' ask':''}"><span class="mark m">·</span><span class="rq"><b>${esc(s.nick)}</b> ${s.grade}${s.under14?' <span class="u14">만 14세 미만</span>':''}${same.length?` <small class="err">같은 이름: ${same.map(x=>x.grade).join(', ')}</small>`:''}${s.created?` <small class="dim">${ago(s.created)}</small>`:''}</span>
       <span class="s wait-acts">${S.confirmGuardian===s.id?`<span class="selnote">보호자 동의서를 받았나요?</span><button class="btn sm" data-gapprove="${esc(s.id)}">받았어요 · 승인</button><button class="linkbtn" data-act="cancelGuardian">취소</button>`:S.confirmReject===s.id?`<button class="linkbtn danger" data-reject="${esc(s.id)}">거절</button><button class="linkbtn" data-act="cancelReject">취소</button>`:`<button class="linkbtn danger" data-askreject="${esc(s.id)}">거절</button>${s.under14?`<button class="btn sm" data-askguardian="${esc(s.id)}">승인</button>`:`<button class="btn sm" data-approve="${esc(s.id)}">승인</button>`}`}</span></div>`; }).join('')}</div></section>`:''}
@@ -4558,6 +4609,247 @@ document.addEventListener('change', e=>{ const box=e.target.closest?.('.tgt'); i
 new MutationObserver(()=>document.querySelectorAll('.tgt').forEach(b=>{ if(!b.dataset.synced){ b.dataset.synced='1'; tgtSync(b); } })).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-fdg]'); if(!b) return; S.fdg=b.dataset.fdg; render(); });
 document.addEventListener('click', e=>{ const b=e.target.closest?.('[data-drg]'); if(!b) return; S.drg=b.dataset.drg; render(); });
+
+/* ===== 출석부 · 수업 기록 (sql/lessons.sql) =====
+   출석부 탭: 날짜·반을 고르고, 학생마다 출결·시험·숙제를 칩 한 번으로 적는다. 숙제는 앱 숙제 완료 기록(drill_homework)으로
+   자동 판단하고, 선생님이 칩을 고르면 그 값을 쓴다. 아래 '관리 필요 학생'은 결석·숙제·시험·앱 미접속으로 정렬한다.
+   학생 상세 '수업 기록' 탭: 최근 30일 지표 4개 · 출결 · 지난 수업 목록 · 학부모용 요약 복사. */
+const LS_ATT=['출석','지각','결석','보강필요','보강완료'], LS_TEST=['통과','미통과','재시험'], LS_HW=['완료','일부','미완료'];
+const LS_PRESENT=['출석','지각','보강완료'];
+const lsTone = v => ({출석:'ok',보강완료:'ok',통과:'ok',완료:'ok',지각:'mid',일부:'mid',재시험:'mid',보강필요:'mid',결석:'bad',미통과:'bad',미완료:'bad'})[v]||'';
+const lsToday = () => ymdOf(new Date());
+const lsAdd = (ymd,n) => { const d=new Date(ymd+'T00:00:00'); d.setDate(d.getDate()+n); return ymdOf(d); };
+const lsWd = ymd => WEEK[(new Date(ymd+'T00:00:00').getDay()+6)%7];
+const lsLabel = ymd => { const d=new Date(ymd+'T00:00:00'); return `${d.getMonth()+1}월 ${d.getDate()}일 (${lsWd(ymd)})`; };
+const lsShort = ymd => `${+ymd.slice(5,7)}/${+ymd.slice(8)}`;
+
+/* --- 데모: 예시 학생 4명의 지난 4주(월·수·금) 기록. 종이비행기는 결석·숙제 미완료가 겹친 '퇴원 위험' 예시 --- */
+function lsDemo(){
+  const db=ownerDemo();
+  if(!db.lessons){
+    const ex=Object.values(db.students).filter(s=>s.example), today=lsToday(), days=[];
+    for(let i=1;i<=28;i++){ const y=lsAdd(today,-i); if(['월','수','금'].includes(lsWd(y))) days.push(y); }
+    const pat=[
+      {a:()=> '출석', t:i=>i%4===0?'통과':null, h:()=> '완료'},
+      {a:i=>i===1||i===4?'결석':i===2?'지각':'출석', t:i=>i%4===0?(i?'미통과':'재시험'):null, h:i=>i<6?(i%2?'미완료':'일부'):'완료'},
+      {a:i=>i===3?'보강완료':'출석', t:i=>i%4===0?'통과':null, h:i=>i===5?'일부':'완료'},
+      {a:i=>i===2?'지각':'출석', t:i=>i%4===0?(i===4?'미통과':'통과'):null, h:i=>i===0?'미완료':'완료'}];
+    const topics=['문학 · 현대시 표현법','문법 · 음운 변동','비문학 · 논지 전개 방식','문학 · 고전소설 서술상 특징','문법 · 품사','비문학 · 사실적 독해'];
+    db.lessons=[];
+    ex.forEach((s,k)=>days.forEach((y,i)=>{ const p=pat[k%4], a=p.a(i), gone=a==='결석';
+      db.lessons.push({id:`ls-${k}-${i}`, student_id:s.id, class_id:s.class_id||null, day:y, attend:a, test:gone?null:p.t(i), hw:gone?null:p.h(i),
+        content:gone?'':topics[(i+k)%topics.length], next_hw:gone?'':`교재 ${30+i*2}~${31+i*2}쪽`, updated_at:Date.now()-i*DAY}); }));
+    // 새벽별: 앱을 9일째 안 연 학생(접속 끊김 신호 예시)
+    const star=ex.find(s=>s.nick==='새벽별'); if(star) star.lastSeen=Date.now()-9*DAY;
+    saveLoc();
+  }
+  return db;
+}
+
+Object.assign(API, {
+  async lsLoad(){
+    const since=lsAdd(lsToday(),-60);
+    if(DEMO){ const db=lsDemo();
+      return {classes:db.owner.classes, recs:db.lessons.filter(r=>r.day>=since).map(r=>({...r})),
+        classOf:Object.fromEntries(Object.values(db.students).map(s=>[s.id,s.class_id||null])), lastSeen:Object.fromEntries(Object.values(db.students).map(s=>[s.id,s.lastSeen]))}; }
+    const aid=AID();
+    const [c,r]=await Promise.all([sb.from('classes').select('*').eq('academy_id',aid).order('sort').order('name'),
+      sb.from('lesson_records').select('*').eq('academy_id',aid).gte('day',since)]);
+    const e=c.error||r.error; if(e) throw e;
+    return {classes:c.data||[], recs:(r.data||[]).map(x=>({...x, updated_at:Date.parse(x.updated_at)}))};
+  },
+  async lsSave(v){
+    const row={student_id:v.student_id, day:v.day, class_id:v.class_id||null, attend:v.attend||null, test:v.test||null, hw:v.hw||null, content:v.content||'', next_hw:v.next_hw||''};
+    if(DEMO){ const db=lsDemo(), i=db.lessons.findIndex(r=>r.student_id===v.student_id&&r.day===v.day), out={id:i>=0?db.lessons[i].id:'ls-'+Date.now(), ...row, updated_at:Date.now()};
+      if(i>=0) db.lessons[i]=out; else db.lessons.push(out); saveLoc(); return out; }
+    const {data,error}=await sb.from('lesson_records').upsert({academy_id:AID(), ...row, updated_at:new Date().toISOString()},{onConflict:'student_id,day'}).select().single();
+    if(error) throw error; return {...data, updated_at:Date.parse(data.updated_at)};
+  }
+});
+
+async function lsLoadAll(){
+  const keep=S.ls||{};
+  S.ls={...keep, status:'loading'};
+  try{ const d=await API.lsLoad();
+    S.ls={day:lsToday(), cls:'all', sort:'risk', filter:'all', ...keep, status:'ready', classes:d.classes, recs:d.recs, classOf:d.classOf||{}, lastSeen:d.lastSeen||{}, saved:{}}; }
+  catch(e){ S.ls={...keep, status:flErr(e)==='missing'?'missing':'error'}; }
+  render();
+}
+const lsReady = () => S.ls?.status==='ready';
+const lsClassOf = s => (S.ls?.classOf && s.id in S.ls.classOf) ? S.ls.classOf[s.id] : (s.class_id||null);
+const lsClassName = id => (S.ls?.classes||[]).find(c=>c.id===id)?.name||'';
+const lsSeen = s => S.ls?.lastSeen?.[s.id] ?? s.lastSeen;
+const lsRec = (sid,day) => S.ls.recs.find(r=>r.student_id===sid&&r.day===day);
+const lsStudents = () => (S.admin?.students||[]).filter(s=>s.approved!==false);
+
+// 앱 숙제 자동 판단: 그날 기준 최근 7일 안에 기한이 있는 숙제의 완료 여부
+function lsHwAuto(sid, day){
+  const A=S.ta; if(!A||A.status!=='ready') return null;
+  const from=lsAdd(day,-6);
+  const mine=A.rec.filter(r=>r.student_id===sid).map(r=>({r,h:A.hw.find(h=>h.id===r.homework_id)})).filter(x=>x.h&&x.h.due>=from&&x.h.due<=day);
+  if(!mine.length) return null;
+  const done=mine.filter(x=>x.r.done_at).length;
+  return {n:mine.length, done, v:done===mine.length?'완료':done?'일부':'미완료'};
+}
+const lsHw = (sid,day,r) => r?.hw || lsHwAuto(sid,day)?.v || null;
+
+function lsStats(sid){
+  const today=lsToday(), since=lsAdd(today,-30);
+  const rs=S.ls.recs.filter(r=>r.student_id===sid&&r.day>=since&&r.day<=today).sort((a,b)=>b.day.localeCompare(a.day));
+  const c=k=>rs.filter(r=>r.attend===k).length, att=rs.filter(r=>r.attend), present=att.filter(r=>LS_PRESENT.includes(r.attend)).length;
+  const hws=rs.map(r=>lsHw(sid,r.day,r)).filter(Boolean), hwScore=hws.reduce((a,v)=>a+(v==='완료'?1:v==='일부'?.5:0),0);
+  const tests=rs.filter(r=>r.test), pass=tests.filter(r=>r.test==='통과').length;
+  // 아직 안 끝난 일: 보강필요 + 그 뒤에 '통과'가 없는 미통과·재시험
+  const openTest=tests.filter(r=>r.test!=='통과'&&!tests.some(x=>x.day>r.day&&x.test==='통과')).length;
+  return {rs, absent:c('결석'), late:c('지각'), present, attN:att.length, makeup:c('보강필요'), makeDone:c('보강완료'),
+    attPct:att.length?Math.round(present/att.length*100):null, hwN:hws.length, hwMiss:hws.filter(v=>v==='미완료').length,
+    hwPct:hws.length?Math.round(hwScore/hws.length*100):null, testN:tests.length, testFail:tests.length-pass,
+    testPct:tests.length?Math.round(pass/tests.length*100):null, open:c('보강필요')+openTest};
+}
+// 관리 필요 · 퇴원 위험: 신호가 두 개 이상이거나 결석 3회 이상이면 '퇴원 위험'
+function lsRisk(s){
+  const st=lsStats(s.id), why=[], gone=Math.floor((Date.now()-lsSeen(s))/DAY);
+  if(st.absent>=2) why.push('결석 '+st.absent+'회');
+  if(st.hwMiss>=2) why.push('숙제 미완료 '+st.hwMiss+'회');
+  if(st.testFail>=2) why.push('시험 미통과 '+st.testFail+'회');
+  if(gone>=7) why.push('앱 '+gone+'일 미접속');
+  return {st, why, gone, risk:why.length>=2||st.absent>=3};
+}
+
+const lsMissing = () => `<div class="ask-box"><p class="lede">출석부 기능의 서버 설정이 아직 안 됐어요.</p><p class="note">Supabase SQL Editor에서 출석부 설정 SQL(sql/lessons.sql)을 한 번 실행하면 열려요. 기존 기록은 그대로예요.</p><a class="linkbtn" target="_blank" rel="noopener" href="https://github.com/awnoqwe/academy-drill/blob/feature/attendance/sql/lessons.sql">출석부 설정 SQL 열기</a><button class="btn alt" data-lsreload>다시 확인</button></div>`;
+function lsGate(){
+  const L=S.ls;
+  if(!L||L.status==='loading') return '<p class="lede" style="padding:14px 0">불러오는 중…</p>';
+  if(L.status==='missing') return lsMissing();
+  if(L.status!=='ready') return `<div class="ask-box"><p class="lede">수업 기록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p><button class="btn alt" data-lsreload>다시 불러오기</button></div>`;
+  return '';
+}
+const lsChips = (sid, field, vals, cur, auto) => `<div class="ls-chips" role="group">${vals.map(v=>`<button type="button" class="ls-chip ${lsTone(v)}" data-lsset="${field}" data-sid="${esc(sid)}" data-v="${esc(v)}" aria-pressed="${cur===v}"${cur===v&&auto?' data-auto="1"':''}>${v}</button>`).join('')}</div>`;
+const lsMini = v => v?`<span class="ls-mini ${lsTone(v)}">${v}</span>`:'';
+const lsPrevRow = (x,sid) => `<div class="row ls-prow"><span class="mark mono">${lsShort(x.day)}</span><span class="rq">${lsMini(x.attend)}${lsMini(x.test)}${lsMini(lsHw(sid,x.day,x))}${x.content?` <span class="ls-ct">${esc(x.content)}</span>`:''}${x.next_hw?`<small class="ls-nx">다음 숙제 · ${esc(x.next_hw)}</small>`:''}</span></div>`;
+
+/* --- 출석부 탭 --- */
+function vAttendance(){
+  const gate=lsGate(); if(gate) return gate;
+  const L=S.ls, day=L.day, today=lsToday(), studs=lsStudents();
+  const opts=[['all','전체'],...L.classes.map(c=>[c.id,c.name]),...(studs.some(s=>!lsClassOf(s))?[['none','반 없음']]:[])];
+  const cls=opts.some(o=>o[0]===L.cls)?L.cls:'all';
+  const list=studs.filter(s=>cls==='all'||(cls==='none'?!lsClassOf(s):lsClassOf(s)===cls)).sort((a,b)=>natCmp(lsClassName(lsClassOf(a)),lsClassName(lsClassOf(b)))||natCmp(a.nick,b.nick));
+  const recs=list.map(s=>lsRec(s.id,day)), n=k=>recs.filter(r=>r?.attend===k).length, blank=recs.filter(r=>!r?.attend).length;
+  return `<section class="ls-date" aria-label="날짜"><button class="ls-nav" data-lsday="-1" aria-label="전날">‹</button><b>${lsLabel(day)}</b><button class="ls-nav" data-lsday="1" aria-label="다음날">›</button>${day!==today?'<button class="linkbtn" data-lsday="0">오늘로</button>':'<span class="ls-today">오늘</span>'}</section>
+  <div class="seg ls-cls" role="group" aria-label="반">${opts.map(([id,nm])=>`<button type="button" data-lscls="${esc(id)}" aria-pressed="${cls===id}">${esc(nm)}</button>`).join('')}</div>
+  <section class="stats fl-pills" aria-label="오늘 출결"><div class="stat"><b>${n('출석')+n('보강완료')}</b><small>출석</small></div><div class="stat"><b>${n('지각')}</b><small>지각</small></div><div class="stat ${n('결석')?'alert':''}"><b>${n('결석')}</b><small>결석</small></div><div class="stat"><b>${blank}</b><small>미입력</small></div></section>
+  ${blank&&list.length?`<button class="btn alt ls-all" data-lsall>남은 ${blank}명 모두 출석</button>`:''}
+  <div class="ls-list">${list.map(s=>lsCard(s,day)).join('')||'<p class="lede" style="padding:14px 0">이 반에 학생이 없어요.</p>'}</div>
+  ${vNeedCare(studs)}`;
+}
+function lsCard(s,day){
+  const r=lsRec(s.id,day)||{}, auto=lsHwAuto(s.id,day), hw=r.hw||auto?.v||null, risk=lsRisk(s);
+  const prev=S.ls.recs.filter(x=>x.student_id===s.id&&x.day<day).sort((a,b)=>b.day.localeCompare(a.day)).slice(0,3);
+  const cn=lsClassName(lsClassOf(s)), last=prev[0];
+  return `<article class="ls-card${r.attend==='결석'?' absent':''}">
+    <div class="ls-h"><button class="ls-name" data-lsstu="${esc(s.id)}"><b>${esc(s.nick)}</b><small>${s.grade}${cn?' · '+esc(cn):''}</small></button>${risk.risk?'<span class="ls-tag bad">퇴원 위험</span>':risk.why.length?'<span class="ls-tag mid">관리 필요</span>':''}<span class="ls-saved" data-lssaved="${esc(s.id)}">${esc(S.ls.saved[s.id]||'')}</span></div>
+    ${last?.next_hw?`<p class="ls-last">지난 숙제 · ${esc(last.next_hw)} <small>(${lsShort(last.day)})</small></p>`:''}
+    <div class="ls-row"><span class="ls-k">출결</span>${lsChips(s.id,'attend',LS_ATT,r.attend)}</div>
+    <div class="ls-row dim"><span class="ls-k">시험</span>${lsChips(s.id,'test',LS_TEST,r.test)}</div>
+    <div class="ls-row dim"><span class="ls-k">숙제</span>${lsChips(s.id,'hw',LS_HW,hw,!r.hw&&!!auto)}${auto?`<small class="ls-auto">앱 숙제 ${auto.done}/${auto.n} 완료${!r.hw?' · 자동':''}</small>`:''}</div>
+    <details class="ls-more"><summary>진도 · 다음 숙제${r.content||r.next_hw?`<span class="ls-pv">${esc([r.content,r.next_hw].filter(Boolean).join(' / '))}</span>`:''}</summary>
+      <label>진도 · 수업 내용<input data-lstext="content" data-sid="${esc(s.id)}" maxlength="500" value="${esc(r.content||'')}" placeholder="예: 문법 · 음운 변동 2강"></label>
+      <label>다음 숙제<input data-lstext="next_hw" data-sid="${esc(s.id)}" maxlength="200" value="${esc(r.next_hw||'')}" placeholder="예: 교재 32~35쪽"></label></details>
+    ${prev.length?`<details class="ls-prev"><summary>지난 수업 ${prev.length}회</summary><div class="rows">${prev.map(x=>lsPrevRow(x,s.id)).join('')}</div></details>`:''}
+  </article>`;
+}
+const LS_SORTS=[['risk','위험 순'],['absent','결석'],['hw','숙제'],['test','시험'],['gone','접속 끊김']];
+function vNeedCare(studs){
+  const sort=LS_SORTS.some(x=>x[0]===S.ls.sort)?S.ls.sort:'risk';
+  const key={risk:x=>(x.risk?100:0)+x.why.length*10+x.st.absent, absent:x=>x.st.absent, hw:x=>x.st.hwMiss, test:x=>x.st.testFail, gone:x=>x.gone}[sort];
+  const rows=studs.map(s=>({s,...lsRisk(s)})).filter(x=>sort==='risk'?x.why.length:key(x)>0).sort((a,b)=>key(b)-key(a)||natCmp(a.s.nick,b.s.nick));
+  const val={risk:x=>x.why.length+'개 신호', absent:x=>'결석 '+x.st.absent, hw:x=>'미완료 '+x.st.hwMiss, test:x=>'미통과 '+x.st.testFail, gone:x=>x.gone+'일'}[sort];
+  return `<section class="ls-care" aria-label="관리 필요 학생"><div class="ask-meta"><span class="label">관리 필요 학생 · 최근 30일</span><span>결석·숙제·시험·앱 접속으로 판단</span></div>
+    <div class="seg ls-sort" role="group">${LS_SORTS.map(([id,nm])=>`<button type="button" data-lssort="${id}" aria-pressed="${sort===id}">${nm}</button>`).join('')}</div>
+    <div class="rows">${rows.map((x,i)=>`<button class="row" data-lsstu="${esc(x.s.id)}"><span class="mark ${x.risk?'x':'m'}">${i+1}</span><span class="rq"><b>${esc(x.s.nick)}</b> <small class="dim">${x.s.grade}</small> ${x.risk?'<span class="ls-tag bad">퇴원 위험</span>':''}<br><small class="ls-why">${esc(x.why.join(' · ')||'신호 없음')}</small></span><span class="s">${esc(val(x))}</span></button>`).join('')||'<p class="lede" style="padding:12px 0">지금은 따로 챙길 학생이 없어요.</p>'}</div></section>`;
+}
+
+/* --- 학생 상세: 수업 기록 탭 --- */
+const LS_FILTERS=[['all','전체'],['att','결석·지각'],['hw','숙제 미완료'],['test','시험 미통과']];
+function lsStudentSection(s){
+  const gate=lsGate(); if(gate) return gate;
+  const st=lsStats(s.id), risk=lsRisk(s), f=LS_FILTERS.some(x=>x[0]===S.ls.filter)?S.ls.filter:'all';
+  const all=S.ls.recs.filter(r=>r.student_id===s.id).sort((a,b)=>b.day.localeCompare(a.day));
+  const shown=all.filter(r=>f==='all'||(f==='att'?['결석','지각','보강필요'].includes(r.attend):f==='hw'?['미완료','일부'].includes(lsHw(s.id,r.day,r)):r.test&&r.test!=='통과'));
+  const kpi=(v,lab,bad)=>`<div class="stat ${bad?'alert':''}"><b>${v==null?'–':v}${v==null?'':'<small>%</small>'}</b><small>${lab}</small></div>`;
+  const cn=lsClassName(lsClassOf(s));
+  return `${risk.why.length?`<p class="ls-alert ${risk.risk?'bad':''}"><b>${risk.risk?'퇴원 위험':'관리 필요'}</b> · ${esc(risk.why.join(' · '))}</p>`:''}
+  <section style="display:flex;flex-direction:column;gap:8px"><div class="ask-meta"><span class="label">최근 30일${cn?' · '+esc(cn):''}</span><button class="linkbtn" data-lscopy="${esc(s.id)}">학부모용 요약 복사</button></div>
+  <section class="stats fl-pills">${kpi(st.attPct,'출석률',st.attPct!=null&&st.attPct<85)}${kpi(st.hwPct,'숙제',st.hwPct!=null&&st.hwPct<70)}${kpi(st.testPct,'시험 통과',st.testPct!=null&&st.testPct<70)}<div class="stat ${st.open?'alert':''}"><b>${st.open}<small>건</small></b><small>보강·재시험</small></div></section>
+  <p class="ls-att">출석 ${st.present-st.late-st.makeDone} · 지각 ${st.late} · 결석 ${st.absent} · 보강 ${st.makeDone}/${st.makeDone+st.makeup}</p>${lsCopyMsg(s.id)}</section>
+  <section style="display:flex;flex-direction:column;gap:8px"><span class="label">수업 기록 · 최근 60일 ${all.length}회</span>
+    <div class="seg ls-filt" role="group">${LS_FILTERS.map(([id,nm])=>`<button type="button" data-lsfilt="${id}" aria-pressed="${f===id}">${nm}</button>`).join('')}</div>
+    <div class="rows">${shown.map(x=>lsPrevRow(x,s.id)).join('')||'<p class="lede" style="padding:12px 0">해당하는 기록이 없어요.</p>'}</div>
+    <button class="btn alt sm" data-lsgo="${esc(s.id)}" style="align-self:flex-start">출석부에서 오늘 기록하기</button></section>`;
+}
+const lsCopyMsg = sid => S.ls.copied===sid?'<p class="schedule-success" role="status">복사했어요. 카톡에 붙여 넣으면 돼요.</p>':'';
+function lsSummaryText(s){
+  const st=lsStats(s.id), last=st.rs.find(r=>r.content), nx=st.rs.find(r=>r.next_hw);
+  return [`[${S.academy?.name||'아페라'}] ${s.nick} 학생 최근 30일 수업 기록`,
+    `출석률 ${st.attPct??'–'}% (출석 ${st.present-st.late-st.makeDone} · 지각 ${st.late} · 결석 ${st.absent})`,
+    `숙제 ${st.hwPct??'–'}% · 시험 통과 ${st.testPct??'–'}%`,
+    last?`최근 진도: ${last.content} (${lsShort(last.day)})`:'', nx?`다음 숙제: ${nx.next_hw}`:''].filter(Boolean).join('\n');
+}
+
+/* --- 저장 --- */
+function lsMark(sid, text){ S.ls.saved[sid]=text; app.querySelectorAll(`[data-lssaved="${CSS.escape(sid)}"]`).forEach(x=>x.textContent=text); }
+async function lsPut(sid, patch, opt={}){
+  const L=S.ls, day=L.day, s=lsStudents().find(x=>x.id===sid); if(!s) return;
+  const old=lsRec(sid,day), next={student_id:sid, day, attend:null, test:null, hw:null, content:'', next_hw:'', ...(old||{}), ...patch, class_id:lsClassOf(s)};
+  const put=v=>{ const i=L.recs.findIndex(r=>r.student_id===sid&&r.day===day); if(v==null){ if(i>=0) L.recs.splice(i,1); } else if(i>=0) L.recs[i]=v; else L.recs.push(v); };
+  put(next); S.ls.saved[sid]='저장 중…'; if(!opt.quiet) render();
+  try{ const row=await API.lsSave(next); if(S.ls!==L||L.day!==day) return; put({...next, ...row}); lsMark(sid,'저장됨'); }
+  catch(e){ if(S.ls!==L) return; put(old||null); S.ls.saved[sid]='저장 실패 · 다시 눌러 주세요'; render(); }
+}
+document.addEventListener('click', e=>{
+  const t=e.target.closest?.('[data-lsset],[data-lsday],[data-lscls],[data-lssort],[data-lsfilt],[data-lsstu],[data-lsall],[data-lsreload],[data-lscopy],[data-lsgo]'); if(!t||!S.admin) return;
+  const L=S.ls, d=t.dataset;
+  if(d.lsreload!==undefined){ S.ls=null; lsLoadAll(); return; }
+  if(!lsReady()) return;
+  if(d.lsset){ const auto=d.auto==='1', on=t.getAttribute('aria-pressed')==='true';
+    // 이미 고른 칩을 다시 누르면 지운다. 자동으로 찍힌 숙제 칩을 누르면 선생님이 확인한 값으로 바꾼다.
+    lsPut(d.sid, {[d.lsset]: on&&!auto ? null : d.v}); return; }
+  if(d.lsday!==undefined){ L.day = d.lsday==='0' ? lsToday() : lsAdd(L.day, +d.lsday); L.saved={}; render(); return; }
+  if(d.lscls){ L.cls=d.lscls; render(); return; }
+  if(d.lssort){ L.sort=d.lssort; render(); return; }
+  if(d.lsfilt){ L.filter=d.lsfilt; render(); return; }
+  if(d.lsstu){ S.view=d.lsstu; actLoad(S.view); S.ft=null; S.gsel=null; S.stab='lesson'; L.copied=null; go('adminStudent'); return; }
+  if(d.lsgo){ L.day=lsToday(); L.cls=lsClassOf(lsStudents().find(x=>x.id===d.lsgo)||{})||'all'; S.adminTab='att'; go('admin'); return; }
+  if(d.lscopy!==undefined){ const s=lsStudents().find(x=>x.id===d.lscopy); if(!s) return; const txt=lsSummaryText(s);
+    (navigator.clipboard?.writeText(txt)||Promise.reject()).then(()=>{ L.copied=s.id; render(); }).catch(()=>{ prompt('아래 글을 복사해 주세요', txt); }); return; }
+  if(d.lsall!==undefined){ const studs=[...app.querySelectorAll('.ls-card [data-lsset="attend"][data-v="출석"][aria-pressed="false"]')].map(b=>b.dataset.sid)
+      .filter((sid,i,a)=>a.indexOf(sid)===i && !lsRec(sid,L.day)?.attend);
+    studs.forEach(sid=>lsPut(sid,{attend:'출석'},{quiet:true})); render(); return; }
+});
+document.addEventListener('change', e=>{ const t=e.target.closest?.('[data-lstext]'); if(!t||!lsReady()) return;
+  const v=t.value.trim(), r=lsRec(t.dataset.sid,S.ls.day); if((r?.[t.dataset.lstext]||'')===v) return;
+  lsPut(t.dataset.sid, {[t.dataset.lstext]:v}, {quiet:true}); });
+
+/* --- 화면에 끼우기: 선생님 탭 '출석부', 학생 상세 첫 탭 '수업 기록' --- */
+STU_TABS.unshift(['lesson','수업']);
+const vAdminStudentBeforeLs = vAdminStudent;
+vAdminStudent = () => {
+  const s=S.admin.students.find(x=>x.id===S.view); if(!s) return vAdmin();
+  if(!STU_TABS.some(t=>t[0]===S.stab)) S.stab='lesson';
+  if(S.stab!=='lesson'||(S.qz&&S.qz.sid===S.view)) return vAdminStudentBeforeLs();
+  // 다른 탭과 같은 머리(이름·탭)를 쓰고 본문만 바꾼다
+  const html=vAdminStudentBeforeLs(), cut=html.indexOf('</div>', html.indexOf('stu-tabs'));
+  return html.slice(0, cut+6) + lsStudentSection(s);
+};
+const bindBeforeLs = bindFlash;
+bindFlash = function(){
+  bindBeforeLs();
+  const need=(S.screen==='admin'&&S.adminTab==='att')||(S.screen==='adminStudent'&&S.stab==='lesson');
+  if(need && S.admin && !S.ls) queueMicrotask(lsLoadAll);
+  if(S.screen==='entry'||S.screen==='adminLogin') S.ls=null;
+  app.querySelectorAll('[data-act=adminRefresh]').forEach(b=>b.addEventListener('click',()=>{ S.ls=null; }));
+};
 </script>
 
 </body>
