@@ -1860,24 +1860,88 @@ Object.assign(API, {
       db.flash.logs.push({id:p.log,student_id:sid,card_id:p.card,rating:p.rating,kind:p.kind,ivl_before:p.before,ivl_after:log_ivl,ease_after:state.ease,elapsed_ms:p.elapsed,reviewed_at:p.at});
       const {stability, difficulty, last_review, ...rest}=state; (db.flash.states[sid] ||= {})[p.card] = {...rest, due:flMs(state.due), stab:stability||0, diff:difficulty||0, last:last_review?flMs(last_review):0}; saveLoc(); return;
     }
-    const {error} = await sb.rpc('flash_review', {p_token:S.scheduleToken, p_log:p.log, p_card:p.card, p_rating:p.rating, p_kind:p.kind, p_ivl_before:p.before, p_elapsed:p.elapsed, p_state:p.state});
+    const {error} = await sb.rpc('flash_review', {p_token:S.scheduleToken, p_log:p.log, p_card:p.card, p_rating:p.rating, p_kind:p.kind, p_ivl_before:p.before, p_elapsed:p.elapsed, p_state:{...p.state, at:new Date(p.at||Date.now()).toISOString()}});
     if(error) throw error;
   }
 });
+// 서버에서 받은 카드 상태 위에, 아직 서버에 못 보낸(또는 받는 사이에 보낸) 기록을 다시 얹는다.
+// 이게 없으면 오프라인에서 한 카드가 재연결 순간 서버의 옛 상태로 되돌아가 "안 한 카드"로 다시 나온다.
+const flStateOf = st => ({queue:st.queue, step:st.step, ivl:st.ivl, ease:st.ease, reps:st.reps, lapses:st.lapses, due:flMs(st.due), stab:st.stability||0, diff:st.difficulty||0, last:st.last_review?flMs(st.last_review):0});
+function flOverlay(states, newToday, items){
+  const since=flDayStart();
+  (items||[]).forEach(p=>{ if(!p||!p.card||!p.state) return; states[p.card]=flStateOf(p.state); if(p.kind==='new' && p.at>=since) newToday.add(p.card); });
+}
 async function flLoad(){
   const owner=S.me.id; FC={owner, status:'loading', decks:[], cards:[], states:{}, newToday:new Set(), saveFail:'', flushing:false};
-  try{ const d=await API.flashLoad(); if(FC.owner!==owner) return; Object.assign(FC, d, {status:'ready'}); flFlush(); }
+  try{
+    // 밀린 기록을 먼저 보내고(최대 4초 기다림) 서버 상태를 받는다
+    if(flPending(owner).length && S.scheduleToken) await Promise.race([flFlush(), new Promise(r=>setTimeout(r,4000))]);
+    if(FC.owner!==owner) return;
+    const before=[...flPending(owner)];
+    const d=await API.flashLoad(); if(FC.owner!==owner) return;
+    flOverlay(d.states, d.newToday, [...before, ...flPending(owner).filter(x=>!before.includes(x))]);
+    Object.assign(FC, d, {status:'ready'}); flFlush();
+  }
   catch(e){ if(FC.owner!==owner) return; FC.status=flErr(e); }
   if(S.screen==='home') render();
 }
-/* 저장 대기열: 인터넷이 끊겨도 답이 사라지지 않게 기기에 먼저 적어 두고 순서대로 보낸다 */
-function flPending(sid=S.me?.id){ const L=loc(); L.flashPending ||= {}; return (L.flashPending[sid] ||= []); }
-async function flFlush(){
-  if(FC.flushing || !S.me) return; FC.flushing=true; const sid=S.me.id, q=flPending(sid); let fail='';
-  try{ while(q.length && S.me?.id===sid){ try{ await API.flashReview({...q[0], sid}); } catch(e){ const k=flErr(e); if(k!=='no_card'){ fail=k; break; } } q.shift(); saveLoc(); } }
-  finally{ FC.flushing=false; }
-  if(FC.saveFail!==fail){ FC.saveFail=fail; if(S.screen==='home'&&S.tab==='flash') render(); }
+/* 저장 대기열: 인터넷이 끊겨도 답이 사라지지 않게 기기에 먼저 적어 두고 순서대로 보낸다.
+   문제·카드 묶음(수백 KB)과 같은 칸에 두면 그 칸 저장이 실패할 때 대기열까지 같이 사라지므로 작은 칸에 따로 둔다. */
+const FPKEY = LKEY+'-flash-pending';
+let fpLocal=null, fpStoreFail=false;
+function flPendSave(){ try{ localStorage.setItem(FPKEY, JSON.stringify(fpLocal||{})); fpStoreFail=false; }catch(e){ fpStoreFail=true; } }
+function flPendAll(){
+  if(fpLocal) return fpLocal;
+  try{ fpLocal=JSON.parse(localStorage.getItem(FPKEY)||'null'); }catch(e){ fpLocal=null; }
+  if(!fpLocal||typeof fpLocal!=='object'||Array.isArray(fpLocal)) fpLocal={};
+  const L=loc();
+  if(L.flashPending && typeof L.flashPending==='object'){   // 예전 자리에 있던 대기열을 옮긴다
+    Object.entries(L.flashPending).forEach(([sid,q])=>{ if(Array.isArray(q)&&q.length) fpLocal[sid]=[...q, ...(fpLocal[sid]||[]).filter(x=>!q.some(y=>y.log===x.log))]; });
+    flPendSave(); if(!fpStoreFail){ delete L.flashPending; saveLoc(); }
+  }
+  return fpLocal;
 }
+function flPending(sid=S.me?.id){ const A=flPendAll(); return (A[sid] ||= []); }
+// 세션이 끝났거나(7일) 오프라인으로 들어와 세션이 없으면 조용히 다시 받아 온다
+async function flRenew(){
+  if(DEMO || !S.me || !S.code) return false;
+  try{
+    if(S.offline){ await reconnect(); return !!S.scheduleToken && !S.offline; }
+    const r=await API.enter(S.code, S.me.nick, S.me.grade, S.phone); if(r.status!=='ok' || r.student.id!==S.me.id) return false;
+    S.scheduleToken=r.sessionToken||null; return !!S.scheduleToken;
+  }catch(e){ return false; }
+}
+let flFlushing=null, flRetryT=0;
+function flFlush(){
+  if(flFlushing) return flFlushing;
+  if(!S.me) return Promise.resolve();
+  const sid=S.me.id, q=flPending(sid);
+  flFlushing=(async()=>{
+    let fail='', renewed=false;
+    await null;   // 아래 finally가 flFlushing 대입보다 먼저 돌지 않게 한 박자 늦춘다
+    try{
+      while(q.length && S.me?.id===sid){
+        if(!DEMO && !S.scheduleToken){   // 오프라인으로 들어와 세션이 없다: 한 번만 다시 받아 본다
+          if(renewed){ fail='error'; break; }
+          renewed=true; if(!(await flRenew())){ fail='error'; break; }
+          continue; }
+        const item=q[0];
+        try{ await API.flashReview({...item, sid}); }
+        catch(e){ const k=flErr(e);
+          if(k==='expired' && !renewed){ renewed=true; if(await flRenew()) continue; }
+          if(k!=='no_card'){ fail=k; break; } }
+        const i=q.indexOf(item); if(i>=0) q.splice(i,1); flPendSave();
+      }
+    } finally{ flFlushing=null; }
+    clearTimeout(flRetryT);
+    if(fail && q.length) flRetryT=setTimeout(()=>{ if(S.me?.id===sid) flFlush(); }, 30000);   // 못 보냈으면 30초 뒤 다시
+    if(S.me?.id===sid && FC.saveFail!==fail){ FC.saveFail=fail; if(S.screen==='home'&&S.tab==='flash') render(); }
+  })();
+  return flFlushing;
+}
+// 인터넷이 돌아오거나 앱으로 돌아오면 바로 다시 보낸다
+window.addEventListener('online', ()=>{ if(S.me && !S.offline && flPending().length) flFlush(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && S.me && !S.offline && flPending().length) flFlush(); });
 function flPri(){ const L=loc(); return new Set(((L.flashPri||{})[S.me?.id])||[]); }
 function flSetPri(ids){ const L=loc(); L.flashPri ||= {}; L.flashPri[S.me.id]=[...ids]; saveLoc(); }
 
@@ -1928,7 +1992,7 @@ function vFlashHome(){
     <div><b>${esc(d.name)}</b><span class="fc-counts"><span class="c-new">새 ${c.nw}</span><span class="c-lrn">학습 ${c.lrn}</span><span class="c-rev">복습 ${c.rev}</span><span class="dim">· ${n}장</span></span></div>
     <div class="acts"><button class="btn sm" data-fstudy="${esc(d.id)}" ${c.nw+c.lrn+c.rev?'':'disabled'}>공부</button><button class="btn sm alt" data-fcram="${esc(d.id)}" ${n?'':'disabled'}>몰아보기</button></div></div>`;}).join('')}</div>
   <button class="btn" data-fstudy="all" ${total?'':'disabled'}>${total?'오늘 카드 공부 · '+total+'장':later?'다음 카드는 '+later+'분 뒤에 나와요':'오늘 카드를 다 했어요'}</button>
-  ${FC.saveFail||pend?`<p class="err">${FC.saveFail==='expired'?'기록 '+pend+'개가 저장을 기다리고 있어요. 나갔다가 다시 입장하면 저장돼요.':FC.saveFail?'기록 '+pend+'개를 아직 저장하지 못했어요. 인터넷이 연결되면 다음 카드에서 다시 저장해요.':'기록 '+pend+'개 저장 중…'}</p>`:''}
+  ${pend?`<p class="err">${FC.saveFail==='expired'?'기록 '+pend+'개가 저장을 기다리고 있어요. 나갔다가 다시 입장하면 저장돼요.':FC.saveFail?'기록 '+pend+'개는 이 기기에 보관 중이에요. 인터넷이 연결되면 자동으로 저장해요.':'기록 '+pend+'개 저장 중…'}</p>`:''}${fpStoreFail?'<p class="err">이 기기의 저장 공간이 막혀 있어요. 인터넷이 연결될 때까지 앱을 닫지 말아 주세요.</p>':''}
   <p class="note">버튼 세 개: 다시(틀림) · 알맞음(맞힘) · 쉬움(너무 쉬움). 컴퓨터에서는 스페이스로 정답 보기, 1·2·3으로 고를 수 있어요.</p>`;
 }
 
@@ -1956,7 +2020,7 @@ function flAnswer(rating){
   flPending().push({log:flUuid(), card:c.id, rating, kind:r.kind, before:r.before, elapsed:Math.min(now-f.t0,3600000), at:now,
     state:{queue:r.state.queue, step:r.state.step, ivl:r.state.ivl, ease:r.state.ease, reps:r.state.reps, lapses:r.state.lapses, due:new Date(r.state.due).toISOString(), log_ivl:r.logIvl,
       stability:r.state.stab, difficulty:r.state.diff, last_review:new Date(r.state.last).toISOString()}});
-  saveLoc(); flFlush();
+  flPendSave(); flFlush();
   flShowNext(); render(); window.scrollTo(0,0);
 }
 function vFlash(){
@@ -2872,7 +2936,7 @@ async function reconnect(){
     // 오프라인에서 푼 기록이 서버보다 최신이므로 기기 기록을 유지하고 서버에 다시 저장한다
     CARDS=r.cards; S.scheduleToken=r.sessionToken||null; S.offline=false; mine.id=r.student.id; persist(); snapSave();
     FC.owner=''; HW.owner=''; scheduleOwner='';
-    if(S.screen==='home') render();
+    if(S.screen==='home') render(); else flFlush();
   }catch(e){}
 }
 window.addEventListener('online', reconnect);
@@ -2908,7 +2972,8 @@ flLoad = async function(){
   const L=loc(), sid=S.me?.id; if(!sid||FC.owner!==sid) return;
   if(FC.status==='ready'){ try{ L.flashSnap={sid, decks:FC.decks, cards:FC.cards, states:FC.states, newToday:[...FC.newToday], day:flDayStart()}; saveLoc(); }catch(e){} }
   else if(FC.status!=='missing' && L.flashSnap?.sid===sid){
-    const f=L.flashSnap; Object.assign(FC,{status:'ready', decks:f.decks, cards:f.cards, states:f.states, newToday:new Set(f.day===flDayStart()?f.newToday:[]), offline:true});
+    const f=L.flashSnap, nt=new Set(f.day===flDayStart()?f.newToday:[]); flOverlay(f.states, nt, flPending(sid));
+    Object.assign(FC,{status:'ready', decks:f.decks, cards:f.cards, states:f.states, newToday:nt, offline:true});
     if(S.screen==='home') render();
   }
 };
