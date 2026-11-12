@@ -131,9 +131,19 @@ p{margin:0}
 .hint b{font-family:var(--f-mono);color:var(--muted)}
 
 /* 홈 */
-.seg{display:flex;border:1px solid var(--ink);border-radius:3px;overflow:hidden;width:max-content;max-width:100%;overflow-x:auto;background:transparent}
-.seg button{border:0;background:none;padding:6px 13px;cursor:pointer;font-size:14px;white-space:nowrap}
+/* 카테고리 고르기(.seg)는 항상 가로를 꽉 채우고 칸을 똑같이 나눈다. 8칸 이상이면 4칸씩 여러 줄로 나눈다(마지막 칸이 남는 자리를 채움).
+   다른 요소 옆에 붙는 작은 토글만 .seg.inline(글자 폭대로). */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border:1px solid var(--ink);border-radius:3px;overflow:hidden;width:100%;max-width:100%;background:transparent}
+.seg button{border:0;background:none;padding:6px 4px;cursor:pointer;font-size:14px;white-space:nowrap;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .seg button+button{border-left:1px solid var(--ink)}
+.seg.inline{display:flex;width:max-content;overflow-x:auto}
+.seg.inline button{padding:6px 13px;overflow:visible}
+.seg:not(.full):not(.inline):has(button:nth-child(8)){grid-auto-flow:row;grid-template-columns:repeat(4,minmax(0,1fr))}
+.seg:not(.full):not(.inline):has(button:nth-child(8)) button:nth-child(4n+1){border-left:0}
+.seg:not(.full):not(.inline):has(button:nth-child(8)) button:nth-child(n+5){border-top:1px solid var(--ink)}
+.seg:not(.full):not(.inline):has(button:nth-child(8)) button:last-child:nth-child(4n+1){grid-column:1/-1}
+.seg:not(.full):not(.inline):has(button:nth-child(8)) button:last-child:nth-child(4n+2){grid-column:2/-1}
+.seg:not(.full):not(.inline):has(button:nth-child(8)) button:last-child:nth-child(4n+3){grid-column:3/-1}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-bottom:1px solid var(--rule)}
 .tabs button{border:0;background:none;padding:8px 2px 10px;font-family:var(--f-serif);font-size:17px;font-weight:600;color:var(--faint);cursor:pointer;
@@ -2408,7 +2418,7 @@ function flFieldsEditor(fs, dirty, cards){
     <div class="ff-rows">${fs.map((f,i)=>`<div class="ff-row">
       <span class="ff-move"><button type="button" data-ff="up:${i}" ${i?'':'disabled'} aria-label="위로">▲</button><button type="button" data-ff="down:${i}" ${i<fs.length-1?'':'disabled'} aria-label="아래로">▼</button></span>
       <input class="ff-name" data-ff-name="${i}" value="${esc(f.n)}" maxlength="20" placeholder="항목 이름" aria-label="항목 이름">
-      <span class="seg ff-side" role="group" aria-label="앞면·뒷면"><button type="button" data-ff="side:${i}:f" aria-pressed="${f.s==='f'}">앞면</button><button type="button" data-ff="side:${i}:b" aria-pressed="${f.s==='b'}">뒷면</button></span>
+      <span class="seg inline ff-side" role="group" aria-label="앞면·뒷면"><button type="button" data-ff="side:${i}:f" aria-pressed="${f.s==='f'}">앞면</button><button type="button" data-ff="side:${i}:b" aria-pressed="${f.s==='b'}">뒷면</button></span>
       <select data-ff-kind="${i}" aria-label="글자 크기">${Object.entries(FL_KIND).map(([k,v])=>`<option value="${k}" ${(f.k||'t')===k?'selected':''}>${v}</option>`).join('')}</select>
       <label class="check ff-lab"><input type="checkbox" data-ff-lab="${i}" ${f.l?'checked':''}>카드에 항목 이름도 보이기</label>
       <button type="button" class="linkbtn danger ff-del" data-ff="del:${i}" ${fs.length>2?'':'disabled'}>빼기</button></div>`).join('')}</div>
@@ -5144,7 +5154,7 @@ function vToday(){
   const row=x=>{ const attr=x.sid?`data-lsstu="${esc(x.sid)}"`:x.cs?`data-csopen="${esc(x.cs)}"`:x.att?`data-tdatt="${esc(x.att)}"`:'';
     const tag=attr?'button':'div';
     return `<${tag} class="row td-row" ${attr}><span class="mark mono">${esc(x.when)}</span><span class="rq"><span class="td-type t-${x.type}">${x.type}</span> <b>${esc(x.title)}</b><br><small class="ls-why">${esc(x.sub||'')}</small></span><span class="s">${attr?'›':''}</span></${tag}>`; };
-  return `<section class="td-head"><div class="seg" role="group"><button type="button" data-tdper="day" aria-pressed="${per==='day'}">오늘</button><button type="button" data-tdper="week" aria-pressed="${per==='week'}">이번 주</button></div><b>${per==='day'?lsLabel(t):`${lsShort(t)} ~ ${lsShort(last)}`}</b></section>
+  return `<section class="td-head"><div class="seg inline" role="group"><button type="button" data-tdper="day" aria-pressed="${per==='day'}">오늘</button><button type="button" data-tdper="week" aria-pressed="${per==='week'}">이번 주</button></div><b>${per==='day'?lsLabel(t):`${lsShort(t)} ~ ${lsShort(last)}`}</b></section>
   <section class="stats fl-pills"><div class="stat"><b>${lessonsN}</b><small>수업</small></div><div class="stat ${cnt('결석')?'alert':''}"><b>${cnt('결석')}</b><small>결석</small></div><div class="stat"><b>${cnt('보강')+cnt('재시험')}</b><small>보강·재시험</small></div><div class="stat ${cs.some(c=>c.status==='신청')?'alert':''}"><b>${cnt('상담')}</b><small>상담</small></div></section>
   <div class="seg td-tf" role="group" aria-label="유형">${TD_TYPES.map(k=>`<button type="button" data-tdtf="${k}" aria-pressed="${tf===k}">${k}${k!=='전체'&&cnt(k)?` <small>${cnt(k)}</small>`:''}</button>`).join('')}</div>
   <div class="rows">${shown.map(row).join('')||`<p class="lede" style="padding:12px 0">${tf==='전체'?'챙길 일이 없어요.':tf+' 항목이 없어요.'}</p>`}</div>
