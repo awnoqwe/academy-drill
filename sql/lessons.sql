@@ -1,7 +1,9 @@
 -- ============================================================================
 -- 아페라: 출석부 · 수업 기록 · 입학 상담 (선생님 화면 '오늘'·'출석' 탭, 학생 상세 '수업' 탭, 학부모 상담 신청 링크)
 -- apera_v2.sql을 실행한 곳에서 이 파일만 한 번 더 실행하면 된다. 다시 실행해도 안전하다.
--- 기존 표(학생·문제·카드·숙제·시간표…)는 하나도 바꾸지 않는다. 새 표 lesson_records · consult_requests 와 상담 신청 함수 2개만 만든다.
+-- 기존 표(학생·문제·카드·숙제·시간표…)는 하나도 바꾸지 않는다. 새 표 lesson_records · consult_requests 와 상담 신청 함수 2개,
+-- 학부모 화면 '수업 리포트'용 함수 parent_lessons 만 만든다.
+-- 2026-11-12: 확인테스트 점수(test_score/test_max)와 parent_lessons 추가 — 이미 실행한 곳도 이 파일을 한 번 더 실행하면 된다.
 -- 되돌리기: sql/lessons_rollback.sql 실행 (이 표만 지운다).
 -- ============================================================================
 begin;
@@ -25,6 +27,13 @@ create table if not exists public.lesson_records (
 );
 create index if not exists lesson_records_academy_day on public.lesson_records(academy_id, day);
 
+-- 확인테스트 점수: 8/10 처럼 점수와 만점을 함께 적는다 (둘 다 비어 있으면 점수 없는 수업)
+alter table public.lesson_records add column if not exists test_score numeric(5,1);
+alter table public.lesson_records add column if not exists test_max numeric(5,1);
+alter table public.lesson_records drop constraint if exists lesson_records_score_ok;
+alter table public.lesson_records add constraint lesson_records_score_ok
+ check ((test_score is null and test_max is null) or (test_max > 0 and test_score >= 0 and test_score <= test_max));
+
 -- 보안: 그 학원 원장·선생님만 읽고 쓴다 (다른 표와 같은 규칙)
 alter table public.lesson_records enable row level security;
 revoke all on public.lesson_records from anon, authenticated;
@@ -32,6 +41,31 @@ grant select, insert, update, delete on public.lesson_records to authenticated;
 drop policy if exists "academy member" on public.lesson_records;
 create policy "academy member" on public.lesson_records for all to authenticated
  using (public.is_member(academy_id)) with check (public.is_member(academy_id));
+
+-- 학부모 화면 '수업 리포트' -------------------------------------------------------
+-- 학부모 코드에 연결된 자녀의 최근 60일 수업 기록을 돌려준다 (읽기 전용, parent_view와 같은 코드 확인).
+-- avg: 같은 날 같은 반에서 같은 만점으로 본 학생이 3명 이상일 때만 반 평균을 준다(두 명이면 상대 점수가 드러나므로 숨긴다).
+-- 다른 학생의 기록·선생님 상담 노트는 돌려주지 않는다.
+create or replace function public.parent_lessons(p_code text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare c text := upper(replace(btrim(coalesce(p_code, '')), '-', '')); pc public.parent_codes; res jsonb;
+begin
+ select * into pc from public.parent_codes where code = c;
+ if pc.code is null then raise exception 'bad_code'; end if;
+ select coalesce(jsonb_object_agg(st.id, coalesce((
+   select jsonb_agg(jsonb_build_object('day', r.day, 'attend', r.attend, 'test', r.test, 'hw', r.hw, 'content', r.content, 'next_hw', r.next_hw,
+     'score', r.test_score, 'max', r.test_max,
+     'avg', case when r.test_score is null then null else (
+       select round(avg(o.test_score), 1) from public.lesson_records o
+       where o.academy_id = r.academy_id and o.day = r.day and o.class_id is not distinct from r.class_id
+         and o.test_score is not null and o.test_max = r.test_max having count(*) >= 3) end) order by r.day desc)
+   from public.lesson_records r where r.student_id = st.id and r.day >= current_date - 60), '[]'::jsonb)), '{}'::jsonb) into res
+ from public.students st join public.parent_children x on x.student_id = st.id
+ where x.code = c and st.academy_id = pc.academy_id;
+ return res;
+end $$;
+revoke all on function public.parent_lessons(text) from public;
+grant execute on function public.parent_lessons(text) to anon, authenticated;
 
 -- 입학 상담 신청 ------------------------------------------------------------------
 -- 학부모가 공개 링크(?consult=<학원 id>)로 신청한다. 링크에는 학생 입장 코드가 아니라 학원 id(추측 불가)가 들어간다.

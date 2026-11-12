@@ -759,6 +759,33 @@ form.dr-addtile input{font:inherit;font-size:15px;padding:8px;border:1px solid v
 .ls-alert{margin:0;padding:10px 12px;border-left:3px solid var(--mid);background:var(--hover);font-size:14px}
 .ls-alert.bad{border-left-color:var(--bad);background:var(--bad-soft)}.ls-alert.bad b{color:var(--bad)}
 .ls-att{margin:0;font-size:13px;color:var(--muted);font-family:var(--f-mono)}
+.ls-score{display:inline-flex;align-items:center;gap:5px;margin-left:auto}
+.ls-score input{width:50px;min-height:34px;text-align:center;padding:5px 4px;font:600 15px var(--f-mono);border:1px solid var(--rule);border-radius:3px;background:var(--sheet);color:var(--ink)}
+.ls-score input::placeholder{font-weight:400;font-family:var(--f-body);font-size:13px;color:var(--faint)}
+.ls-score i{font-style:normal;color:var(--muted)}
+.ls-pnote{margin:0;font-size:12.5px;color:var(--faint);text-align:center}
+/* 학부모 화면: 수업 리포트 */
+.pr{display:flex;flex-direction:column;gap:12px}
+.pr-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--rule-strong);border-bottom:1px solid var(--rule)}
+.pr-cell{display:flex;flex-direction:column;gap:3px;padding:12px 8px 12px 0;min-width:0}
+.pr-cell+.pr-cell{border-left:1px solid var(--rule);padding-left:12px}
+.pr-cell>small{font-size:12px;color:var(--muted);font-weight:600}
+.pr-cell b{font:700 23px/1.25 var(--f-serif);white-space:nowrap}
+.pr-cell b small{font-size:14px;color:var(--muted);font-weight:600}
+.pr-cell b.ok{color:var(--good)}.pr-cell b.mid{color:var(--mid)}.pr-cell b.bad{color:var(--bad)}
+.pr-cell>span{font-size:12px;color:var(--muted)}
+.pr-dl{margin:0;display:flex;flex-direction:column;gap:7px}
+.pr-dl div{display:grid;grid-template-columns:66px 1fr;gap:10px;align-items:baseline}
+.pr-dl dt{color:var(--muted);font-size:12.5px;font-weight:600}
+.pr-dl dd{margin:0;font:15px/1.6 var(--f-serif);overflow-wrap:anywhere}
+.pr-sub{display:flex;flex-direction:column;gap:8px}
+.pr-bars{display:flex;align-items:flex-end;gap:8px}
+.pr-bars span{flex:1 1 0;max-width:46px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.pr-bars b{font:600 12px var(--f-mono)}
+.pr-bars i{display:block;width:100%;min-height:3px;background:var(--cta);border-radius:2px 2px 0 0}
+.pr-bars small{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.pr-hist summary{cursor:pointer;font-size:13.5px;color:var(--muted);padding:2px 0}
+.pr-hist .rows{margin-top:8px}
 @media (max-width:400px){.ls-chip{padding:6px 9px;font-size:13px}.ls-k{width:28px}}
 /* ===== 오늘 대시보드 · 입학 상담 ===== */
 .td-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -3522,7 +3549,7 @@ function parentSection(s){
       <div class="schedule-btns"><button class="btn sm alt" data-act="plink">이 코드에 추가</button></div>`:''}
     <form id="pcomment" class="schedule-form" data-sid="${esc(s.id)}"><label>학부모에게 보이는 선생님 한마디<textarea id="pcBody" rows="3" maxlength="1000" placeholder="예: 요즘 비문학 속도가 많이 좋아졌어요.">${esc(A.comments[s.id]||'')}</textarea></label>
       <div class="schedule-btns"><button class="btn sm alt" type="submit">한마디 저장</button></div></form>
-    <p class="note">코드를 학부모님께 문자로 보내 주세요. 학부모 화면에서는 공부한 날·숙제·일정·한마디만 보이고, Q&A와 선생님 메모는 안 보여요.</p>
+    <p class="note">코드를 학부모님께 문자로 보내 주세요. 학부모 화면에서는 공부한 날·숙제·일정·한마디와 출석부에 적은 수업 리포트(출결·확인테스트·숙제·진도)가 보이고, Q&A와 선생님 메모는 안 보여요.</p>
   </section>`;
 }
 const vAdminStudentBeforeParent = vAdminStudent;
@@ -4658,6 +4685,10 @@ const lsAdd = (ymd,n) => { const d=new Date(ymd+'T00:00:00'); d.setDate(d.getDat
 const lsWd = ymd => WEEK[(new Date(ymd+'T00:00:00').getDay()+6)%7];
 const lsLabel = ymd => { const d=new Date(ymd+'T00:00:00'); return `${d.getMonth()+1}월 ${d.getDate()}일 (${lsWd(ymd)})`; };
 const lsShort = ymd => `${+ymd.slice(5,7)}/${+ymd.slice(8)}`;
+// 확인테스트 점수: 8 / 10 처럼 점수와 만점을 함께 적는다. 8.0 → '8', 7.5 → '7.5'
+const lsFmt = v => v==null||v==='' ? '' : String(+(+v).toFixed(1));
+const lsScoreTxt = r => r?.test_score!=null ? `${lsFmt(r.test_score)}/${lsFmt(r.test_max)}` : '';
+const LS_DEMO_SCORES=[[9,10,8,9,10,9],[5,6,4,7,5,6],[8,7,9,8,8,9],[7,8,6,9,7,8]];
 
 /* --- 데모: 예시 학생 4명의 지난 4주(월·수·금) 기록. 종이비행기는 결석·숙제 미완료가 겹친 '퇴원 위험' 예시 --- */
 function lsDemo(){
@@ -4674,9 +4705,16 @@ function lsDemo(){
     db.lessons=[];
     ex.forEach((s,k)=>days.forEach((y,i)=>{ const p=pat[k%4], a=p.a(i), gone=a==='결석';
       db.lessons.push({id:`ls-${k}-${i}`, student_id:s.id, class_id:s.class_id||null, day:y, attend:a, test:gone?null:p.t(i), hw:gone?null:p.h(i),
+        test_score:gone?null:LS_DEMO_SCORES[k%4][i%6], test_max:gone?null:10,
         content:gone?'':topics[(i+k)%topics.length], next_hw:gone?'':`교재 ${30+i*2}~${31+i*2}쪽`, updated_at:Date.now()-i*DAY}); }));
     // 새벽별: 앱을 9일째 안 연 학생(접속 끊김 신호 예시)
     const star=ex.find(s=>s.nick==='새벽별'); if(star) star.lastSeen=Date.now()-9*DAY;
+    saveLoc();
+  } else if(!db.lessons.some(r=>'test_score' in r)){
+    // 점수 칸이 생기기 전에 만든 미리보기 기록에 예시 점수를 채운다
+    const ex=Object.values(db.students).filter(s=>s.example).map(s=>s.id), seen={};
+    db.lessons.slice().sort((a,b)=>b.day.localeCompare(a.day)).forEach(r=>{ const k=ex.indexOf(r.student_id), i=(seen[r.student_id]=(seen[r.student_id]??-1)+1), gone=r.attend==='결석'||k<0;
+      r.test_score=gone?null:LS_DEMO_SCORES[k%4][i%6]; r.test_max=gone?null:10; });
     saveLoc();
   }
   return db;
@@ -4695,7 +4733,9 @@ Object.assign(API, {
     return {classes:c.data||[], recs:(r.data||[]).map(x=>({...x, updated_at:Date.parse(x.updated_at)}))};
   },
   async lsSave(v){
-    const row={student_id:v.student_id, day:v.day, class_id:v.class_id||null, attend:v.attend||null, test:v.test||null, hw:v.hw||null, content:v.content||'', next_hw:v.next_hw||''};
+    const row={student_id:v.student_id, day:v.day, class_id:v.class_id||null, attend:v.attend||null, test:v.test||null, hw:v.hw||null, content:v.content||'', next_hw:v.next_hw||'',
+      // 점수 칸은 써 본 기록에만 보낸다(점수 칸이 없는 예전 서버 설정에서도 출결 저장이 되도록)
+      ...('test_score' in v ? {test_score:v.test_score??null, test_max:v.test_score==null?null:v.test_max??null} : {})};
     if(DEMO){ const db=lsDemo(), i=db.lessons.findIndex(r=>r.student_id===v.student_id&&r.day===v.day), out={id:i>=0?db.lessons[i].id:'ls-'+Date.now(), ...row, updated_at:Date.now()};
       if(i>=0) db.lessons[i]=out; else db.lessons.push(out); saveLoc(); return out; }
     const {data,error}=await sb.from('lesson_records').upsert({academy_id:AID(), ...row, updated_at:new Date().toISOString()},{onConflict:'student_id,day'}).select().single();
@@ -4762,7 +4802,18 @@ function lsGate(){
 }
 const lsChips = (sid, field, vals, cur, auto) => `<div class="ls-chips" role="group">${vals.map(v=>`<button type="button" class="ls-chip ${lsTone(v)}" data-lsset="${field}" data-sid="${esc(sid)}" data-v="${esc(v)}" aria-pressed="${cur===v}"${cur===v&&auto?' data-auto="1"':''}>${v}</button>`).join('')}</div>`;
 const lsMini = v => v?`<span class="ls-mini ${lsTone(v)}">${v}</span>`:'';
-const lsPrevRow = (x,sid) => `<div class="row ls-prow"><span class="mark mono">${lsShort(x.day)}</span><span class="rq">${lsMini(x.attend)}${lsMini(x.test)}${lsMini(lsHw(sid,x.day,x))}${x.content?` <span class="ls-ct">${esc(x.content)}</span>`:''}${x.next_hw?`<small class="ls-nx">다음 숙제 · ${esc(x.next_hw)}</small>`:''}</span></div>`;
+// 만점 기본값: 그날 같은 반에서 이미 적은 만점 → 지난번에 쓴 만점 → 10
+function lsMaxGuess(s, day){
+  const cls=lsClassOf(s), same=S.ls.recs.filter(r=>r.day===day&&r.test_max!=null);
+  return (same.find(r=>(r.class_id||null)===cls)||same[0])?.test_max ?? loc().lsMax ?? 10;
+}
+const lsScoreBox = (s,r,day) => `<span class="ls-score"><input data-lsscore="score" data-sid="${esc(s.id)}" inputmode="decimal" autocomplete="off" maxlength="5" aria-label="${esc(s.nick)} 확인테스트 점수" placeholder="점수" value="${lsFmt(r.test_score)}"><i>/</i><input data-lsscore="max" data-sid="${esc(s.id)}" inputmode="decimal" autocomplete="off" maxlength="5" aria-label="${esc(s.nick)} 확인테스트 만점" value="${lsFmt(r.test_max ?? lsMaxGuess(s,day))}"></span>`;
+function lsDayAvg(list, day){
+  const xs=list.map(s=>lsRec(s.id,day)).filter(r=>r?.test_score!=null); if(!xs.length) return '';
+  const max=+xs[0].test_max, same=xs.filter(r=>+r.test_max===max), avg=same.reduce((a,r)=>a+ +r.test_score,0)/same.length;
+  return `확인테스트 평균 ${lsFmt(avg)} / ${lsFmt(max)} · ${xs.length}명 입력`;
+}
+const lsPrevRow = (x,sid) => `<div class="row ls-prow"><span class="mark mono">${lsShort(x.day)}</span><span class="rq">${lsMini(x.attend)}${lsMini(x.test)}${x.test_score!=null?`<span class="ls-mini">${lsScoreTxt(x)}</span>`:''}${lsMini(lsHw(sid,x.day,x))}${x.content?` <span class="ls-ct">${esc(x.content)}</span>`:''}${x.next_hw?`<small class="ls-nx">다음 숙제 · ${esc(x.next_hw)}</small>`:''}</span></div>`;
 
 /* --- 출석부 탭 --- */
 function vAttendance(){
@@ -4776,6 +4827,8 @@ function vAttendance(){
   <div class="seg ls-cls" role="group" aria-label="반">${opts.map(([id,nm])=>`<button type="button" data-lscls="${esc(id)}" aria-pressed="${cls===id}">${esc(nm)}</button>`).join('')}</div>
   <section class="stats fl-pills" aria-label="오늘 출결"><div class="stat"><b>${n('출석')+n('보강완료')}</b><small>출석</small></div><div class="stat"><b>${n('지각')}</b><small>지각</small></div><div class="stat ${n('결석')?'alert':''}"><b>${n('결석')}</b><small>결석</small></div><div class="stat"><b>${blank}</b><small>미입력</small></div></section>
   ${blank&&list.length?`<button class="btn alt ls-all" data-lsall>남은 ${blank}명 모두 출석</button>`:''}
+  <p class="ls-att" data-lsavg style="text-align:center">${lsDayAvg(list,day)}</p>
+  <p class="ls-pnote">여기 적은 출결·시험·숙제·진도·다음 숙제는 학부모 화면 '수업 리포트'에 그대로 보여요.</p>
   <div class="ls-list">${list.map(s=>lsCard(s,day)).join('')||'<p class="lede" style="padding:14px 0">이 반에 학생이 없어요.</p>'}</div>
   ${vNeedCare(studs)}`;
 }
@@ -4787,7 +4840,7 @@ function lsCard(s,day){
     <div class="ls-h"><button class="ls-name" data-lsstu="${esc(s.id)}"><b>${esc(s.nick)}</b><small>${s.grade}${cn?' · '+esc(cn):''}</small></button>${risk.risk?'<span class="ls-tag bad">퇴원 위험</span>':risk.why.length?'<span class="ls-tag mid">관리 필요</span>':''}<span class="ls-saved" data-lssaved="${esc(s.id)}">${esc(S.ls.saved[s.id]||'')}</span></div>
     ${last?.next_hw?`<p class="ls-last">지난 숙제 · ${esc(last.next_hw)} <small>(${lsShort(last.day)})</small></p>`:''}
     <div class="ls-row"><span class="ls-k">출결</span>${lsChips(s.id,'attend',LS_ATT,r.attend)}</div>
-    <div class="ls-row dim"><span class="ls-k">시험</span>${lsChips(s.id,'test',LS_TEST,r.test)}</div>
+    <div class="ls-row dim"><span class="ls-k">시험</span>${lsChips(s.id,'test',LS_TEST,r.test)}${lsScoreBox(s,r,day)}</div>
     <div class="ls-row dim"><span class="ls-k">숙제</span>${lsChips(s.id,'hw',LS_HW,hw,!r.hw&&!!auto)}${auto?`<small class="ls-auto">앱 숙제 ${auto.done}/${auto.n} 완료${!r.hw?' · 자동':''}</small>`:''}</div>
     <details class="ls-more"><summary>진도 · 다음 숙제${r.content||r.next_hw?`<span class="ls-pv">${esc([r.content,r.next_hw].filter(Boolean).join(' / '))}</span>`:''}</summary>
       <label>진도 · 수업 내용<input data-lstext="content" data-sid="${esc(s.id)}" maxlength="500" value="${esc(r.content||'')}" placeholder="예: 문법 · 음운 변동 2강"></label>
@@ -4830,6 +4883,7 @@ function lsSummaryText(s){
   return [`[${S.academy?.name||'아페라'}] ${s.nick} 학생 최근 30일 수업 기록`,
     `출석률 ${st.attPct??'–'}% (출석 ${st.present-st.late-st.makeDone} · 지각 ${st.late} · 결석 ${st.absent})`,
     `숙제 ${st.hwPct??'–'}% · 시험 통과 ${st.testPct??'–'}%`,
+    (sc=>sc?`최근 확인테스트: ${lsScoreTxt(sc)} (${lsShort(sc.day)})`:'')(st.rs.find(r=>r.test_score!=null)),
     last?`최근 진도: ${last.content} (${lsShort(last.day)})`:'', nx?`다음 숙제: ${nx.next_hw}`:''].filter(Boolean).join('\n');
 }
 
@@ -4841,7 +4895,9 @@ async function lsPut(sid, patch, opt={}){
   const put=v=>{ const i=L.recs.findIndex(r=>r.student_id===sid&&r.day===day); if(v==null){ if(i>=0) L.recs.splice(i,1); } else if(i>=0) L.recs[i]=v; else L.recs.push(v); };
   put(next); S.ls.saved[sid]='저장 중…'; if(!opt.quiet) render();
   try{ const row=await API.lsSave(next); if(S.ls!==L||L.day!==day) return; put({...next, ...row}); lsMark(sid,'저장됨'); }
-  catch(e){ if(S.ls!==L) return; put(old||null); S.ls.saved[sid]='저장 실패 · 다시 눌러 주세요'; render(); }
+  catch(e){ if(S.ls!==L) return; put(old||null);
+    const noCol=('test_score' in patch) && /test_score|test_max|PGRST204|42703/.test((e?.code||'')+' '+(e?.message||''));
+    S.ls.saved[sid]=noCol?'점수 칸은 출석부 설정 SQL을 한 번 더 실행하면 열려요':'저장 실패 · 다시 눌러 주세요'; render(); }
 }
 document.addEventListener('click', e=>{
   const t=e.target.closest?.('[data-lsset],[data-lsday],[data-lscls],[data-lssort],[data-lsfilt],[data-lsstu],[data-lsall],[data-lsreload],[data-lscopy],[data-lsgo]'); if(!t||!S.admin) return;
@@ -4863,6 +4919,19 @@ document.addEventListener('click', e=>{
       .filter((sid,i,a)=>a.indexOf(sid)===i && !lsRec(sid,L.day)?.attend);
     studs.forEach(sid=>lsPut(sid,{attend:'출석'},{quiet:true})); render(); return; }
 });
+// 점수 칸: 점수와 만점이 모두 맞을 때만 저장한다. 점수를 지우면 기록에서도 지운다.
+document.addEventListener('change', e=>{ const t=e.target.closest?.('[data-lsscore]'); if(!t||!lsReady()||!S.admin) return;
+  const box=t.closest('.ls-score'), sid=t.dataset.sid, sc=box.querySelector('[data-lsscore=score]'), mx=box.querySelector('[data-lsscore=max]');
+  const num=x=>{ const v=x.value.trim().replace(',','.'); return v==='' ? null : /^\d{1,3}(\.\d)?$/.test(v) ? +v : NaN; };
+  const score=num(sc), max=num(mx), r=lsRec(sid,S.ls.day);
+  const avg=()=>{ const el=app.querySelector('[data-lsavg]'); if(el){ const ids=[...app.querySelectorAll('.ls-card [data-lsscore=score]')].map(x=>x.dataset.sid); el.textContent=lsDayAvg(lsStudents().filter(s=>ids.includes(s.id)), S.ls.day); } };
+  // 만점을 바꾸면 아직 점수를 안 적은 학생의 만점도 같이 바꿔 둔다
+  if(t===mx && max>0){ const L=loc(); L.lsMax=max; saveLoc();
+    app.querySelectorAll('.ls-score').forEach(b=>{ if(b!==box && !b.querySelector('[data-lsscore=score]').value.trim()) b.querySelector('[data-lsscore=max]').value=lsFmt(max); }); }
+  if(score===null){ if(r?.test_score!=null) lsPut(sid,{test_score:null,test_max:null},{quiet:true}).then(avg); return; }
+  if(Number.isNaN(score)||!(max>0)||score>max){ lsMark(sid,'점수를 확인해 주세요 · 예: 8 / 10'); return; }
+  if(r?.test_score!=null && +r.test_score===score && +r.test_max===max) return;
+  lsPut(sid,{test_score:score,test_max:max},{quiet:true}).then(avg); });
 document.addEventListener('change', e=>{ const t=e.target.closest?.('[data-lstext]'); if(!t||!lsReady()) return;
   const v=t.value.trim(), r=lsRec(t.dataset.sid,S.ls.day); if((r?.[t.dataset.lstext]||'')===v) return;
   lsPut(t.dataset.sid, {[t.dataset.lstext]:v}, {quiet:true}); });
@@ -4885,6 +4954,63 @@ bindFlash = function(){
   if(need && S.admin && !S.ls) queueMicrotask(lsLoadAll);
   if(S.screen==='entry'||S.screen==='adminLogin') S.ls=null;
   app.querySelectorAll('[data-act=adminRefresh]').forEach(b=>b.addEventListener('click',()=>{ S.ls=null; }));
+};
+
+/* ===== 학부모 화면: 수업 리포트 (sql/lessons.sql의 parent_lessons) =====
+   선생님이 출석부에 적은 출결·확인테스트 점수·숙제·진도·다음 숙제를 학부모가 읽는다(읽기 전용).
+   반 평균은 같은 날 같은 반에서 3명 이상 본 시험에만 나온다. 출석부 설정 전인 학원은 이 부분만 빠지고 나머지는 그대로 보인다. */
+Object.assign(API, {
+  async parentLessons(code){
+    const c=pcNorm(code);
+    if(DEMO){ const p=parentDemo().parents.codes[c]; if(!p) return {}; const all=lsDemo().lessons, since=lsAdd(lsToday(),-60);
+      return Object.fromEntries(p.kids.map(id=>[id, all.filter(r=>r.student_id===id&&r.day>=since).sort((a,b)=>b.day.localeCompare(a.day)).map(r=>{
+        const peers=r.test_score==null?[]:all.filter(o=>o.day===r.day&&o.test_score!=null&&+o.test_max===+r.test_max);
+        return {day:r.day, attend:r.attend, test:r.test, hw:r.hw, content:r.content, next_hw:r.next_hw, score:r.test_score??null, max:r.test_max??null,
+          avg:peers.length>=3?Math.round(peers.reduce((a,o)=>a+ +o.test_score,0)/peers.length*10)/10:null}; })])); }
+    const {data,error}=await sb.rpc('parent_lessons',{p_code:c}); if(error) throw error; return data||{};
+  }
+});
+const parentViewBeforeLs = API.parentView;
+API.parentView = async function(code){
+  const v=await parentViewBeforeLs.call(API, code);
+  try{ const m=await API.parentLessons(code); (v.kids||[]).forEach(k=>{ k.lessons=Array.isArray(m?.[k.id])?m[k.id]:[]; }); }
+  catch(e){ /* 출석부 설정 전이거나 잠깐 끊긴 경우: 리포트 없이 보여 준다 */ }
+  return v;
+};
+const PR_ATT={보강필요:'보강 필요', 보강완료:'보강 완료'};
+// 숙제: 선생님이 고른 값이 먼저, 없으면 앱 숙제 완료 기록으로 판단(선생님 출석부와 같은 규칙)
+function prHw(k, x){
+  if(x.hw) return x.hw;
+  const from=lsAdd(x.day,-6), mine=(k.homework||[]).filter(h=>h.due>=from&&h.due<=x.day); if(!mine.length) return null;
+  const done=mine.filter(h=>h.done_at).length; return done===mine.length?'완료':done?'일부':'미완료';
+}
+function prSection(k){
+  const ls=(k.lessons||[]).filter(x=>x.attend||x.test||x.hw||x.score!=null||x.content||x.next_hw).sort((a,b)=>b.day.localeCompare(a.day));
+  if(!ls.length) return '';
+  const last=ls[0], gone=last.attend==='결석'||last.attend==='보강필요', hw=gone?null:prHw(k,last);
+  const since=lsAdd(lsToday(),-30), m=ls.filter(x=>x.day>=since), c=v=>m.filter(x=>x.attend===v).length;
+  const cell=(lab,val,tone,sub)=>`<div class="pr-cell"><small>${lab}</small><b class="${tone||''}">${val}</b>${sub?`<span>${esc(sub)}</span>`:''}</div>`;
+  const scoreOf=x=>`${lsFmt(x.score)}<small>/${lsFmt(x.max)}</small>`;
+  const test = last.score!=null ? cell('확인테스트', scoreOf(last), '', [last.avg!=null?`반 평균 ${lsFmt(last.avg)}`:'', last.test||''].filter(Boolean).join(' · '))
+    : cell('확인테스트', last.test||'–', lsTone(last.test));
+  const scored=ls.filter(x=>x.score!=null&&+x.max>0).slice(0,8).reverse(), oneMax=scored.every(x=>+x.max===+scored[0]?.max);
+  const row=x=>`<div class="row ls-prow"><span class="mark mono">${lsShort(x.day)}</span><span class="rq">${lsMini(x.attend?PR_ATT[x.attend]||x.attend:'')}${x.score!=null?`<span class="ls-mini">${lsFmt(x.score)}/${lsFmt(x.max)}</span>`:lsMini(x.test)}${lsMini(prHw(k,x))}${x.content?` <span class="ls-ct">${esc(x.content)}</span>`:''}${x.next_hw?`<small class="ls-nx">숙제 · ${esc(x.next_hw)}</small>`:''}</span></div>`;
+  return `<section class="pr" aria-label="수업 리포트">
+    <span class="label">수업 리포트 · ${lsLabel(last.day)}</span>
+    <div class="pr-grid">${cell('출결', last.attend?PR_ATT[last.attend]||last.attend:'–', lsTone(last.attend))}${test}${cell('숙제', hw||'–', lsTone(hw))}</div>
+    ${last.content||last.next_hw?`<dl class="pr-dl">${last.content?`<div><dt>수업 내용</dt><dd>${esc(last.content)}</dd></div>`:''}${last.next_hw?`<div><dt>다음 숙제</dt><dd>${esc(last.next_hw)}</dd></div>`:''}</dl>`:''}
+    ${last.attend==='보강필요'?'<p class="note">보강이 남아 있어요. 일정은 선생님이 안내해 드려요.</p>':''}
+    ${m.some(x=>x.attend)?`<div class="pr-sub"><span class="label">출결 · 최근 30일</span><section class="stats"><div class="stat"><b>${c('출석')+c('보강완료')}</b><small>출석</small></div><div class="stat"><b>${c('지각')}</b><small>지각</small></div><div class="stat"><b>${c('결석')+c('보강필요')}</b><small>결석</small></div></section>${c('보강완료')||c('보강필요')?`<p class="note">결석 뒤 보강 ${c('보강완료')}회 완료${c('보강필요')?` · ${c('보강필요')}회 남음`:''}</p>`:''}</div>`:''}
+    ${scored.length>=2?`<div class="pr-sub"><span class="label">확인테스트 점수${oneMax?` · ${lsFmt(scored[0].max)}점 만점`:''}</span><div class="pr-bars" role="img" aria-label="최근 확인테스트 점수: ${scored.map(x=>`${lsShort(x.day)} ${lsFmt(x.score)}점`).join(', ')}">${scored.map(x=>`<span><b>${lsFmt(x.score)}${oneMax?'':'/'+lsFmt(x.max)}</b><i style="height:${Math.max(3,Math.round(+x.score/+x.max*56))}px"></i><small>${lsShort(x.day)}</small></span>`).join('')}</div></div>`:''}
+    ${ls.length>1?`<details class="pr-hist"><summary>지난 수업 ${ls.length-1}회 보기</summary><div class="rows">${ls.slice(1).map(row).join('')}</div></details>`:''}
+  </section>`;
+}
+const vParentBeforeLs = vParent;
+vParent = () => {
+  const html=vParentBeforeLs(), P=S.pv; if(!P||P.status!=='ready'||!P.kids.length) return html;
+  const k=P.kids.find(x=>x.id===P.pick)||P.kids[0], sec=prSection(k), at=html.indexOf('<section class="lead">');
+  // 수업 리포트는 학원비·오늘 수업 다음, 주간 요약(앱 사용) 위
+  return sec&&at>0 ? html.slice(0,at)+sec+html.slice(at) : html;
 };
 
 /* ===== 입학 상담 · 오늘 대시보드 (sql/lessons.sql) =====
